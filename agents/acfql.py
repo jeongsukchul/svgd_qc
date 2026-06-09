@@ -103,8 +103,10 @@ class ACFQLAgent(flax.struct.PyTreeNode):
 
         return actor_loss, {
             'actor_loss': actor_loss,
+            "generated_to_data_mse": jnp.mean((vel - pred) ** 2),
             'bc_flow_loss': bc_flow_loss,
             'distill_loss': distill_loss,
+            'q_loss': q_loss,
         }
 
     @jax.jit
@@ -328,15 +330,15 @@ def get_config():
             discount=0.99,  # Discount factor.
             tau=0.005,  # Target network update rate.
             q_agg='mean',  # Aggregation method for target Q values.
-            alpha=100.0,  # BC coefficient (need to be tuned for each environment).
+            alpha=0.0,  # BC coefficient (need to be tuned for each environment).
             num_qs=2, # critic ensemble size
             flow_steps=10,  # Number of flow steps.
             normalize_q_loss=False,  # Whether to normalize the Q loss.
             encoder=ml_collections.config_dict.placeholder(str),  # Visual encoder name (None, 'impala_small', etc.).
             horizon_length=ml_collections.config_dict.placeholder(int), # will be set
             action_chunking=True,  # False means n-step return
-            actor_type="distill-ddpg",
-            actor_num_samples=32,  # for actor_type="best-of-n" only
+            actor_type="best-of-n",
+            actor_num_samples=16, #32,  # for actor_type="best-of-n" only
             use_fourier_features=False,
             fourier_feature_dim=64,
             weight_decay=0.,

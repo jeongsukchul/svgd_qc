@@ -127,7 +127,7 @@ class MLPResNet(nn.Module):
     dropout_rate: float = None
     use_layer_norm: bool = False
     hidden_dim: int = 256
-    activations: Callable = nn.relu
+    activations: Callable = nn.gelu
     kernel_init_type: Optional[str] = None
 
     @nn.compact

@@ -37,19 +37,129 @@ class CsvLogger:
             self.file.close()
 
 
+def _config_get(config, key, default=None):
+    """Read from ConfigDict/dict-like configs without assuming a concrete type."""
+    if config is None:
+        return default
+    try:
+        return config[key]
+    except (KeyError, TypeError, AttributeError):
+        return getattr(config, key, default)
+
+
+def get_agent_setting_name():
+    """Return the paper-style method name implied by the current agent flags."""
+    try:
+        agent_config = getattr(flags.FLAGS, 'agent', None)
+        horizon_length = getattr(flags.FLAGS, 'horizon_length', None)
+    except Exception:
+        return None
+
+    agent_name = _config_get(agent_config, 'agent_name')
+    action_chunking = _config_get(agent_config, 'action_chunking', True)
+    actor_type = _config_get(agent_config, 'actor_type')
+    if horizon_length is None:
+        horizon_length = _config_get(agent_config, 'horizon_length', 1)
+    horizon_length = 1 if horizon_length is None else int(horizon_length)
+
+    if agent_name == 'acfql':
+        if actor_type == 'best-of-n':
+            if action_chunking and horizon_length > 1:
+                return 'qc'
+            if horizon_length > 1:
+                return 'bfn-n'
+            return 'bfn'
+        if actor_type == 'distill-ddpg':
+            if action_chunking and horizon_length > 1:
+                return 'qc-fql'
+            if horizon_length > 1:
+                return 'fql-n'
+            return 'fql'
+        if actor_type is not None:
+            return f'{agent_name}-{actor_type}'
+        return agent_name
+
+    if agent_name == 'acrlpd':
+        bc_alpha = float(_config_get(agent_config, 'bc_alpha', 0.0))
+        if bc_alpha > 0 and action_chunking and horizon_length > 1:
+            return 'qc-rlpd'
+        if action_chunking and horizon_length > 1:
+            return 'rlpd-ac'
+        return 'rlpd'
+
+    if agent_name == 'mfp':
+        if not action_chunking and horizon_length > 1:
+            return 'mfp-n'
+        return 'mfp'
+
+    if agent_name == 'svgd':
+        score_gain = _config_get(agent_config, 'score_gain', 0)
+        eps = _config_get(agent_config, 'epsilon', 1e-5)
+        bdw = _config_get(agent_config, 'bandwidth', 0.05)
+        return f'svgd_sc={score_gain}_eps={eps}_bdw={bdw}'
+
+    return agent_name
+
+
+def get_action_chunking_setting_name():
+    """Return an explicit action-chunking/horizon suffix for experiment names."""
+    try:
+        agent_config = getattr(flags.FLAGS, 'agent', None)
+        horizon_length = getattr(flags.FLAGS, 'horizon_length', None)
+    except Exception:
+        return None
+
+    action_chunking = bool(_config_get(agent_config, 'action_chunking', True))
+    if horizon_length is None:
+        horizon_length = _config_get(agent_config, 'horizon_length', 1)
+    horizon_length = 1 if horizon_length is None else int(horizon_length)
+
+    chunk_name = 'chunk' if action_chunking else 'nstep'
+    return f'{chunk_name}-h{horizon_length}'
+
+
+def get_bc_bandwidth_setting_name():
+    """Return the behavior-cloning drift bandwidth suffix when configured."""
+    try:
+        agent_config = getattr(flags.FLAGS, 'agent', None)
+    except Exception:
+        return None
+
+    bc_bandwidth = _config_get(agent_config, 'bc_drift_bandwidth')
+    if bc_bandwidth is None:
+        bc_bandwidth = _config_get(agent_config, 'bc_bandwidth')
+    if bc_bandwidth is None:
+        return None
+
+    try:
+        bc_bandwidth = f'{float(bc_bandwidth):g}'
+    except (TypeError, ValueError):
+        bc_bandwidth = str(bc_bandwidth)
+    return f'bc-bw{bc_bandwidth}'
+
+
 def get_exp_name(seed):
     """Return the experiment name."""
     exp_name = ''
     exp_name += f'sd{seed:03d}'
+    agent_setting = get_agent_setting_name()
+    if agent_setting is not None:
+        exp_name += f'_{agent_setting}'
+    chunk_setting = get_action_chunking_setting_name()
+    if chunk_setting is not None:
+        exp_name += f'_{chunk_setting}'
+    bc_bandwidth_setting = get_bc_bandwidth_setting_name()
+    if bc_bandwidth_setting is not None:
+        exp_name += f'_{bc_bandwidth_setting}'
     if 'SLURM_JOB_ID' in os.environ:
-        exp_name += f's_{os.environ["SLURM_JOB_ID"]}.'
+        exp_name += f'_s{os.environ["SLURM_JOB_ID"]}.'
     if 'SLURM_PROCID' in os.environ:
         exp_name += f'{os.environ["SLURM_PROCID"]}.'
     if 'SLURM_ARRAY_JOB_ID' in os.environ:
         exp_name += f'{os.environ["SLURM_ARRAY_JOB_ID"]}.'
     if 'SLURM_ARRAY_TASK_ID' in os.environ:
         exp_name += f'{os.environ["SLURM_ARRAY_TASK_ID"]}.'
-    exp_name += f'{datetime.now().strftime("%Y%m%d_%H%M%S")}'
+    exp_name += f'_{datetime.now().strftime("%Y%m%d_%H%M%S")}'
 
     return exp_name
 

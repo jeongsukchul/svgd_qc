@@ -1,7 +1,8 @@
 import glob, tqdm, wandb, os, json, random, time, jax
+os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 from absl import app, flags
 from ml_collections import config_flags
-from log_utils import setup_wandb, get_exp_name, get_flag_dict, CsvLogger
+from log_utils import setup_wandb, get_exp_name, get_flag_dict, CsvLogger, get_wandb_video
 
 from envs.env_utils import make_env_and_datasets
 from envs.ogbench_utils import make_ogbench_env_and_datasets
@@ -37,8 +38,8 @@ flags.DEFINE_integer('utd_ratio', 1, "update to data ratio")
 
 flags.DEFINE_float('discount', 0.99, 'discount factor')
 
-flags.DEFINE_integer('eval_episodes', 50, 'Number of evaluation episodes.')
-flags.DEFINE_integer('video_episodes', 0, 'Number of video episodes for each task.')
+flags.DEFINE_integer('eval_episodes', 40, 'Number of evaluation episodes.')
+flags.DEFINE_integer('video_episodes', 10, 'Number of video episodes for each task.')
 flags.DEFINE_integer('video_frame_skip', 3, 'Frame skip for videos.')
 
 config_flags.DEFINE_config_file('agent', 'agents/acfql.py', lock_config=False)
@@ -64,9 +65,54 @@ class LoggingHelper:
         self.csv_loggers[prefix].log(data, step=step)
         self.wandb_logger.log({f'{prefix}/{k}': v for k, v in data.items()}, step=step)
 
+def get_eval_success_postfix(eval_info):
+    """Return a tqdm postfix showing eval success rate when the env reports one."""
+    preferred_keys = (
+        "success",
+        "success_rate",
+        "episode.success",
+        "task_success",
+        "is_success",
+    )
+    success_key = None
+    for key in preferred_keys:
+        if key in eval_info:
+            success_key = key
+            break
+    if success_key is None:
+        for key in eval_info:
+            if "success" in key.lower():
+                success_key = key
+                break
+    if success_key is None:
+        return None
+
+    value = eval_info[success_key]
+    try:
+        value = f"{float(np.asarray(value)):.3f}"
+    except (TypeError, ValueError):
+        value = str(value)
+    return {"eval_success": value}
+
+def add_eval_video(eval_info, renders, fps=15):
+    """Attach rendered eval videos to the eval log payload when available."""
+    if len(renders) == 0:
+        return eval_info
+    renders = [render for render in renders if len(render) > 0]
+    if len(renders) == 0:
+        return eval_info
+
+    eval_info["video"] = get_wandb_video(renders=renders, fps=fps)
+    return eval_info
+
+def set_agent_online_learning(agent, online_learning):
+    if "online_learning" not in agent.config:
+        return agent
+    return agent.replace(config=agent.config.copy({"online_learning": online_learning}))
+
 def main(_):
     exp_name = get_exp_name(FLAGS.seed)
-    run = setup_wandb(project='qc', group=FLAGS.run_group, name=exp_name)
+    run = setup_wandb(project='qc-drift', group=FLAGS.run_group, name=exp_name)
     
     FLAGS.save_dir = os.path.join(FLAGS.save_dir, wandb.run.project, FLAGS.run_group, FLAGS.env_name, exp_name)
     os.makedirs(FLAGS.save_dir, exist_ok=True)
@@ -160,8 +206,10 @@ def main(_):
     )
 
     offline_init_time = time.time()
+    agent = set_agent_online_learning(agent, False)
     # Offline RL
-    for i in tqdm.tqdm(range(1, FLAGS.offline_steps + 1)):
+    offline_pbar = tqdm.tqdm(range(1, FLAGS.offline_steps + 1), desc="offline")
+    for i in offline_pbar:
         log_step += 1
 
         if FLAGS.ogbench_dataset_dir is not None and FLAGS.dataset_replace_interval != 0 and i % FLAGS.dataset_replace_interval == 0:
@@ -191,7 +239,7 @@ def main(_):
         if i == FLAGS.offline_steps - 1 or \
             (FLAGS.eval_interval != 0 and i % FLAGS.eval_interval == 0):
             # during eval, the action chunk is executed fully
-            eval_info, _, _ = evaluate(
+            eval_info, _, renders = evaluate(
                 agent=agent,
                 env=eval_env,
                 action_dim=example_batch["actions"].shape[-1],
@@ -199,7 +247,14 @@ def main(_):
                 num_video_episodes=FLAGS.video_episodes,
                 video_frame_skip=FLAGS.video_frame_skip,
             )
+            eval_info = add_eval_video(eval_info, renders)
             logger.log(eval_info, "eval", step=log_step)
+            eval_postfix = get_eval_success_postfix(eval_info)
+            if eval_postfix is not None:
+                offline_pbar.set_postfix(eval_postfix, refresh=True)
+
+    if FLAGS.offline_steps > 0:
+        save_agent(agent, FLAGS.save_dir, "offline")
 
     # transition from offline to online
     replay_buffer = ReplayBuffer.create_from_initial_dataset(
@@ -212,12 +267,14 @@ def main(_):
     action_dim = example_batch["actions"].shape[-1]
 
     # Online RL
+    agent = set_agent_online_learning(agent, True)
     update_info = {}
 
     from collections import defaultdict
     data = defaultdict(list)
     online_init_time = time.time()
-    for i in tqdm.tqdm(range(1, FLAGS.online_steps + 1)):
+    online_pbar = tqdm.tqdm(range(1, FLAGS.online_steps + 1), desc="online")
+    for i in online_pbar:
         log_step += 1
         online_rng, key = jax.random.split(online_rng)
         
@@ -295,7 +352,7 @@ def main(_):
 
         if i == FLAGS.online_steps - 1 or \
             (FLAGS.eval_interval != 0 and i % FLAGS.eval_interval == 0):
-            eval_info, _, _ = evaluate(
+            eval_info, _, renders = evaluate(
                 agent=agent,
                 env=eval_env,
                 action_dim=action_dim,
@@ -303,7 +360,11 @@ def main(_):
                 num_video_episodes=FLAGS.video_episodes,
                 video_frame_skip=FLAGS.video_frame_skip,
             )
+            eval_info = add_eval_video(eval_info, renders)
             logger.log(eval_info, "eval", step=log_step)
+            eval_postfix = get_eval_success_postfix(eval_info)
+            if eval_postfix is not None:
+                online_pbar.set_postfix(eval_postfix, refresh=True)
 
         # saving
         if FLAGS.save_interval > 0 and i % FLAGS.save_interval == 0:
