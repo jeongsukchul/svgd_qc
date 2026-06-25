@@ -9,6 +9,14 @@ from gymnasium.spaces import Box
 
 from utils.datasets import Dataset
 
+ROBOMIMIC_ENABLED = False
+ROBOMIMIC_TASK_PREFIXES = ("lift", "can", "square", "transport", "tool_hang")
+
+
+def is_robomimic_env_name(env_name):
+    """Return whether the env name targets a RoboMimic task."""
+    return env_name.startswith(ROBOMIMIC_TASK_PREFIXES)
+
 
 class EpisodeMonitor(gymnasium.Wrapper):
     """Environment wrapper to monitor episode statistics."""
@@ -125,9 +133,13 @@ def make_env_and_datasets(env_name, frame_stack=None, action_clip_eps=1e-5):
         eval_env = d4rl_utils.make_env(env_name)
         dataset = d4rl_utils.get_dataset(env, env_name)
         train_dataset, val_dataset = dataset, None
-    elif env_name.startswith("lift") or env_name.startswith("can") or env_name.startswith("square") or \
-        env_name.startswith("transport") or env_name.startswith("tool_hang"):
+    elif is_robomimic_env_name(env_name):
         # RoboMimic.
+        if not ROBOMIMIC_ENABLED:
+            raise ValueError(
+                f"Robomimic environments are currently disabled: {env_name}. "
+                "Re-enable ROBOMIMIC_ENABLED in envs/env_utils.py to use them again."
+            )
         from envs import robomimic_utils
 
         env = robomimic_utils.make_env(env_name, seed=0)

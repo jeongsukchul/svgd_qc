@@ -138,9 +138,11 @@ def get_bc_bandwidth_setting_name():
     return f'bc-bw{bc_bandwidth}'
 
 
-def get_exp_name(seed):
+def get_exp_name(seed, env_name=None):
     """Return the experiment name."""
     exp_name = ''
+    if env_name:
+        exp_name += f'{env_name}_'
     exp_name += f'sd{seed:03d}'
     agent_setting = get_agent_setting_name()
     if agent_setting is not None:

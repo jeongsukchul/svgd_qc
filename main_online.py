@@ -3,11 +3,10 @@ from absl import app, flags
 from ml_collections import config_flags
 from log_utils import setup_wandb, get_exp_name, get_flag_dict, CsvLogger
 
-from envs.env_utils import make_env_and_datasets
+from envs.env_utils import is_robomimic_env_name, make_env_and_datasets
 from envs.ogbench_utils import make_ogbench_env_and_datasets
-from envs.robomimic_utils import is_robomimic_env
 
-from utils.flax_utils import save_agent
+from utils.flax_utils import save_agent, save_critic
 from utils.datasets import Dataset, ReplayBuffer
 
 from evaluation import evaluate
@@ -64,8 +63,13 @@ class LoggingHelper:
         self.csv_loggers[prefix].log(data, step=step)
         self.wandb_logger.log({f'{prefix}/{k}': v for k, v in data.items()}, step=step)
 
+
+def save_checkpoints(agent, save_dir, epoch):
+    save_agent(agent, save_dir, epoch)
+    save_critic(agent, save_dir, epoch)
+
 def main(_):
-    exp_name = get_exp_name(FLAGS.seed)
+    exp_name = get_exp_name(FLAGS.seed, env_name=FLAGS.env_name)
     run = setup_wandb(project='qc', group=FLAGS.run_group, name=exp_name)
     
     FLAGS.save_dir = os.path.join(FLAGS.save_dir, wandb.run.project, FLAGS.run_group, FLAGS.env_name, exp_name)
@@ -120,7 +124,7 @@ def main(_):
                 **{k: v[:new_size] for k, v in ds.items()}
             )
         
-        if is_robomimic_env(FLAGS.env_name):
+        if is_robomimic_env_name(FLAGS.env_name):
             penalty_rewards = ds["rewards"] - 1.0
             ds_dict = {k: v for k, v in ds.items()}
             ds_dict["rewards"] = penalty_rewards
@@ -212,7 +216,7 @@ def main(_):
         ):
             # Adjust reward for D4RL antmaze.
             int_reward = int_reward - 1.0
-        elif is_robomimic_env(FLAGS.env_name):
+        elif is_robomimic_env_name(FLAGS.env_name):
             # Adjust online (0, 1) reward for robomimic
             int_reward = int_reward - 1.0
 
@@ -269,7 +273,7 @@ def main(_):
 
         # saving
         if FLAGS.save_interval > 0 and i % FLAGS.save_interval == 0:
-            save_agent(agent, FLAGS.save_dir, log_step)
+            save_checkpoints(agent, FLAGS.save_dir, log_step)
 
         if FLAGS.ogbench_dataset_dir is not None and FLAGS.dataset_replace_interval != 0 and i % FLAGS.dataset_replace_interval == 0:
             dataset_idx = (dataset_idx + 1) % len(dataset_paths)

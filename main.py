@@ -4,11 +4,10 @@ from absl import app, flags
 from ml_collections import config_flags
 from log_utils import setup_wandb, get_exp_name, get_flag_dict, CsvLogger, get_wandb_video
 
-from envs.env_utils import make_env_and_datasets
+from envs.env_utils import is_robomimic_env_name, make_env_and_datasets
 from envs.ogbench_utils import make_ogbench_env_and_datasets
-from envs.robomimic_utils import is_robomimic_env
 
-from utils.flax_utils import save_agent
+from utils.flax_utils import save_agent, save_critic
 from utils.datasets import Dataset, ReplayBuffer
 
 from evaluation import evaluate
@@ -31,7 +30,7 @@ flags.DEFINE_integer('online_steps', 1000000, 'Number of online steps.')
 flags.DEFINE_integer('buffer_size', 2000000, 'Replay buffer size.')
 flags.DEFINE_integer('log_interval', 5000, 'Logging interval.')
 flags.DEFINE_integer('eval_interval', 100000, 'Evaluation interval.')
-flags.DEFINE_integer('save_interval', -1, 'Save interval.')
+flags.DEFINE_integer('save_interval',  500000, 'Save interval.')
 flags.DEFINE_integer('start_training', 5000, 'when does training start')
 
 flags.DEFINE_integer('utd_ratio', 1, "update to data ratio")
@@ -48,11 +47,10 @@ flags.DEFINE_float('dataset_proportion', 1.0, "Proportion of the dataset to use"
 flags.DEFINE_integer('dataset_replace_interval', 1000, 'Dataset replace interval, used for large datasets because of memory constraints')
 flags.DEFINE_string('ogbench_dataset_dir', None, 'OGBench dataset directory')
 
-flags.DEFINE_integer('horizon_length', 5, 'action chunking length.')
+flags.DEFINE_integer('horizon_length', 1, 'action chunking length.')
 flags.DEFINE_bool('sparse', False, "make the task sparse reward")
 
 flags.DEFINE_bool('save_all_online_states', False, "save all trajectories to npy")
-
 class LoggingHelper:
     def __init__(self, csv_loggers, wandb_logger):
         self.csv_loggers = csv_loggers
@@ -110,9 +108,14 @@ def set_agent_online_learning(agent, online_learning):
         return agent
     return agent.replace(config=agent.config.copy({"online_learning": online_learning}))
 
+
+def save_checkpoints(agent, save_dir, epoch):
+    save_agent(agent, save_dir, epoch)
+    save_critic(agent, save_dir, epoch)
+
 def main(_):
-    exp_name = get_exp_name(FLAGS.seed)
-    run = setup_wandb(project='qc-drift', group=FLAGS.run_group, name=exp_name)
+    exp_name = get_exp_name(FLAGS.seed, env_name=FLAGS.env_name)
+    run = setup_wandb(project='svgd-qc', group=FLAGS.run_group, name=exp_name, entity="tjrcjf410-seoul-national-university")
     
     FLAGS.save_dir = os.path.join(FLAGS.save_dir, wandb.run.project, FLAGS.run_group, FLAGS.env_name, exp_name)
     os.makedirs(FLAGS.save_dir, exist_ok=True)
@@ -166,7 +169,7 @@ def main(_):
                 **{k: v[:new_size] for k, v in ds.items()}
             )
         
-        if is_robomimic_env(FLAGS.env_name):
+        if is_robomimic_env_name(FLAGS.env_name):
             penalty_rewards = ds["rewards"] - 1.0
             ds_dict = {k: v for k, v in ds.items()}
             ds_dict["rewards"] = penalty_rewards
@@ -233,7 +236,7 @@ def main(_):
         
         # saving
         if FLAGS.save_interval > 0 and i % FLAGS.save_interval == 0:
-            save_agent(agent, FLAGS.save_dir, log_step)
+            save_checkpoints(agent, FLAGS.save_dir, log_step)
 
         # eval
         if i == FLAGS.offline_steps - 1 or \
@@ -254,7 +257,7 @@ def main(_):
                 offline_pbar.set_postfix(eval_postfix, refresh=True)
 
     if FLAGS.offline_steps > 0:
-        save_agent(agent, FLAGS.save_dir, "offline")
+        save_checkpoints(agent, FLAGS.save_dir, "offline")
 
     # transition from offline to online
     replay_buffer = ReplayBuffer.create_from_initial_dataset(
@@ -312,7 +315,7 @@ def main(_):
         ):
             # Adjust reward for D4RL antmaze.
             int_reward = int_reward - 1.0
-        elif is_robomimic_env(FLAGS.env_name):
+        elif is_robomimic_env_name(FLAGS.env_name):
             # Adjust online (0, 1) reward for robomimic
             int_reward = int_reward - 1.0
 
@@ -368,7 +371,7 @@ def main(_):
 
         # saving
         if FLAGS.save_interval > 0 and i % FLAGS.save_interval == 0:
-            save_agent(agent, FLAGS.save_dir, log_step)
+            save_checkpoints(agent, FLAGS.save_dir, log_step)
 
     end_time = time.time()
 

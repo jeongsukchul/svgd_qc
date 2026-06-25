@@ -23,6 +23,7 @@ def drift_loss(
     R_list=(0.02, 0.05, 0.2),
     plus_only=False,
     use_neg_only=False,
+    score=None,
 ):
     """
     Drift loss for guided policy learning.
@@ -136,12 +137,18 @@ def drift_loss(
             
             attraction_term = (r_coeff_pos[..., None] * (targets_scaled[:, None, split_idx:, :] - old_gen_scaled[:, :, None, :])).sum(axis=-2)
             repulsion_term = (r_coeff_neg[..., None] * (old_gen_scaled[:, None, :, :] - old_gen_scaled[:, :, None, :])).sum(axis=-2)
-            info[f"attraction_norm"] = (attraction_term ** 2).mean() / force_scale
-            info[f"repulsion_norm"] = (repulsion_term ** 2).mean() / force_scale
+            if score is not None:
+                score_term = jnp.einsum("bij,bjk->bik", -r_coeff_neg, score)
+            else:
+                score_term = 0.
+            #aff_neg [B, C_g, C_n]
+            info[f"attraction_norm"] = (attraction_term ** 2).mean()  / force_scale
+            info[f"repulsion_norm"] = (repulsion_term ** 2).mean()  / force_scale
+            info[f"score_norm"] = (score_term ** 2).mean() if score is not None else 0.0
             info[f"diff_from_theory"] = ((total_force_R - (attraction_term + repulsion_term)) ** 2).mean()
             info[f"drift_norm"] = f_norm_val
             info[f"loss_{R}"] = f_norm_val
-            force_across_R = force_across_R + total_force_R / force_scale
+            force_across_R = force_across_R + total_force_R / force_scale + score_term
 
         goal_scaled = old_gen_scaled + force_across_R
         return goal_scaled, scale_inputs, info

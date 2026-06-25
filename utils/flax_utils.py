@@ -178,16 +178,124 @@ def save_agent(agent, save_dir, epoch):
     print(f'Saved to {save_path}')
 
 
+def save_modules(agent, save_dir, epoch, module_names, file_prefix):
+    """Save selected network modules to a dedicated checkpoint file."""
+    module_params = {}
+    for module_name in module_names:
+        key = f"modules_{module_name}"
+        if key not in agent.network.params:
+            continue
+        module_params[module_name] = flax.serialization.to_state_dict(
+            agent.network.params[key]
+        )
+
+    assert module_params, f"No requested modules found to save: {module_names}"
+
+    save_dict = dict(modules=module_params)
+    save_path = os.path.join(save_dir, f"{file_prefix}_{epoch}.pkl")
+    with open(save_path, "wb") as f:
+        pickle.dump(save_dict, f)
+
+    print(f"Saved modules {tuple(module_params.keys())} to {save_path}")
+
+
+def save_critic(agent, save_dir, epoch):
+    """Save critic-related modules to a dedicated checkpoint file."""
+    save_modules(
+        agent,
+        save_dir,
+        epoch,
+        module_names=("critic", "target_critic"),
+        file_prefix="critic",
+    )
+
+
+def _resolve_restore_file(file_path):
+    """Resolve a checkpoint path from a file, directory, glob, or run name."""
+    candidates = glob.glob(file_path)
+    if len(candidates) == 0 and not os.path.isabs(file_path):
+        candidates = glob.glob(os.path.join("**", file_path), recursive=True)
+
+    assert len(candidates) == 1, f'Found {len(candidates)} candidates: {candidates}'
+
+    restore_path = candidates[0]
+    if os.path.isdir(restore_path):
+        restore_path = os.path.join(restore_path, 'params_offline.pkl')
+
+    assert os.path.exists(restore_path), f'File {restore_path} does not exist'
+    return restore_path
+
+
+def restore_partial_modules(agent, file_path, module_names):
+    """Restore selected module params from another checkpoint into `agent`."""
+    restore_path = _resolve_restore_file(file_path)
+    with open(restore_path, 'rb') as f:
+        load_dict = pickle.load(f)
+
+    if 'agent' in load_dict:
+        src_params = load_dict['agent']['network']['params']
+    elif 'modules' in load_dict:
+        src_params = {
+            f'modules_{module_name}': module_params
+            for module_name, module_params in load_dict['modules'].items()
+        }
+    else:
+        raise KeyError(
+            f"Unsupported checkpoint format in {restore_path}; "
+            "expected either 'agent' or 'modules' at top level."
+        )
+
+    orig_params = agent.network.params
+    dst_params = flax.core.unfreeze(orig_params)
+    flat_src = flax.traverse_util.flatten_dict(src_params, keep_empty_nodes=True)
+    flat_dst = flax.traverse_util.flatten_dict(dst_params, keep_empty_nodes=True)
+
+    restored = []
+    restored_leaves = 0
+    for module_name in module_names:
+        key = f'modules_{module_name}'
+        module_restored = False
+        prefix = (key,)
+        for path, src_value in flat_src.items():
+            if path[:1] != prefix or path not in flat_dst:
+                continue
+
+            dst_value = flat_dst[path]
+            src_shape = getattr(src_value, 'shape', None)
+            dst_shape = getattr(dst_value, 'shape', None)
+            if src_shape is not None and dst_shape is not None and src_shape != dst_shape:
+                continue
+
+            flat_dst[path] = src_value
+            module_restored = True
+            restored_leaves += 1
+
+        if module_restored:
+            restored.append(module_name)
+
+    assert restored, f'None of the requested modules were found in {restore_path}: {module_names}'
+
+    dst_params = flax.traverse_util.unflatten_dict(flat_dst)
+    if isinstance(orig_params, flax.core.FrozenDict):
+        new_params = flax.core.freeze(dst_params)
+    else:
+        new_params = dst_params
+    new_opt_state = agent.network.tx.init(new_params)
+    new_network = agent.network.replace(params=new_params, opt_state=new_opt_state)
+    print(f"Restored modules {restored} ({restored_leaves} leaves) from {restore_path}")
+    return agent.replace(network=new_network)
+
+
 def restore_agent_with_file(agent, file_path):
     """Just like restore_agent() but expect file_path to include restore_epoch
     """
-    assert os.path.exists(file_path), f'File {file_path} does not exist'
-    with open(file_path, 'rb') as f:
+    restore_path = _resolve_restore_file(file_path)
+    with open(restore_path, 'rb') as f:
         load_dict = pickle.load(f)
 
     agent = flax.serialization.from_state_dict(agent, load_dict['agent'])
 
-    print(f'Restored from {file_path}')
+    print(f'Restored from {restore_path}')
 
     return agent
 

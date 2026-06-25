@@ -132,7 +132,7 @@ class ACFQLAgent(flax.struct.PyTreeNode):
         """Update the target network."""
         new_target_params = jax.tree_util.tree_map(
             lambda p, tp: p * self.config['tau'] + tp * (1 - self.config['tau']),
-            self.network.params[f'modules_{module_name}'],
+            network.params[f'modules_{module_name}'],
             self.network.params[f'modules_target_{module_name}'],
         )
         network.params[f'modules_target_{module_name}'] = new_target_params
@@ -201,7 +201,8 @@ class ACFQLAgent(flax.struct.PyTreeNode):
             bshape = indices.shape
             indices = indices.reshape(-1)
             bsize = len(indices)
-            actions = jnp.reshape(actions, (-1, self.config["actor_num_samples"], action_dim))[jnp.arange(bsize), indices, :].reshape(
+            actions = jnp.reshape(actions, (-1, self.config["actor_num_samples"], \
+                action_dim))[jnp.arange(bsize), indices, :].reshape(
                 bshape + (action_dim,))
 
         return actions
@@ -336,8 +337,8 @@ def get_config():
             normalize_q_loss=False,  # Whether to normalize the Q loss.
             encoder=ml_collections.config_dict.placeholder(str),  # Visual encoder name (None, 'impala_small', etc.).
             horizon_length=ml_collections.config_dict.placeholder(int), # will be set
-            action_chunking=True,  # False means n-step return
-            actor_type="best-of-n",
+            action_chunking=False,  # False means n-step return
+            actor_type="distill-ddpg",
             actor_num_samples=16, #32,  # for actor_type="best-of-n" only
             use_fourier_features=False,
             fourier_feature_dim=64,
