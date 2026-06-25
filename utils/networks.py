@@ -4,6 +4,12 @@ from typing import Any, Optional, Sequence, Type
 import distrax
 import flax.linen as nn
 import jax.numpy as jnp
+import tensorflow_probability
+
+
+tfp = tensorflow_probability.substrates.jax
+tfd = tfp.distributions
+tfb = tfp.bijectors
 
 
 def default_init(scale=1.0):
@@ -99,6 +105,24 @@ class TransformedWithMode(distrax.Transformed):
         return self.bijector.forward(self.distribution.mode())
 
 
+class TanhTransformedDistribution(tfd.TransformedDistribution):
+    def __init__(self, distribution, validate_args: bool = False):
+        super().__init__(
+            distribution=distribution,
+            bijector=tfb.Tanh(),
+            validate_args=validate_args,
+        )
+
+    def mode(self):
+        return self.bijector.forward(self.distribution.mode())
+
+    @classmethod
+    def _parameter_properties(cls, dtype: Optional[Any], num_classes=None):
+        td_properties = super()._parameter_properties(dtype, num_classes=num_classes)
+        del td_properties["bijector"]
+        return td_properties
+
+
 class Normal(nn.Module):
     """Gaussian policy head built on top of an arbitrary base network."""
 
@@ -106,6 +130,8 @@ class Normal(nn.Module):
     action_dim: int
     log_std_min: Optional[float] = -20
     log_std_max: Optional[float] = 2
+    learnable_log_std_multiplier: Optional[float] = None
+    learnable_log_std_offset: Optional[float] = None
     state_dependent_std: bool = True
     squash_tanh: bool = False
     fixed_log_std: Optional[float] = None
@@ -133,21 +159,34 @@ class Normal(nn.Module):
                 "OutputLogStd",
                 nn.initializers.zeros,
                 (self.action_dim,),
+                jnp.float32,
+            )
+
+        if self.learnable_log_std_multiplier is not None:
+            log_stds *= self.param(
+                "LogStdMul",
+                nn.initializers.constant(self.learnable_log_std_multiplier),
+                (),
+                jnp.float32,
+            )
+        if self.learnable_log_std_offset is not None:
+            log_stds += self.param(
+                "LogStdOffset",
+                nn.initializers.constant(self.learnable_log_std_offset),
+                (),
+                jnp.float32,
             )
 
         log_stds = jnp.clip(log_stds, self.log_std_min, self.log_std_max)
         if self.fixed_log_std is not None:
             log_stds = jnp.ones_like(log_stds) * self.fixed_log_std
 
-        distribution = distrax.MultivariateNormalDiag(
+        distribution = tfd.MultivariateNormalDiag(
             loc=means,
             scale_diag=jnp.exp(log_stds),
         )
         if self.squash_tanh:
-            return TransformedWithMode(
-                distribution,
-                distrax.Block(distrax.Tanh(), ndims=1),
-            )
+            return TanhTransformedDistribution(distribution)
         return distribution
 
 

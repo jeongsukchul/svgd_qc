@@ -144,7 +144,7 @@ class STDFPAgent(flax.struct.PyTreeNode):
         )
         raw_noises = dist.sample(seed=actor_rng)
         log_probs = dist.log_prob(raw_noises)
-        noises = self._safe_clip(raw_noises) * self.config["noise_scale"]
+        noises = raw_noises * self.config["noise_scale"]
 
         noise_qs = self.network.select("noise_critic")(
             batch["observations"],
@@ -402,7 +402,7 @@ def get_config():
             drift_temps=[0.1],
             gen_per_label=8,
             noise_scale=1.0,
-            use_target_latent=True,
+            use_target_latent=False,
             noise_target_entropy=ml_collections.config_dict.placeholder(float),
             noise_target_entropy_multiplier=0.5,
             noise_init_temp=1.0,

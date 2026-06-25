@@ -438,7 +438,7 @@ def get_config():
 
             ## RL hyperparameters
             num_qs=2,      # Critic ensemble size
-            rho=0.,        # Pessimistic backup
+            rho=0.5,        # Pessimistic backup
 
             discount=0.995,  # Discount factor.
             tau=0.005,      # Target network update rate.
