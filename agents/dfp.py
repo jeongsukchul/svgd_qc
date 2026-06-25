@@ -52,6 +52,16 @@ class DFPAgent(flax.struct.PyTreeNode):
         if n <= 0:
             n = self.config["actor_num_samples"]
         return n
+
+    def _aggregate_q(self, qs):
+        mode = self.config["q_agg"]
+        if mode == "min":
+            return qs.min(axis=0)
+        if mode == "mean":
+            return qs.mean(axis=0)
+        if mode == "pessimistic":
+            return qs.mean(axis=0) - self.config["rho"] * qs.std(axis=0)
+        raise ValueError(f"Unsupported q_agg: {mode}")
     # def critic_loss(self, batch, grad_params, rng):
     #     if self.config["action_chunking"]:
     #         batch_actions = jnp.reshape(batch["actions"], (batch["actions"].shape[0], -1))
@@ -97,10 +107,7 @@ class DFPAgent(flax.struct.PyTreeNode):
         next_actions = self.sample_actions(next_obs, sample_rng, use_q_bon=True)
 
         next_qs = self.network.select("target_critic")(next_obs, actions=next_actions)
-        if self.config["q_agg"] == "min":
-            next_q = next_qs.min(axis=0)
-        else:
-            next_q = next_qs.mean(axis=0)
+        next_q = self._aggregate_q(next_qs)
 
         target_q = batch["rewards"][..., -1] + (
             self.config["discount"] ** self.config["horizon_length"]
@@ -154,13 +161,11 @@ class DFPAgent(flax.struct.PyTreeNode):
         qs_all = self.network.select("critic")(
             obs_repeated, actions=drift_actions_all
         )
-        q_all = getattr(jnp, self.config["q_agg"])(qs_all, axis=0).reshape(
-            batch_size, gen_per_label
-        )
-        if self.config["q_agg"] == "mean":
-            q_fn = lambda x: self.network.select("critic")(obs_repeated, x).mean(axis=0).mean()
-        else:
-            q_fn = lambda x: self.network.select("critic")(obs_repeated, x).min(axis=0).mean()
+        q_all = self._aggregate_q(qs_all).reshape(batch_size, gen_per_label)
+
+        def q_fn(x):
+            return self._aggregate_q(self.network.select("critic")(obs_repeated, x)).mean()
+
         score = jax.grad(q_fn)(drift_actions_all) * self.config.get("q_score_coeff", 0.0)
         score = score.reshape(batch_size, gen_per_label, action_dim)
         q_loss = -q_all.mean()
@@ -305,9 +310,7 @@ class DFPAgent(flax.struct.PyTreeNode):
         )  # [B, N, D]
 
         qs_sel = self.network.select("critic")(obs_rep_N, actions=sel_acts)
-        q_sel = getattr(jnp, self.config["q_agg"])(qs_sel, axis=0).reshape(
-            batch_size, N
-        )
+        q_sel = self._aggregate_q(qs_sel).reshape(batch_size, N)
         cand_qs = jax.lax.stop_gradient(q_sel)  # [B, N]
 
         sorted_idx = jnp.argsort(cand_qs, axis=-1)
@@ -332,9 +335,7 @@ class DFPAgent(flax.struct.PyTreeNode):
 
         # Q loss on the b fresh samples
         qs_gen = self.network.select("critic")(obs_rep_b, actions=gen_acts)
-        q_gen = getattr(jnp, self.config["q_agg"])(qs_gen, axis=0).reshape(
-            batch_size, b
-        )
+        q_gen = self._aggregate_q(qs_gen).reshape(batch_size, b)
         q_loss = -q_gen.mean()
         lam = jax.lax.stop_gradient(1 / (jnp.abs(q_gen).mean()))
         if self.config["normalize_q_loss"]:
@@ -500,9 +501,7 @@ class DFPAgent(flax.struct.PyTreeNode):
 
     def _score_actions(self, observations, actions):
         qs = self.network.select("critic")(observations, actions)
-        if self.config["q_agg"] == "mean":
-            return qs.mean(axis=0)
-        return qs.min(axis=0)
+        return self._aggregate_q(qs)
 
     def _select_best_bon_action(self, actions, q_values):
         indices = jnp.argmax(q_values, axis=-1)
@@ -656,7 +655,8 @@ def get_config():
             actor_layer_norm=False,
             discount=0.99,
             tau=0.005,
-            q_agg="mean",
+            q_agg="pessimistic",
+            rho=0.5,
             num_qs=2,
             q_score_coeff=1.0,  
             alpha=1.0,

@@ -33,6 +33,19 @@ class SVGDAgent(ACFQLAgent):
     def _use_iql_update(self):
         return self.config.get("update_flag", "td") == "iql"
 
+    def _aggregate_q(self, qs, mode=None):
+        mode = self.config["q_agg"] if mode is None else mode
+        if mode == "min":
+            return qs.min(axis=0)
+        if mode == "mean":
+            return qs.mean(axis=0)
+        if mode == "pessimistic":
+            return qs.mean(axis=0) - self.config["rho"] * qs.std(axis=0)
+        raise ValueError(f"Unsupported q_agg: {mode}")
+
+    def _aggregate_action_q(self, qs):
+        return self._aggregate_q(qs, mode=self.config["action_q_agg"])
+
     def value_loss(self, batch, grad_params):
         """Compute the IQL value loss."""
         batch_actions = self._batch_actions(batch)
@@ -40,7 +53,7 @@ class SVGDAgent(ACFQLAgent):
             batch["observations"],
             actions=batch_actions,
         )
-        q = target_qs.min(axis=0)
+        q = self._aggregate_q(target_qs)
         v = self.network.select("value")(batch["observations"], params=grad_params)
         valid = batch["valid"][..., -1] if "valid" in batch else jnp.ones_like(v)
         value_loss = (
@@ -63,7 +76,7 @@ class SVGDAgent(ACFQLAgent):
         next_actions = self.sample_actions(batch['next_observations'][..., -1, :], rng=rng, use_q_bfn=True)
         next_actions = jnp.clip(next_actions, -1, 1)
         next_qs = self.network.select('target_critic')(batch['next_observations'][..., -1, :], next_actions)
-        next_q = next_qs.mean(axis=0) - self.config["rho"] * next_qs.std(axis=0)
+        next_q = self._aggregate_q(next_qs)
 
         target_q = batch['rewards'][..., -1] + \
             (self.config['discount'] ** self.config["horizon_length"]) * batch['masks'][..., -1] * next_q
@@ -201,10 +214,7 @@ class SVGDAgent(ACFQLAgent):
             critic_observations,
             actions=positive_actions.reshape(batch_size * candidate_samples, actor_action_dim),
         )
-        if self.config["action_q_agg"] == "mean":
-            q_values = qs.mean(axis=0)
-        else:
-            q_values = qs.min(axis=0)
+        q_values = self._aggregate_action_q(qs)
         q_values = q_values.reshape(batch_size, candidate_samples)
         _, topk_idx = jax.lax.top_k(q_values, pos_samples)
         return jnp.take_along_axis(positive_actions, topk_idx[..., None], axis=1)
@@ -442,10 +452,7 @@ class SVGDAgent(ACFQLAgent):
         generated_actions = jnp.clip(generated_actions, -1, 1)
         def q_fn(x):
             q_values = self.network.select("critic")(observations, x)
-            if self.config["action_q_agg"] == "mean":
-                q_values = q_values.mean(axis=0)
-            else:
-                q_values = q_values.min(axis=0)
+            q_values = self._aggregate_action_q(q_values)
             q_values = self._normalize_q_values(q_values)
             return q_values.mean()
 
@@ -456,7 +463,9 @@ class SVGDAgent(ACFQLAgent):
             noises,
         )
         old_actions = jnp.clip(old_actions, -1, 1)
-        q_value_old = self.network.select("critic")(observations, old_actions).mean(axis=0)
+        q_value_old = self._aggregate_action_q(
+            self.network.select("critic")(observations, old_actions)
+        )
         q_value_old = self._normalize_q_values(q_value_old)
         sinkhorn_loss, sinkhorn_info = self._sinkhorn_loss(
             query_actions=generated_actions,            # [D, Q, A] or [D, Q, H * A]
@@ -595,10 +604,7 @@ class SVGDAgent(ACFQLAgent):
             actions = self._apply_actor(observations, noises)
             actions = jnp.clip(actions, -1, 1)
 
-            if self.config["q_agg"] == "mean":
-                q = self.network.select("critic")(observations, actions).mean(axis=0)
-            else:
-                q = self.network.select("critic")(observations, actions).min(axis=0)
+            q = self._aggregate_q(self.network.select("critic")(observations, actions))
             indices = jnp.argmax(q, axis=-1)
 
             bshape = indices.shape
@@ -737,8 +743,8 @@ def get_config():
             layer_norm=True,
             actor_layer_norm=False,
             discount=0.99,
-            q_agg="mean",
-            action_q_agg="mean",
+            q_agg="pessimistic",
+            action_q_agg="pessimistic",
             num_qs=2,
             rho=0.5,
             epsilon=0.1,

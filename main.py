@@ -119,12 +119,15 @@ def main(_):
     
     FLAGS.save_dir = os.path.join(FLAGS.save_dir, wandb.run.project, FLAGS.run_group, FLAGS.env_name, exp_name)
     os.makedirs(FLAGS.save_dir, exist_ok=True)
+
+    config = FLAGS.agent
+    config["discount"] = FLAGS.discount
+    config["horizon_length"] = FLAGS.horizon_length
+
     flag_dict = get_flag_dict()
 
     with open(os.path.join(FLAGS.save_dir, 'flags.json'), 'w') as f:
         json.dump(flag_dict, f)
-
-    config = FLAGS.agent
     
     # data loading
     if FLAGS.ogbench_dataset_dir is not None:
@@ -151,7 +154,6 @@ def main(_):
     log_step = 0
     
     discount = FLAGS.discount
-    config["horizon_length"] = FLAGS.horizon_length
 
     # handle dataset
     def process_train_dataset(ds):

@@ -1,0 +1,412 @@
+"""
+Stochastic distilled Drift Field Policy.
+
+- Uses DFP's drift loss for the action decoder.
+- Uses DSRL-style critic distillation in the actor-drift noise space.
+- Trains a stochastic policy over that noise space.
+"""
+
+import copy
+from functools import partial
+from typing import Any
+
+import flax
+import jax
+import jax.numpy as jnp
+import ml_collections
+import optax
+
+from utils.drift_loss import drift_loss
+from utils.encoders import encoder_modules
+from utils.flax_utils import ModuleDict, TrainState, nonpytree_field
+from utils.networks import ActorVectorField, LogParam, MLP, TanhNormal, Value
+
+
+class STDFPAgent(flax.struct.PyTreeNode):
+    """DFP actor-drift decoder with DSRL-style noise-space distillation."""
+
+    rng: Any
+    network: Any
+    config: Any = nonpytree_field()
+
+    def _batch_actions(self, batch):
+        if self.config["action_chunking"]:
+            return jnp.reshape(batch["actions"], (batch["actions"].shape[0], -1))
+        return batch["actions"][..., 0, :]
+
+    def _aggregate_q(self, qs):
+        mode = self.config["q_agg"]
+        if mode == "min":
+            return qs.min(axis=0)
+        if mode == "mean":
+            return qs.mean(axis=0)
+        if mode == "pessimistic":
+            return qs.mean(axis=0) - self.config["rho"] * qs.std(axis=0)
+        raise ValueError(f"Unsupported q_agg: {mode}")
+
+    def _safe_clip(self, x, low=-1.0, high=1.0):
+        x = jnp.nan_to_num(x, nan=0.0, posinf=high, neginf=low)
+        return jnp.clip(x, low, high)
+
+    def _masked_action_mse(self, squared_error, batch):
+        if self.config["action_chunking"]:
+            squared_error = jnp.reshape(
+                squared_error,
+                (
+                    squared_error.shape[0],
+                    squared_error.shape[1],
+                    self.config["horizon_length"],
+                    self.config["action_dim"],
+                ),
+            )
+            if "valid" in batch:
+                squared_error = squared_error * batch["valid"][:, None, :, None]
+        return jnp.mean(squared_error)
+
+    def critic_loss(self, batch, grad_params, rng):
+        batch_actions = self._batch_actions(batch)
+
+        rng, sample_rng, noise_rng = jax.random.split(rng, 3)
+        next_obs = batch["next_observations"][..., -1, :]
+        next_actions = self.sample_actions(next_obs, rng=sample_rng)
+        next_actions = self._safe_clip(next_actions)
+
+        next_qs = self.network.select("target_critic")(next_obs, next_actions)
+        next_q = self._aggregate_q(next_qs)
+
+        target_q = batch["rewards"][..., -1] + (
+            self.config["discount"] ** self.config["horizon_length"]
+        ) * batch["masks"][..., -1] * next_q
+
+        q = self.network.select("critic")(
+            batch["observations"],
+            batch_actions,
+            params=grad_params,
+        )
+        valid = batch["valid"][..., -1] if "valid" in batch else jnp.ones_like(target_q)
+        critic_loss = (jnp.square(q - target_q) * valid).mean()
+
+        noises = jax.random.normal(noise_rng, batch_actions.shape)
+        actions = self.sample_drift_actions(batch["observations"], noises)
+        target_qs = self.network.select("critic")(batch["observations"], actions)
+        target_qs = jax.lax.stop_gradient(target_qs)
+        noise_qs = self.network.select("noise_critic")(
+            batch["observations"],
+            noises,
+            params=grad_params,
+        )
+        distill_loss = jnp.mean(jnp.square(noise_qs - target_qs))
+
+        total_loss = critic_loss + distill_loss
+
+        return total_loss, {
+            "total_loss": total_loss,
+            "critic_loss": critic_loss,
+            "distill_loss": distill_loss,
+            "q_mean": q.mean(),
+            "q_max": q.max(),
+            "q_min": q.min(),
+            "tgt_q_mean": next_q.mean(),
+            "noise_q_mean": noise_qs.mean(),
+            "noise_target_q_mean": target_qs.mean(),
+        }
+
+    def actor_loss(self, batch, grad_params, rng):
+        batch_actions = self._batch_actions(batch)
+        batch_size, action_dim = batch_actions.shape
+
+        drift_rng, actor_rng = jax.random.split(rng)
+
+        gen_per_label = self.config["gen_per_label"]
+        obs_repeated = jnp.repeat(batch["observations"], gen_per_label, axis=0)
+        drift_noises = jax.random.normal(
+            drift_rng,
+            (batch_size * gen_per_label, action_dim),
+        )
+        drift_actions = self.network.select("actor_drift")(
+            obs_repeated,
+            drift_noises,
+            params=grad_params,
+        )
+        drift_actions = self._safe_clip(drift_actions)
+        gen_samples = drift_actions.reshape(batch_size, gen_per_label, action_dim)
+
+        drift_loss_val, drift_info = drift_loss(
+            gen=gen_samples,
+            fixed_pos=batch_actions[:, None, :],
+            R_list=tuple(self.config["drift_temps"]),
+        )
+        actor_drift_loss = drift_loss_val.mean()
+
+        dist = self.network.select("noise_actor")(
+            batch["observations"],
+            params=grad_params,
+        )
+        raw_noises = dist.sample(seed=actor_rng)
+        log_probs = dist.log_prob(raw_noises)
+        noises = self._safe_clip(raw_noises) * self.config["noise_scale"]
+
+        noise_qs = self.network.select("noise_critic")(
+            batch["observations"],
+            noises,
+        )
+        noise_q = self._aggregate_q(noise_qs)
+
+        alpha = self.network.select("noise_alpha")()
+        policy_loss = (alpha * log_probs - noise_q).mean()
+
+        alpha = self.network.select("noise_alpha")(params=grad_params)
+        entropy = -jax.lax.stop_gradient(log_probs).mean()
+        alpha_loss = (
+            alpha * (entropy - self.config["noise_target_entropy"])
+        ).mean()
+
+        decoded_actions = self.network.select("actor_drift")(
+            batch["observations"],
+            noises,
+        )
+        decoded_actions = self._safe_clip(decoded_actions)
+
+        total_loss = actor_drift_loss + policy_loss + alpha_loss
+
+        info = {
+            "total_loss": total_loss,
+            "actor_drift_loss": actor_drift_loss,
+            "policy_loss": policy_loss,
+            "alpha_loss": alpha_loss,
+            "alpha": alpha,
+            "entropy": entropy,
+            "q": noise_q.mean(),
+            "noise_abs_mean": jnp.abs(noises).mean(),
+            "noise_std": raw_noises.std(),
+            "decoded_action_mean": decoded_actions.mean(),
+            "drift_scale": drift_info.get("scale", 0.0),
+            "generated_to_data_mse": self._masked_action_mse(
+                jnp.square(gen_samples - batch_actions[:, None, :]),
+                batch,
+            ),
+        }
+        for key, val in drift_info.items():
+            if key.startswith("loss_"):
+                info[f"drift_{key}"] = val
+        info["attraction_norm"] = drift_info.get("attraction_norm", 0.0)
+        info["repulsion_norm"] = drift_info.get("repulsion_norm", 0.0)
+        info["diff_from_theory"] = drift_info.get("diff_from_theory", 0.0)
+        info["drift_norm"] = drift_info.get("drift_norm", 0.0)
+
+        return total_loss, info
+
+    @jax.jit
+    def total_loss(self, batch, grad_params, rng=None):
+        info = {}
+        rng = rng if rng is not None else self.rng
+
+        rng, actor_rng, critic_rng = jax.random.split(rng, 3)
+
+        critic_loss, critic_info = self.critic_loss(batch, grad_params, critic_rng)
+        for k, v in critic_info.items():
+            info[f"critic/{k}"] = v
+
+        actor_loss, actor_info = self.actor_loss(batch, grad_params, actor_rng)
+        for k, v in actor_info.items():
+            info[f"actor/{k}"] = v
+
+        loss = critic_loss + actor_loss
+        return loss, info
+
+    def target_update(self, network, module_name):
+        new_target_params = jax.tree_util.tree_map(
+            lambda p, tp: p * self.config["tau"] + tp * (1 - self.config["tau"]),
+            self.network.params[f"modules_{module_name}"],
+            self.network.params[f"modules_target_{module_name}"],
+        )
+        network.params[f"modules_target_{module_name}"] = new_target_params
+
+    @staticmethod
+    def _update(agent, batch):
+        new_rng, rng = jax.random.split(agent.rng)
+
+        def loss_fn(grad_params):
+            return agent.total_loss(batch, grad_params, rng=rng)
+
+        new_network, info = agent.network.apply_loss_fn(loss_fn=loss_fn)
+        agent.target_update(new_network, "critic")
+        agent.target_update(new_network, "actor_drift")
+
+        return agent.replace(network=new_network, rng=new_rng), info
+
+    @jax.jit
+    def update(self, batch):
+        return self._update(self, batch)
+
+    @jax.jit
+    def batch_update(self, batch):
+        agent, infos = jax.lax.scan(self._update, self, batch)
+        return agent, jax.tree_util.tree_map(lambda x: x.mean(), infos)
+
+    @jax.jit
+    def sample_drift_actions(self, observations, noises):
+        model_name = (
+            "target_actor_drift"
+            if self.config["use_target_latent"]
+            else "actor_drift"
+        )
+        actions = self.network.select(model_name)(observations, noises)
+        return self._safe_clip(actions)
+
+    @jax.jit
+    def sample_actions(self, observations, rng=None):
+        if rng is None:
+            rng = jax.random.PRNGKey(0)
+        action_dim = self.config["action_dim"] * (
+            self.config["horizon_length"] if self.config["action_chunking"] else 1
+        )
+
+        best_of_n = self.config["best_of_n"]
+        observations = jnp.repeat(observations[..., None, :], best_of_n, axis=-2)
+        dist = self.network.select("noise_actor")(observations)
+        noises = dist.sample(seed=rng)
+        noises = self._safe_clip(noises) * self.config["noise_scale"]
+
+        actions = self.sample_drift_actions(observations, noises)
+
+        q = self._aggregate_q(self.network.select("critic")(observations, actions))
+        indices = jnp.argmax(q, axis=-1)
+
+        bshape = indices.shape
+        indices = indices.reshape(-1)
+        bsize = len(indices)
+        actions = jnp.reshape(actions, (-1, best_of_n, action_dim))[
+            jnp.arange(bsize),
+            indices,
+            :,
+        ].reshape(bshape + (action_dim,))
+
+        return self._safe_clip(actions)
+
+    @classmethod
+    def create(
+        cls,
+        seed,
+        ex_observations,
+        ex_actions,
+        config,
+    ):
+        rng = jax.random.PRNGKey(seed)
+        rng, init_rng = jax.random.split(rng, 2)
+
+        ob_dims = ex_observations.shape
+        action_dim = ex_actions.shape[-1]
+        if config["action_chunking"]:
+            full_actions = jnp.concatenate(
+                [ex_actions] * config["horizon_length"],
+                axis=-1,
+            )
+        else:
+            full_actions = ex_actions
+        full_action_dim = full_actions.shape[-1]
+
+        if config["noise_target_entropy"] is None:
+            config["noise_target_entropy"] = (
+                -config["noise_target_entropy_multiplier"] * full_action_dim
+            )
+
+        encoders = dict()
+        if config["encoder"] is not None:
+            encoder_module = encoder_modules[config["encoder"]]
+            encoders["critic"] = encoder_module()
+            encoders["noise_critic"] = encoder_module()
+            encoders["noise_actor"] = encoder_module()
+            encoders["actor_drift"] = encoder_module()
+
+        critic_def = Value(
+            hidden_dims=config["value_hidden_dims"],
+            layer_norm=config["layer_norm"],
+            num_ensembles=config["num_qs"],
+            encoder=encoders.get("critic"),
+        )
+        noise_critic_def = Value(
+            hidden_dims=config["value_hidden_dims"],
+            layer_norm=config["layer_norm"],
+            num_ensembles=config["num_qs"],
+            encoder=encoders.get("noise_critic"),
+        )
+        noise_actor_base_cls = partial(
+            MLP,
+            hidden_dims=config["actor_hidden_dims"],
+            activate_final=True,
+            layer_norm=config["actor_layer_norm"],
+        )
+        noise_actor_def = TanhNormal(
+            noise_actor_base_cls,
+            full_action_dim,
+            encoder=encoders.get("noise_actor"),
+        )
+        actor_drift_def = ActorVectorField(
+            hidden_dims=config["actor_hidden_dims"],
+            action_dim=full_action_dim,
+            layer_norm=config["actor_layer_norm"],
+            encoder=encoders.get("actor_drift"),
+        )
+        noise_alpha_def = LogParam(init_value=config["noise_init_temp"])
+
+        network_info = dict(
+            critic=(critic_def, (ex_observations, full_actions)),
+            target_critic=(copy.deepcopy(critic_def), (ex_observations, full_actions)),
+            noise_critic=(noise_critic_def, (ex_observations, full_actions)),
+            noise_actor=(noise_actor_def, (ex_observations,)),
+            noise_alpha=(noise_alpha_def, ()),
+            actor_drift=(actor_drift_def, (ex_observations, full_actions)),
+            target_actor_drift=(
+                copy.deepcopy(actor_drift_def),
+                (ex_observations, full_actions),
+            ),
+        )
+        networks = {k: v[0] for k, v in network_info.items()}
+        network_args = {k: v[1] for k, v in network_info.items()}
+
+        network_def = ModuleDict(networks)
+        network_tx = optax.adam(learning_rate=config["lr"])
+        network_params = network_def.init(init_rng, **network_args)["params"]
+        network = TrainState.create(network_def, network_params, tx=network_tx)
+
+        params = network.params
+        params["modules_target_critic"] = params["modules_critic"]
+        params["modules_target_actor_drift"] = params["modules_actor_drift"]
+
+        config["ob_dims"] = ob_dims
+        config["action_dim"] = action_dim
+        return cls(rng, network=network, config=flax.core.FrozenDict(**config))
+
+
+def get_config():
+    config = ml_collections.ConfigDict(
+        dict(
+            agent_name="stdfp",
+            ob_dims=ml_collections.config_dict.placeholder(list),
+            action_dim=ml_collections.config_dict.placeholder(int),
+            lr=3e-4,
+            batch_size=256,
+            actor_hidden_dims=(512, 512, 512, 512),
+            actor_layer_norm=False,
+            value_hidden_dims=(512, 512, 512, 512),
+            layer_norm=True,
+            horizon_length=ml_collections.config_dict.placeholder(int),
+            action_chunking=True,
+            num_qs=2,
+            q_agg="pessimistic",
+            rho=0.5,
+            discount=0.99,
+            tau=0.005,
+            best_of_n=1,
+            drift_temps=[0.1],
+            gen_per_label=8,
+            noise_scale=1.0,
+            use_target_latent=True,
+            noise_target_entropy=ml_collections.config_dict.placeholder(float),
+            noise_target_entropy_multiplier=0.5,
+            noise_init_temp=1.0,
+            encoder=ml_collections.config_dict.placeholder(str),
+        )
+    )
+    return config
