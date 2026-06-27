@@ -7,6 +7,7 @@ Stochastic distilled Drift Field Policy.
 """
 
 import copy
+import math
 from functools import partial
 from typing import Any
 
@@ -19,7 +20,7 @@ import optax
 from utils.drift_loss import drift_loss
 from utils.encoders import encoder_modules
 from utils.flax_utils import ModuleDict, TrainState, nonpytree_field
-from utils.networks import ActorVectorField, LogParam, MLP, TanhNormal, Value
+from utils.networks import ActorVectorField, LogParam, MLP, Normal, Value
 
 
 class STDFPAgent(flax.struct.PyTreeNode):
@@ -34,8 +35,8 @@ class STDFPAgent(flax.struct.PyTreeNode):
             return jnp.reshape(batch["actions"], (batch["actions"].shape[0], -1))
         return batch["actions"][..., 0, :]
 
-    def _aggregate_q(self, qs):
-        mode = self.config["q_agg"]
+    def _aggregate_q(self, qs, mode=None):
+        mode = self.config["q_agg"] if mode is None else mode
         if mode == "min":
             return qs.min(axis=0)
         if mode == "mean":
@@ -47,6 +48,28 @@ class STDFPAgent(flax.struct.PyTreeNode):
     def _safe_clip(self, x, low=-1.0, high=1.0):
         x = jnp.nan_to_num(x, nan=0.0, posinf=high, neginf=low)
         return jnp.clip(x, low, high)
+
+    def _safe_tanh_value(self, x, eps=1e-6):
+        x = jnp.nan_to_num(x, nan=0.0, posinf=1.0 - eps, neginf=-1.0 + eps)
+        return jnp.clip(x, -1.0 + eps, 1.0 - eps)
+
+    def _sample_policy_noises(self, dist, rng):
+        samples = dist.sample(seed=rng)
+        if self.config["noise_actor_squash_tanh"]:
+            raw_noises = self._safe_tanh_value(samples)
+            log_probs = dist.log_prob(raw_noises)
+            pre_tanh_noises = raw_noises
+        else:
+            pre_tanh_noises = samples
+            raw_noises = self._safe_tanh_value(jnp.tanh(pre_tanh_noises))
+            log_probs = dist.log_prob(pre_tanh_noises)
+        if self.config["noise_log_prob_clip"] is not None:
+            log_probs = jnp.clip(
+                log_probs,
+                -self.config["noise_log_prob_clip"],
+                self.config["noise_log_prob_clip"],
+            )
+        return pre_tanh_noises, raw_noises, log_probs
 
     def _masked_action_mse(self, squared_error, batch):
         if self.config["action_chunking"]:
@@ -142,15 +165,17 @@ class STDFPAgent(flax.struct.PyTreeNode):
             batch["observations"],
             params=grad_params,
         )
-        raw_noises = dist.sample(seed=actor_rng)
-        log_probs = dist.log_prob(raw_noises)
+        pre_tanh_noises, raw_noises, log_probs = self._sample_policy_noises(
+            dist,
+            actor_rng,
+        )
         noises = raw_noises * self.config["noise_scale"]
 
         noise_qs = self.network.select("noise_critic")(
             batch["observations"],
             noises,
         )
-        noise_q = self._aggregate_q(noise_qs)
+        noise_q = self._aggregate_q(noise_qs, mode=self.config["actor_q_agg"])
 
         alpha = self.network.select("noise_alpha")()
         policy_loss = (alpha * log_probs - noise_q).mean()
@@ -167,18 +192,34 @@ class STDFPAgent(flax.struct.PyTreeNode):
         )
         decoded_actions = self._safe_clip(decoded_actions)
 
-        total_loss = actor_drift_loss + policy_loss + alpha_loss
+        noise_reg_loss = (
+            self.config["noise_pre_tanh_l2"] * jnp.square(pre_tanh_noises).mean()
+        )
+
+        total_loss = actor_drift_loss + policy_loss + alpha_loss + noise_reg_loss
 
         info = {
             "total_loss": total_loss,
             "actor_drift_loss": actor_drift_loss,
             "policy_loss": policy_loss,
             "alpha_loss": alpha_loss,
+            "noise_reg_loss": noise_reg_loss,
             "alpha": alpha,
             "entropy": entropy,
+            "target_entropy": self.config["noise_target_entropy"],
             "q": noise_q.mean(),
+            "pre_tanh_noise_abs_mean": jnp.abs(pre_tanh_noises).mean(),
+            "pre_tanh_noise_std": pre_tanh_noises.std(),
+            "pre_tanh_noise_max": pre_tanh_noises.max(),
+            "pre_tanh_noise_min": pre_tanh_noises.min(),
             "noise_abs_mean": jnp.abs(noises).mean(),
             "noise_std": raw_noises.std(),
+            "noise_max": raw_noises.max(),
+            "noise_min": raw_noises.min(),
+            "log_prob_mean": log_probs.mean(),
+            "log_prob_max": log_probs.max(),
+            "log_prob_min": log_probs.min(),
+            "log_prob_finite": jnp.isfinite(log_probs).mean(),
             "decoded_action_mean": decoded_actions.mean(),
             "drift_scale": drift_info.get("scale", 0.0),
             "generated_to_data_mse": self._masked_action_mse(
@@ -265,12 +306,18 @@ class STDFPAgent(flax.struct.PyTreeNode):
         best_of_n = self.config["best_of_n"]
         observations = jnp.repeat(observations[..., None, :], best_of_n, axis=-2)
         dist = self.network.select("noise_actor")(observations)
-        noises = dist.sample(seed=rng)
-        noises = self._safe_clip(noises) * self.config["noise_scale"]
+        if self.config["noise_actor_squash_tanh"]:
+            noises = self._safe_tanh_value(dist.sample(seed=rng))
+        else:
+            noises = self._safe_tanh_value(jnp.tanh(dist.sample(seed=rng)))
+        noises = noises * self.config["noise_scale"]
 
         actions = self.sample_drift_actions(observations, noises)
 
-        q = self._aggregate_q(self.network.select("critic")(observations, actions))
+        q = self._aggregate_q(
+            self.network.select("critic")(observations, actions),
+            mode=self.config["sample_q_agg"],
+        )
         indices = jnp.argmax(q, axis=-1)
 
         bshape = indices.shape
@@ -307,9 +354,19 @@ class STDFPAgent(flax.struct.PyTreeNode):
         full_action_dim = full_actions.shape[-1]
 
         if config["noise_target_entropy"] is None:
-            config["noise_target_entropy"] = (
-                -config["noise_target_entropy_multiplier"] * full_action_dim
-            )
+            if config["noise_actor_squash_tanh"]:
+                config["noise_target_entropy"] = (
+                    -config["noise_target_entropy_multiplier"] * full_action_dim
+                )
+            else:
+                entropy_log_std = (
+                    config["noise_fixed_log_std"]
+                    if config["noise_fixed_log_std"] is not None
+                    else config["noise_log_std_max"]
+                )
+                config["noise_target_entropy"] = full_action_dim * (
+                    0.5 * (1.0 + math.log(2.0 * math.pi)) + entropy_log_std
+                )
 
         encoders = dict()
         if config["encoder"] is not None:
@@ -337,9 +394,14 @@ class STDFPAgent(flax.struct.PyTreeNode):
             activate_final=True,
             layer_norm=config["actor_layer_norm"],
         )
-        noise_actor_def = TanhNormal(
+        noise_actor_def = Normal(
             noise_actor_base_cls,
             full_action_dim,
+            log_std_min=config["noise_log_std_min"],
+            log_std_max=config["noise_log_std_max"],
+            fixed_log_std=config["noise_fixed_log_std"],
+            state_dependent_std=config["noise_state_dependent_std"],
+            squash_tanh=config["noise_actor_squash_tanh"],
             encoder=encoders.get("noise_actor"),
         )
         actor_drift_def = ActorVectorField(
@@ -395,6 +457,8 @@ def get_config():
             action_chunking=True,
             num_qs=2,
             q_agg="pessimistic",
+            actor_q_agg="mean",
+            sample_q_agg="mean",
             rho=0.5,
             discount=0.99,
             tau=0.005,
@@ -402,7 +466,14 @@ def get_config():
             drift_temps=[0.1],
             gen_per_label=8,
             noise_scale=1.0,
-            use_target_latent=False,
+            noise_log_std_min=-5.0,
+            noise_log_std_max=-0.5,
+            noise_fixed_log_std=ml_collections.config_dict.placeholder(float),
+            noise_state_dependent_std=True,
+            noise_actor_squash_tanh=False,
+            noise_pre_tanh_l2=0.1,
+            noise_log_prob_clip=100.0,
+            use_target_latent=True,
             noise_target_entropy=ml_collections.config_dict.placeholder(float),
             noise_target_entropy_multiplier=0.5,
             noise_init_temp=1.0,
