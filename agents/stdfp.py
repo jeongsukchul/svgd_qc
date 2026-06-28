@@ -358,14 +358,14 @@ class STDFPAgent(flax.struct.PyTreeNode):
                 config["noise_target_entropy"] = (
                     -config["noise_target_entropy_multiplier"] * full_action_dim
                 )
-            else:
-                entropy_log_std = (
-                    config["noise_fixed_log_std"]
-                    if config["noise_fixed_log_std"] is not None
-                    else config["noise_log_std_max"]
-                )
+            elif config["noise_fixed_log_std"] is not None:
                 config["noise_target_entropy"] = full_action_dim * (
-                    0.5 * (1.0 + math.log(2.0 * math.pi)) + entropy_log_std
+                    0.5 * (1.0 + math.log(2.0 * math.pi))
+                    + config["noise_fixed_log_std"]
+                )
+            else:
+                config["noise_target_entropy"] = (
+                    config["noise_normal_target_entropy_multiplier"] * full_action_dim
                 )
 
         encoders = dict()
@@ -476,6 +476,9 @@ def get_config():
             use_target_latent=True,
             noise_target_entropy=ml_collections.config_dict.placeholder(float),
             noise_target_entropy_multiplier=0.5,
+            noise_normal_target_entropy_multiplier=(
+                0.5 * (1.0 + math.log(2.0 * math.pi)) - 1.0
+            ),
             noise_init_temp=1.0,
             encoder=ml_collections.config_dict.placeholder(str),
         )

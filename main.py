@@ -31,6 +31,7 @@ flags.DEFINE_integer('buffer_size', 2000000, 'Replay buffer size.')
 flags.DEFINE_integer('log_interval', 5000, 'Logging interval.')
 flags.DEFINE_integer('eval_interval', 100000, 'Evaluation interval.')
 flags.DEFINE_integer('save_interval',  500000, 'Save interval.')
+flags.DEFINE_bool('save_best_eval', False, 'Save a checkpoint whenever eval success/return improves.')
 flags.DEFINE_integer('start_training', 5000, 'when does training start')
 
 flags.DEFINE_integer('utd_ratio', 1, "update to data ratio")
@@ -91,6 +92,51 @@ def get_eval_success_postfix(eval_info):
     except (TypeError, ValueError):
         value = str(value)
     return {"eval_success": value}
+
+
+def get_eval_score(eval_info):
+    """Return a comparable eval score tuple, preferring success then return."""
+    preferred_success_keys = (
+        "success",
+        "success_rate",
+        "episode.success",
+        "task_success",
+        "is_success",
+    )
+    success_key = None
+    for key in preferred_success_keys:
+        if key in eval_info:
+            success_key = key
+            break
+    if success_key is None:
+        for key in eval_info:
+            if "success" in key.lower():
+                success_key = key
+                break
+    if success_key is None:
+        return None
+
+    return_key = None
+    for key in ("episode.return", "return", "episode_return"):
+        if key in eval_info:
+            return_key = key
+            break
+    if return_key is None:
+        for key in eval_info:
+            if "return" in key.lower():
+                return_key = key
+                break
+
+    try:
+        success = float(np.asarray(eval_info[success_key]))
+        episode_return = (
+            float(np.asarray(eval_info[return_key])) if return_key is not None else 0.0
+        )
+    except (TypeError, ValueError):
+        return None
+
+    return success, episode_return
+
 
 def add_eval_video(eval_info, renders, fps=15):
     """Attach rendered eval videos to the eval log payload when available."""
@@ -210,6 +256,20 @@ def main(_):
         wandb_logger=wandb,
     )
 
+    best_eval_score = None
+
+    def maybe_save_best_eval(agent, eval_info, step):
+        nonlocal best_eval_score
+        if not FLAGS.save_best_eval:
+            return
+        eval_score = get_eval_score(eval_info)
+        if eval_score is None:
+            return
+        if best_eval_score is None or eval_score > best_eval_score:
+            best_eval_score = eval_score
+            print(f"New best eval at step {step}: {eval_score}", flush=True)
+            save_checkpoints(agent, FLAGS.save_dir, "best")
+
     offline_init_time = time.time()
     agent = set_agent_online_learning(agent, False)
     # Offline RL
@@ -254,6 +314,7 @@ def main(_):
             )
             eval_info = add_eval_video(eval_info, renders)
             logger.log(eval_info, "eval", step=log_step)
+            maybe_save_best_eval(agent, eval_info, log_step)
             eval_postfix = get_eval_success_postfix(eval_info)
             if eval_postfix is not None:
                 offline_pbar.set_postfix(eval_postfix, refresh=True)
@@ -367,6 +428,7 @@ def main(_):
             )
             eval_info = add_eval_video(eval_info, renders)
             logger.log(eval_info, "eval", step=log_step)
+            maybe_save_best_eval(agent, eval_info, log_step)
             eval_postfix = get_eval_success_postfix(eval_info)
             if eval_postfix is not None:
                 online_pbar.set_postfix(eval_postfix, refresh=True)
