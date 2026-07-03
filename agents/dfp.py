@@ -142,18 +142,17 @@ class DFPAgent(flax.struct.PyTreeNode):
         #     return self._actor_loss_online(batch, batch_actions, grad_params, rng, drift_mode)
 
         flow_rng, drift_rng, tr_rng = jax.random.split(rng, 3)
-        use_pretrained_flow = not self.config.get("no_pretrain", False)
 
         # Generate multiple samples per observation.
         gen_per_label = self.config.get("gen_per_label", 8)
-        bc_pos_samples = self.config.get("bc_pos_samples", 8)
+        # bc_pos_samples = self.config.get("bc_pos_samples", 8)
         obs_repeated = jnp.repeat(batch["observations"], gen_per_label, axis=0)
         drift_noises = jax.random.normal(drift_rng, (batch_size * gen_per_label, action_dim))
         # Get actions from drift model
         drift_actions_all = self.network.select("actor_drift")(
             obs_repeated, drift_noises, params=grad_params
         )
-        drift_actions_all = jnp.clip(drift_actions_all, -1, 1)
+        # drift_actions_all = jnp.clip(drift_actions_all, -1, 1)
         # Reshape to [B, gen_per_label, action_dim]
         gen_samples = drift_actions_all.reshape(batch_size, gen_per_label, action_dim)
 
@@ -175,22 +174,11 @@ class DFPAgent(flax.struct.PyTreeNode):
         q_loss = self.config["q_alpha"] * q_loss
 
         pos_samples = jnp.expand_dims(batch_actions, axis=1)
-        if use_pretrained_flow and bc_pos_samples > 0:
-            flow_obs = jnp.repeat(batch["observations"], bc_pos_samples, axis=0)
-            flow_noises = jax.random.normal(
-                flow_rng, (batch_size * bc_pos_samples, action_dim)
-            )
-            flow_actions = self.compute_flow_actions(flow_obs, noises=flow_noises)
-            flow_actions = flow_actions.reshape(batch_size, bc_pos_samples, action_dim)
-            # Positive samples combine the pretrained flow policy with the dataset action.
-            total_pos_samples = jnp.concatenate([flow_actions, pos_samples], axis=1)
-        else:
-            total_pos_samples = pos_samples
+        total_pos_samples = pos_samples
         drift_loss_val, drift_info = drift_loss(
             gen=gen_samples,
             fixed_pos=total_pos_samples,
             R_list=tuple(self.config.get("drift_temps", [0.1])),
-            plus_only=bool(self.config.get("drift_plus_only", False)),
         )
         # Apply alpha to match Q loss magnitude.
         alpha = self.config.get("alpha", 1.0)
@@ -209,7 +197,6 @@ class DFPAgent(flax.struct.PyTreeNode):
         #     fixed_pos=sel_pool,
         #     score = score,
         #     R_list=tuple(self.config.get("drift_temps", [0.1])),
-        #     plus_only=bool(self.config.get("drift_plus_only", False)),
         # )
         # tr_drift_loss = self.config.get("alpha_target") * tr_drift_loss_val.mean()
         # Total loss (no distillation)
@@ -220,7 +207,6 @@ class DFPAgent(flax.struct.PyTreeNode):
             actor_drift_loss=actor_drift_loss,
             drift_scale=drift_info.get("scale", 0.0),
             q_loss=q_loss,
-            uses_pretrained_flow=float(use_pretrained_flow),
             generated_to_data_mse=self._masked_action_mse(
                 jnp.square(gen_samples - batch_actions[:, None, :]),
                 batch,
@@ -239,180 +225,6 @@ class DFPAgent(flax.struct.PyTreeNode):
         # info["tr_repulsion_norm"] = tr_drift_info.get("repulsion_norm", 0.0)
         # info["tr_drift_norm"] = tr_drift_info.get("drift_norm", 0.0)
         # info["tr_score_norm"] = tr_drift_info.get("score_norm", 0.0)
-        return actor_loss, info
-
-    @jax.jit
-    def compute_flow_actions(
-        self,
-        observations,
-        noises,
-    ):
-        """Compute actions from the BC flow model using the Euler method."""
-        if self.config['encoder'] is not None:
-            observations = self.network.select('actor_bc_flow_encoder')(observations)
-        actions = noises
-        # Euler method.
-        for i in range(self.config['flow_steps']):
-            t = jnp.full((*observations.shape[:-1], 1), i / self.config['flow_steps'])
-            vels = self.network.select('actor_bc_flow')(observations, actions, t, is_encoded=True)
-            actions = actions + vels / self.config['flow_steps']
-        actions = jnp.clip(actions, -1, 1)
-        return actions
-
-    def _actor_loss_online(self, batch, batch_actions, grad_params, rng, mode):
-        """Compute online actor loss with Q-based positive selection + paper-style neg.
-
-        Phase 1: generate N samples, score with Q, pick top-a as fixed positives
-                 (all stop-gradient; N-pool is used only for ranking).
-        Phase 2: generate b fresh samples from new noise as gen; Q loss is computed
-                 on these b samples. Negatives are handled implicitly by drift_loss
-                 via its internal old_gen (paper Algorithm 1: y_neg = x with
-                 self-exclusion on the diagonal).
-          - hard: uniform weights on positives
-          - soft: Q-value-based weights on positives
-
-        If `bc_observations` / `bc_actions` are present in `batch`, the entire
-        actor loss (Phase 1 / Phase 2 / BC drift target) is computed on those
-        offline-only (obs, action) pairs; the Phase 2 `gen_samples` are reused
-        for the BC drift target (no extra actor forward pass). Otherwise the
-        actor loss falls back to using the main (mixed) batch's observations
-        and actions throughout.
-        """
-        if "bc_observations" in batch and "bc_actions" in batch:
-            obs = batch["bc_observations"]
-            bc_actions_seq = batch["bc_actions"]
-            if self.config["action_chunking"]:
-                actor_actions = jnp.reshape(
-                    bc_actions_seq, (bc_actions_seq.shape[0], -1)
-                )
-            else:
-                actor_actions = bc_actions_seq[..., 0, :]
-        else:
-            obs = batch["observations"]
-            actor_actions = batch_actions
-
-        batch_size, action_dim = actor_actions.shape
-        rng, sel_rng, drift_rng = jax.random.split(rng, 3)
-
-        N = self.config.get("online_n_samples", 32)
-        a = self.config.get("online_pos_samples", 4)
-        b = self.config.get("gen_per_label", 8)
-        neg_b = self.config.get("online_neg_samples", 4)
-
-        # --- Phase 1: N-sample pool for positive selection (stop-gradient) ---
-        obs_rep_N = jnp.repeat(obs, N, axis=0)
-        noises_sel = jax.random.normal(sel_rng, (batch_size * N, action_dim))
-        sel_actor_name = "actor_drift_ema" if self.config.get("use_actor_ema", False) else "actor_drift"
-        sel_acts = self.network.select(sel_actor_name)(obs_rep_N, noises_sel)
-        sel_acts = jnp.clip(sel_acts, -1, 1)
-        sel_pool = jax.lax.stop_gradient(
-            sel_acts.reshape(batch_size, N, action_dim)
-        )  # [B, N, D]
-
-        qs_sel = self.network.select("critic")(obs_rep_N, actions=sel_acts)
-        q_sel = self._aggregate_q(qs_sel).reshape(batch_size, N)
-        cand_qs = jax.lax.stop_gradient(q_sel)  # [B, N]
-
-        sorted_idx = jnp.argsort(cand_qs, axis=-1)
-        pos_idx = sorted_idx[:, -a:]  # highest Q
-        neg_idx = sorted_idx[:, :neg_b]
-        pos_acts = jnp.take_along_axis(sel_pool, pos_idx[..., None], axis=1)  # [B, a, D]
-        neg_acts = jnp.take_along_axis(sel_pool, neg_idx[..., None], axis=1)  # [B, neg_b, D]
-
-        # Dataset target action (kept separate from pos_acts). Sourced from
-        # `actor_actions` so the BC target lives on the same observation
-        # distribution as `obs` (offline if bc fields are present, else mixed).
-        target_act = jnp.expand_dims(actor_actions, axis=1)  # [B, 1, D]
-
-        # --- Phase 2: b fresh samples for drift gen + Q loss ---
-        obs_rep_b = jnp.repeat(obs, b, axis=0)
-        noises_drift = jax.random.normal(drift_rng, (batch_size * b, action_dim))
-        gen_acts = self.network.select("actor_drift")(
-            obs_rep_b, noises_drift, params=grad_params
-        )
-        gen_acts = jnp.clip(gen_acts, -1, 1)
-        gen_samples = gen_acts.reshape(batch_size, b, action_dim)  # [B, b, D]
-
-        # Q loss on the b fresh samples
-        qs_gen = self.network.select("critic")(obs_rep_b, actions=gen_acts)
-        q_gen = self._aggregate_q(qs_gen).reshape(batch_size, b)
-        q_loss = -q_gen.mean()
-        lam = jax.lax.stop_gradient(1 / (jnp.abs(q_gen).mean()))
-        if self.config["normalize_q_loss"]:
-            q_loss = lam * q_loss
-        q_loss = self.config["q_alpha"] * q_loss
-
-        R_list = tuple(self.config.get("drift_temps", [0.1]))
-        plus_only = bool(self.config.get("drift_plus_only", False))
-        use_neg_only = bool(self.config.get("drift_use_neg_only", False))
-
-        if mode == "hard":
-            drift_loss_pos, drift_info_pos = drift_loss(
-                gen=gen_samples,
-                fixed_pos=pos_acts,
-                fixed_neg=neg_acts,
-                R_list=R_list,
-                plus_only=plus_only,
-                use_neg_only=use_neg_only,
-            )
-            g_info = {}
-        else:  # soft
-            # Normalize Q values to [-1, 1]
-            q_min = cand_qs.min(axis=-1, keepdims=True)
-            q_max = cand_qs.max(axis=-1, keepdims=True)
-            norm_qs = 2.0 * (cand_qs - q_min) / jnp.clip(q_max - q_min, a_min=1e-8) - 1.0
-
-            pos_q = jnp.take_along_axis(norm_qs, pos_idx, axis=1)  # [B, a], close to +1
-
-            drift_loss_pos, drift_info_pos = drift_loss(
-                gen=gen_samples,
-                fixed_pos=pos_acts,
-                fixed_neg=None,
-                R_list=R_list,
-                plus_only=plus_only,
-                use_neg_only=use_neg_only
-            )
-
-        # BC term reuses Phase 2's gen_samples so we don't pay for an extra
-        # actor forward pass; both gen_samples and target_act live on the same
-        # observations (`obs`).
-        drift_loss_tgt, drift_info_tgt = drift_loss(
-            gen=gen_samples,
-            fixed_pos=target_act,
-            fixed_neg=None,
-            R_list=R_list,
-            plus_only=plus_only,
-        )
-
-        alpha_default = self.config.get("alpha", 1.0)
-        alpha_pos = self.config.get("alpha_pos", None)
-        alpha_pos = alpha_default if alpha_pos is None else alpha_pos
-        alpha_target = self.config.get("alpha_target", None)
-        alpha_target = alpha_default if alpha_target is None else alpha_target
-        actor_drift_loss_pos = alpha_pos * drift_loss_pos.mean()
-        actor_drift_loss_tgt = alpha_target * drift_loss_tgt.mean()
-        actor_drift_loss = actor_drift_loss_pos + actor_drift_loss_tgt
-        actor_loss = actor_drift_loss + q_loss
-
-        info = dict(
-            actor_loss=actor_loss,
-            actor_drift_loss=actor_drift_loss,
-            actor_drift_loss_pos=actor_drift_loss_pos,
-            actor_drift_loss_tgt=actor_drift_loss_tgt,
-            drift_scale_pos=drift_info_pos.get("scale", 0.0),
-            drift_scale_tgt=drift_info_tgt.get("scale", 0.0),
-            q_loss=q_loss,
-            online_pos_q_mean=jnp.take_along_axis(cand_qs, pos_idx, axis=1).mean(),
-            online_sel_q_mean=cand_qs.mean(),
-            online_gen_q_mean=q_gen.mean(),
-            **g_info,
-        )
-        for key, val in drift_info_pos.items():
-            if key.startswith("loss_"):
-                info[f"drift_pos_{key}"] = val
-        for key, val in drift_info_tgt.items():
-            if key.startswith("loss_"):
-                info[f"drift_tgt_{key}"] = val
         return actor_loss, info
 
     @jax.jit
@@ -453,17 +265,6 @@ class DFPAgent(flax.struct.PyTreeNode):
         )
         network.params["modules_actor_drift_ema"] = new_ema_params
 
-    def switch_config_to_online(self):
-        new_config = self.config.copy({
-            "drift_mode": self.config.get("online_drift_mode", "none"),
-            "use_actor_ema": True,  # ← 추가
-        })
-        # (Re-)initialize EMA params from current actor_drift so the EMA tracks
-        # only the online-stage trajectory, not pretraining.
-        new_params = dict(self.network.params)
-        new_params["modules_actor_drift_ema"] = new_params["modules_actor_drift"]
-        new_network = self.network.replace(params=new_params)
-        return self.replace(config=new_config, network=new_network)
 
     @staticmethod
     def _update(agent, batch):
@@ -592,20 +393,11 @@ class DFPAgent(flax.struct.PyTreeNode):
             layer_norm=config["actor_layer_norm"],
             encoder=encoders.get("actor_drift"),
         )
-        actor_bc_flow_def = ActorVectorField(
-            hidden_dims=config["actor_hidden_dims"],
-            action_dim=full_action_dim,
-            layer_norm=config["actor_layer_norm"],
-            encoder=encoders.get("actor_bc_flow"),
-            use_fourier_features=config["use_fourier_features"],
-            fourier_feature_dim=config["fourier_feature_dim"],
-        )
         network_info = dict(
             critic=(critic_def, (ex_observations, full_actions)),
             target_critic=(copy.deepcopy(critic_def), (ex_observations, full_actions)),
             actor_drift=(actor_drift_def, (ex_observations, full_actions)),
-            actor_drift_ema=(copy.deepcopy(actor_drift_def), (ex_observations, full_actions)),  # ← 추가
-            actor_bc_flow=(actor_bc_flow_def, (ex_observations, full_actions, ex_times)),
+            # actor_drift_ema=(copy.deepcopy(actor_drift_def), (ex_observations, full_actions)),  # ← 추가
         )
         if encoders.get("actor_bc_flow") is not None:
             network_info["actor_bc_flow_encoder"] = (encoders.get("actor_bc_flow"), (ex_observations,))
@@ -621,7 +413,7 @@ class DFPAgent(flax.struct.PyTreeNode):
         params = network.params
         params["modules_target_critic"] = params["modules_critic"]
         # EMA mirrors actor_drift; only updated after switch_config_to_online.
-        params["modules_actor_drift_ema"] = params["modules_actor_drift"]  
+        # params["modules_actor_drift_ema"] = params["modules_actor_drift"]  
 
         config["ob_dims"] = ob_dims
         config["action_dim"] = action_dim
@@ -630,14 +422,7 @@ class DFPAgent(flax.struct.PyTreeNode):
         if config.get("actor_num_samples") is None:
             config["actor_num_samples"] = 32
         agent = cls(rng, network=network, config=flax.core.FrozenDict(**config))
-        pretrained_flow_path = config.get("pretrained_flow_path")
-        print("config no pretrain", config.get("no_pretrain"))
-        if pretrained_flow_path is not None and not config.get("no_pretrain", False):
-            agent = restore_partial_modules(
-                agent,
-                pretrained_flow_path,
-                ("actor_bc_flow", "actor_bc_flow_encoder"),
-            )
+
         return agent
 
 
@@ -660,7 +445,6 @@ def get_config():
             num_qs=2,
             q_score_coeff=1.0,  
             alpha=1.0,
-            alpha_pos=0.5,     # online: weight for top-a pos drift loss (default: alpha)
             alpha_target=0.0,   # online: weight for dataset target drift loss (default: alpha)
             normalize_q_loss=False,
             q_alpha=0.0,
@@ -669,31 +453,16 @@ def get_config():
             action_chunking=True,
             actor_type="best-of-n",
             actor_num_samples=1,
-            q_bon=1,
-            eval_bon=1,
+            q_bon=16,
+            eval_bon=16,
             drift_temps=[0.1],
-            no_pretrain=False,
-            pretrained_flow_path=(
-                "exp/svgd-qc/reproduce/cube-double-play-singletask-task2-v0/"
-                "sd000_qc_chunk-h5_20260610_193517"
-                # "exp/svgd-qc/Debug/cube-double-play-singletask-task2-v0/"
-                # "sd000_bfn_chunk-h1_20260611_133459"
-            ),
-            bc_pos_samples=8,          # Number of BC flow samples to use as positives in drift loss (rest of N are from drift model)
+            # bc_pos_samples=8,          # Number of BC flow samples to use as positives in drift loss (rest of N are from drift model)
             gen_per_label=8, # Number of generated samples per data point for drift loss
             flow_steps=10,
             use_fourier_features=False,
             fourier_feature_dim=64,
-            # Online drift mode params
-            drift_mode="none",              # Active mode: "none" / "hard" / "soft" (set by switch_config_to_online)
-            online_drift_mode="hard",       # Target mode for online: "none" / "hard" / "soft"
-            online_n_samples=16,            # N: samples to generate, score with Q, and use as gen
-            online_pos_samples=4,           # a: top-Q samples used as positive
-            online_neg_samples=0,           # b: bottom-Q samples used as negative
-            drift_plus_only=False,          # If True, only use the positive drifting field in drift_loss
-            drift_use_neg_only=False,       # If True, drift_loss negatives use only fixed_neg (no implicit gen-as-neg)
             # Actor EMA (for N-sample pool selection in online stage)
-            use_actor_ema=True,            # Set True automatically by switch_config_to_online
+            # use_actor_ema=True,            # Set True automatically by switch_config_to_online
             actor_ema_tau=0.0001,  # If None, falls back to `tau`
         )
     )

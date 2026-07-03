@@ -1,4 +1,4 @@
-import glob, tqdm, wandb, os, json, random, time, jax
+import glob, tqdm, wandb, os, json, random, shutil, sys, time, jax
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 from absl import app, flags
 from ml_collections import config_flags
@@ -159,6 +159,29 @@ def save_checkpoints(agent, save_dir, epoch):
     save_agent(agent, save_dir, epoch)
     save_critic(agent, save_dir, epoch)
 
+
+def _resolve_agent_config_path(argv, default_path):
+    for idx, arg in enumerate(argv[1:], start=1):
+        if arg.startswith("--agent="):
+            return arg.split("=", 1)[1]
+        if arg == "--agent" and idx + 1 < len(argv):
+            return argv[idx + 1]
+    return default_path
+
+
+def save_agent_source_snapshot(save_dir, default_agent_path):
+    agent_path = os.path.abspath(
+        _resolve_agent_config_path(sys.argv, default_agent_path)
+    )
+    snapshot_dir = os.path.join(save_dir, "source_snapshot", "agents")
+    os.makedirs(snapshot_dir, exist_ok=True)
+
+    if os.path.isfile(agent_path):
+        shutil.copy2(agent_path, os.path.join(snapshot_dir, os.path.basename(agent_path)))
+
+    with open(os.path.join(save_dir, "agent_source_path.txt"), "w") as f:
+        f.write(agent_path + "\n")
+
 def main(_):
     exp_name = get_exp_name(FLAGS.seed, env_name=FLAGS.env_name)
     run = setup_wandb(project='svgd-qc', group=FLAGS.run_group, name=exp_name, entity="tjrcjf410-seoul-national-university")
@@ -174,6 +197,7 @@ def main(_):
 
     with open(os.path.join(FLAGS.save_dir, 'flags.json'), 'w') as f:
         json.dump(flag_dict, f)
+    save_agent_source_snapshot(FLAGS.save_dir, "agents/acfql.py")
     
     # data loading
     if FLAGS.ogbench_dataset_dir is not None:

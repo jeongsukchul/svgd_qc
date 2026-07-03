@@ -1,4 +1,5 @@
 import copy
+import math
 from typing import Any
 
 import flax
@@ -17,6 +18,9 @@ class DSRLAgent(flax.struct.PyTreeNode):
     rng: Any
     network: Any
     config: Any = nonpytree_field()
+
+    def _unit_normal_log_prob(self, x):
+        return -0.5 * (jnp.square(x) + math.log(2.0 * math.pi)).sum(axis=-1)
 
     def critic_loss(self, batch, grad_params, rng):
         if self.config["action_chunking"]:
@@ -56,6 +60,9 @@ class DSRLAgent(flax.struct.PyTreeNode):
             'q_mean': q.mean(),
             'q_max': q.max(),
             'q_min': q.min(),
+            'noise_q_mean' : qs.mean(),
+            'noise_q_max' : qs.max(),
+            'noise_q_min' : qs.min(),
         }
 
     def actor_loss(self, batch, grad_params, rng):
@@ -82,17 +89,40 @@ class DSRLAgent(flax.struct.PyTreeNode):
         dist = self.network.select('actor')(batch['observations'], params=grad_params)
         actions = dist.sample(seed=rng)
         log_probs = dist.log_prob(actions)
-        actions = actions * self.config['noise_scale']
+        scaled_actions = actions * self.config['noise_scale']
 
-        qs = self.network.select('z_critic')(batch['observations'], actions)
+        qs = self.network.select('z_critic')(batch['observations'], scaled_actions)
         q = jnp.mean(qs, axis=0)
 
-        actor_loss = (log_probs * self.network.select('alpha')() - q).mean()
+        alpha = self.network.select('alpha')()
+        alpha_train = self.network.select('alpha')(params=grad_params)
+        entropy = -log_probs
+        kl = log_probs - self._unit_normal_log_prob(actions)
 
-        # Entropy loss.
-        alpha = self.network.select('alpha')(params=grad_params)
-        entropy = -jax.lax.stop_gradient(log_probs).mean()
-        alpha_loss = (alpha * (entropy - self.config['target_entropy'])).mean()
+        if self.config["regularizer"] == "entropy":
+            actor_loss = (log_probs * alpha - q).mean()
+            alpha_loss = (
+                alpha_train
+                * (
+                    jax.lax.stop_gradient(entropy)
+                    - self.config['target_entropy']
+                )
+            ).mean()
+            target_entropy = self.config["target_entropy"]
+            target_kl = jnp.zeros(())
+        elif self.config["regularizer"] == "kl":
+            actor_loss = (kl * alpha - q).mean()
+            alpha_loss = (
+                alpha_train
+                * (
+                    self.config["target_kl"]
+                    - jax.lax.stop_gradient(kl)
+                )
+            ).mean()
+            target_entropy = jnp.zeros(())
+            target_kl = self.config["target_kl"]
+        else:
+            raise ValueError(f"Unsupported regularizer: {self.config['regularizer']}")
 
         total_loss = flow_loss + actor_loss + alpha_loss
 
@@ -103,8 +133,11 @@ class DSRLAgent(flax.struct.PyTreeNode):
             'flow_loss': flow_loss,
             'actor_loss': actor_loss,
             'alpha_loss': alpha_loss,
-            'alpha': alpha,
-            'entropy': -log_probs.mean(),
+            'alpha': alpha_train,
+            'entropy': entropy.mean(),
+            'target_entropy': target_entropy,
+            'kl': kl.mean(),
+            'target_kl': target_kl,
             'action_std': action_std.mean(),
             'q': q.mean(),
         }
@@ -218,8 +251,11 @@ class DSRLAgent(flax.struct.PyTreeNode):
             full_actions = ex_actions
         full_action_dim = full_actions.shape[-1]
 
-        if config['target_entropy'] is None:
+        regularizer = config.get("regularizer", "entropy")
+        if regularizer == "entropy" and config['target_entropy'] is None:
             config['target_entropy'] = -config['target_entropy_multiplier'] * full_action_dim
+        if regularizer == "kl" and config["target_kl"] is None:
+            raise ValueError("target_kl must be set when regularizer='kl'")
 
         critic_def = Value(hidden_dims=config['value_hidden_dims'], layer_norm=config["value_layer_norm"], num_ensembles=config["num_qs"])
         actor_base_cls = partial(MLP, hidden_dims=config["actor_hidden_dims"], activate_final=True)
@@ -266,7 +302,7 @@ def get_config():
             action_dim=ml_collections.config_dict.placeholder(int), # Action dimension (will be set automatically).
 
             ## Common hyperparamters
-            lr=3e-4,  # Learning rate.
+            lr=1e-4,  # Learning rate.
             batch_size=256,  # Batch size.
             actor_hidden_dims=(512, 512, 512, 512),  # Actor network hidden dimensions.
             actor_layer_norm=False,
@@ -285,14 +321,16 @@ def get_config():
             tau=0.005,      # Target network update rate.
             flow_steps=10,  # Number of flow steps.
 
-            best_of_n=1,    # Best-of-n for computing Q-targets and sampling actions.
+            best_of_n=3,    # Best-of-n for computing Q-targets and sampling actions.
 
             ## Main hyperparameter(s)
             noise_scale=1.0,    # Noise action scale.
 
             ## Other design variants/hyperparameters
+            regularizer="entropy",
             target_entropy=ml_collections.config_dict.placeholder(float),  # Target entropy (None for automatic tuning).
             target_entropy_multiplier=0.5,          # Multiplier to dim(A) for target entropy.
+            target_kl=ml_collections.config_dict.placeholder(float),
             use_target_latent=True,                 # Use the target BC policy network to form the latent space
         )
     )

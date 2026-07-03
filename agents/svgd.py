@@ -716,17 +716,6 @@ class SVGDAgent(ACFQLAgent):
             score_gain=jnp.asarray(init_score_gain),
         )
 
-        if config.get("use_pretrained_critic", False):
-            pretrained_critic_path = config.get("pretrained_critic_path")
-            assert pretrained_critic_path is not None, (
-                "Set agent.pretrained_critic_path when agent.use_pretrained_critic=True"
-            )
-            agent = restore_partial_modules(
-                agent,
-                pretrained_critic_path,
-                ("critic", "target_critic"),
-            )
-
         return agent
 
 
@@ -736,7 +725,7 @@ def get_config():
             agent_name="svgd",
             ob_dims=ml_collections.config_dict.placeholder(list),
             action_dim=ml_collections.config_dict.placeholder(int),
-            lr=3e-4,
+            lr=1e-4,
             batch_size=256,
             actor_hidden_dims=(512, 512, 512, 512),
             value_hidden_dims=(512, 512, 512, 512),
@@ -744,7 +733,7 @@ def get_config():
             actor_layer_norm=False,
             discount=0.99,
             q_agg="pessimistic",
-            action_q_agg="pessimistic",
+            action_q_agg="mean",
             num_qs=2,
             rho=0.5,
             epsilon=0.1,
@@ -773,8 +762,6 @@ def get_config():
             q_norm_stop_grad_stats=True,
             update_flag="td",
             expectile=0.7,
-            use_pretrained_critic=False,
-            pretrained_critic_path=None,
             use_target_bc_actor=False,
 
             # score_gain / dual score_gain

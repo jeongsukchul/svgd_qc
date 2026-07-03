@@ -1,9 +1,9 @@
 """
-Stochastic distilled Drift Field Policy.
+Stochastic Drift Field Policy.
 
 - Uses DFP's drift loss for the action decoder.
-- Uses DSRL-style critic distillation in the actor-drift noise space.
-- Trains a stochastic policy over that noise space.
+- Trains a stochastic policy over the drift-policy input noise space.
+- Optimizes the noise policy through critic gradients on decoded actions.
 """
 
 import copy
@@ -20,11 +20,13 @@ import optax
 from utils.drift_loss import drift_loss
 from utils.encoders import encoder_modules
 from utils.flax_utils import ModuleDict, TrainState, nonpytree_field
-from utils.networks import ActorVectorField, LogParam, MLP, Normal, Value
+from utils.networks import ActorVectorField, LogParam, MLP, Normal, TanhNormal, Value
+
+
 
 
 class STDFPAgent(flax.struct.PyTreeNode):
-    """DFP actor-drift decoder with DSRL-style noise-space distillation."""
+    """DFP actor-drift decoder trained directly through the critic."""
 
     rng: Any
     network: Any
@@ -53,23 +55,32 @@ class STDFPAgent(flax.struct.PyTreeNode):
         x = jnp.nan_to_num(x, nan=0.0, posinf=1.0 - eps, neginf=-1.0 + eps)
         return jnp.clip(x, -1.0 + eps, 1.0 - eps)
 
+    def _safe_atanh_value(self, x, eps=1e-6):
+        x = self._safe_tanh_value(x, eps=eps)
+        return jnp.arctanh(x)
+
+    def _unit_normal_log_prob(self, x):
+        return -0.5 * (jnp.square(x) + math.log(2.0 * math.pi)).sum(axis=-1)
+
+    def _noise_actor_type(self):
+        actor_type = self.config["actor_type"] if "actor_type" in self.config else "sac"
+        if actor_type in ("sac", "stochastic"):
+            return "sac"
+        if actor_type in ("ddpg", "deterministic"):
+            return "ddpg"
+        raise ValueError(f"Unsupported actor_type: {actor_type}")
+
     def _sample_policy_noises(self, dist, rng):
         samples = dist.sample(seed=rng)
         if self.config["noise_actor_squash_tanh"]:
-            raw_noises = self._safe_tanh_value(samples)
-            log_probs = dist.log_prob(raw_noises)
-            pre_tanh_noises = raw_noises
+            noises = samples
+            prior_inputs = self._safe_atanh_value(noises)
+            log_probs = dist.log_prob(noises)
         else:
-            pre_tanh_noises = samples
-            raw_noises = self._safe_tanh_value(jnp.tanh(pre_tanh_noises))
-            log_probs = dist.log_prob(pre_tanh_noises)
-        if self.config["noise_log_prob_clip"] is not None:
-            log_probs = jnp.clip(
-                log_probs,
-                -self.config["noise_log_prob_clip"],
-                self.config["noise_log_prob_clip"],
-            )
-        return pre_tanh_noises, raw_noises, log_probs
+            prior_inputs = samples
+            noises = self._safe_tanh_value(jnp.tanh(prior_inputs))
+            log_probs = dist.log_prob(prior_inputs)
+        return prior_inputs, noises, log_probs
 
     def _masked_action_mse(self, squared_error, batch):
         if self.config["action_chunking"]:
@@ -89,9 +100,9 @@ class STDFPAgent(flax.struct.PyTreeNode):
     def critic_loss(self, batch, grad_params, rng):
         batch_actions = self._batch_actions(batch)
 
-        rng, sample_rng, noise_rng = jax.random.split(rng, 3)
+        rng, sample_rng = jax.random.split(rng)
         next_obs = batch["next_observations"][..., -1, :]
-        next_actions = self.sample_actions(next_obs, rng=sample_rng)
+        next_actions = self.sample_actions(next_obs, sample_rng)
         next_actions = self._safe_clip(next_actions)
 
         next_qs = self.network.select("target_critic")(next_obs, next_actions)
@@ -109,29 +120,13 @@ class STDFPAgent(flax.struct.PyTreeNode):
         valid = batch["valid"][..., -1] if "valid" in batch else jnp.ones_like(target_q)
         critic_loss = (jnp.square(q - target_q) * valid).mean()
 
-        noises = jax.random.normal(noise_rng, batch_actions.shape)
-        actions = self.sample_drift_actions(batch["observations"], noises)
-        target_qs = self.network.select("critic")(batch["observations"], actions)
-        target_qs = jax.lax.stop_gradient(target_qs)
-        noise_qs = self.network.select("noise_critic")(
-            batch["observations"],
-            noises,
-            params=grad_params,
-        )
-        distill_loss = jnp.mean(jnp.square(noise_qs - target_qs))
-
-        total_loss = critic_loss + distill_loss
-
-        return total_loss, {
-            "total_loss": total_loss,
+        return critic_loss, {
+            "total_loss": critic_loss,
             "critic_loss": critic_loss,
-            "distill_loss": distill_loss,
             "q_mean": q.mean(),
             "q_max": q.max(),
             "q_min": q.min(),
             "tgt_q_mean": next_q.mean(),
-            "noise_q_mean": noise_qs.mean(),
-            "noise_target_q_mean": target_qs.mean(),
         }
 
     def actor_loss(self, batch, grad_params, rng):
@@ -161,61 +156,111 @@ class STDFPAgent(flax.struct.PyTreeNode):
         )
         actor_drift_loss = drift_loss_val.mean()
 
-        dist = self.network.select("noise_actor")(
-            batch["observations"],
-            params=grad_params,
-        )
-        pre_tanh_noises, raw_noises, log_probs = self._sample_policy_noises(
-            dist,
-            actor_rng,
-        )
-        noises = raw_noises * self.config["noise_scale"]
+        if self._noise_actor_type() == "sac":
+            dist = self.network.select("noise_actor")(
+                batch["observations"],
+                params=grad_params,
+            )
+            prior_inputs, noises, log_probs = self._sample_policy_noises(
+                dist,
+                actor_rng,
+            )
 
-        noise_qs = self.network.select("noise_critic")(
-            batch["observations"],
-            noises,
-        )
-        noise_q = self._aggregate_q(noise_qs, mode=self.config["actor_q_agg"])
+            decoded_actions = self.network.select("actor_drift")(
+                batch["observations"],
+                noises,
+            )
+            decoded_actions = self._safe_clip(decoded_actions)
+            critic_qs = self.network.select("critic")(
+                batch["observations"],
+                decoded_actions,
+            )
+            actor_q = self._aggregate_q(critic_qs, mode=self.config["actor_q_agg"])
 
-        alpha = self.network.select("noise_alpha")()
-        policy_loss = (alpha * log_probs - noise_q).mean()
+            alpha = self.network.select("noise_alpha")()
+            alpha_train = self.network.select("noise_alpha")(params=grad_params)
+            entropy = -log_probs
+            log_prior = self._unit_normal_log_prob(noises)
+            kl = log_probs - log_prior
 
-        alpha = self.network.select("noise_alpha")(params=grad_params)
-        entropy = -jax.lax.stop_gradient(log_probs).mean()
-        alpha_loss = (
-            alpha * (entropy - self.config["noise_target_entropy"])
-        ).mean()
+            if self.config["noise_regularizer"] == "entropy":
+                reg = log_probs
+                policy_loss = (alpha * reg - actor_q).mean()
+                alpha_loss = (
+                    alpha_train
+                    * (
+                        jax.lax.stop_gradient(entropy)
+                        - self.config["noise_target_entropy"]
+                    )
+                ).mean()
+                target_entropy = self.config["noise_target_entropy"]
+                target_kl = jnp.zeros(())
+            elif self.config["noise_regularizer"] == "kl":
+                reg = kl
+                policy_loss = (alpha * reg - actor_q).mean()
+                alpha_loss = (
+                    alpha_train
+                    * (
+                        self.config["noise_target_kl"]
+                        - jax.lax.stop_gradient(kl)
+                    )
+                ).mean()
+                target_entropy = jnp.zeros(())
+                target_kl = self.config["noise_target_kl"]
+            else:
+                raise ValueError(
+                    f"Unsupported noise_regularizer: {self.config['noise_regularizer']}"
+                )
+            alpha = alpha_train
+            raw_noises = prior_inputs
+        else:
+            raw_noises = self.network.select("noise_actor")(
+                batch["observations"],
+                params=grad_params,
+            )
+            noises = self._safe_clip(raw_noises)
+            log_probs = jnp.zeros((batch_size,))
 
-        decoded_actions = self.network.select("actor_drift")(
-            batch["observations"],
-            noises,
-        )
-        decoded_actions = self._safe_clip(decoded_actions)
+            decoded_actions = self.network.select("actor_drift")(
+                batch["observations"],
+                noises,
+            )
+            decoded_actions = self._safe_clip(decoded_actions)
+            critic_qs = self.network.select("critic")(
+                batch["observations"],
+                decoded_actions,
+            )
+            actor_q = self._aggregate_q(critic_qs, mode=self.config["actor_q_agg"])
 
-        noise_reg_loss = (
-            self.config["noise_pre_tanh_l2"] * jnp.square(pre_tanh_noises).mean()
-        )
+            alpha = jnp.zeros(())
+            entropy = jnp.zeros((batch_size,))
+            kl = jnp.zeros((batch_size,))
+            alpha_loss = jnp.zeros(())
+            policy_loss = -actor_q.mean()
+            target_entropy = jnp.zeros(())
+            target_kl = jnp.zeros(())
 
-        total_loss = actor_drift_loss + policy_loss + alpha_loss + noise_reg_loss
+        total_loss = actor_drift_loss + policy_loss + alpha_loss
 
         info = {
             "total_loss": total_loss,
             "actor_drift_loss": actor_drift_loss,
             "policy_loss": policy_loss,
             "alpha_loss": alpha_loss,
-            "noise_reg_loss": noise_reg_loss,
             "alpha": alpha,
-            "entropy": entropy,
-            "target_entropy": self.config["noise_target_entropy"],
-            "q": noise_q.mean(),
-            "pre_tanh_noise_abs_mean": jnp.abs(pre_tanh_noises).mean(),
-            "pre_tanh_noise_std": pre_tanh_noises.std(),
-            "pre_tanh_noise_max": pre_tanh_noises.max(),
-            "pre_tanh_noise_min": pre_tanh_noises.min(),
+            "entropy": entropy.mean(),
+            "target_entropy": target_entropy,
+            "kl": kl.mean(),
+            "target_kl": target_kl,
+            "q": actor_q.mean(),
+            "pre_tanh_noise_abs_mean": jnp.abs(raw_noises).mean(),
+            "pre_tanh_noise_std": raw_noises.std(),
+            "pre_tanh_noise_max": raw_noises.max(),
+            "pre_tanh_noise_min": raw_noises.min(),
             "noise_abs_mean": jnp.abs(noises).mean(),
-            "noise_std": raw_noises.std(),
-            "noise_max": raw_noises.max(),
-            "noise_min": raw_noises.min(),
+            "noise_std": noises.std(),
+            "noise_max": noises.max(),
+            "noise_min": noises.min(),
             "log_prob_mean": log_probs.mean(),
             "log_prob_max": log_probs.max(),
             "log_prob_min": log_probs.min(),
@@ -303,14 +348,19 @@ class STDFPAgent(flax.struct.PyTreeNode):
             self.config["horizon_length"] if self.config["action_chunking"] else 1
         )
 
+        if self._noise_actor_type() == "ddpg":
+            noises = self._safe_clip(self.network.select("noise_actor")(observations))
+            actions = self.sample_drift_actions(observations, noises)
+            return self._safe_clip(actions)
+
         best_of_n = self.config["best_of_n"]
         observations = jnp.repeat(observations[..., None, :], best_of_n, axis=-2)
         dist = self.network.select("noise_actor")(observations)
+
         if self.config["noise_actor_squash_tanh"]:
-            noises = self._safe_tanh_value(dist.sample(seed=rng))
+            noises = dist.sample(seed=rng)
         else:
             noises = self._safe_tanh_value(jnp.tanh(dist.sample(seed=rng)))
-        noises = noises * self.config["noise_scale"]
 
         actions = self.sample_drift_actions(observations, noises)
 
@@ -353,26 +403,26 @@ class STDFPAgent(flax.struct.PyTreeNode):
             full_actions = ex_actions
         full_action_dim = full_actions.shape[-1]
 
-        if config["noise_target_entropy"] is None:
-            if config["noise_actor_squash_tanh"]:
-                config["noise_target_entropy"] = (
-                    -config["noise_target_entropy_multiplier"] * full_action_dim
-                )
-            elif config["noise_fixed_log_std"] is not None:
-                config["noise_target_entropy"] = full_action_dim * (
-                    0.5 * (1.0 + math.log(2.0 * math.pi))
-                    + config["noise_fixed_log_std"]
-                )
-            else:
+        actor_type = config.get("actor_type", "sac")
+        regularizer = config.get("noise_regularizer", "entropy")
+        if actor_type in ("sac", "stochastic"):
+            if regularizer == "entropy" and config["noise_target_entropy"] is None:
+
                 config["noise_target_entropy"] = (
                     config["noise_normal_target_entropy_multiplier"] * full_action_dim
                 )
+            if regularizer == "kl" and config["noise_target_kl"] is None:
+                raise ValueError("noise_target_kl must be set when noise_regularizer='kl'")
+        elif actor_type in ("ddpg", "deterministic"):
+            config["noise_target_entropy"] = 0.0
+            config["noise_target_kl"] = 0.0
+        else:
+            raise ValueError(f"Unsupported actor_type: {actor_type}")
 
         encoders = dict()
         if config["encoder"] is not None:
             encoder_module = encoder_modules[config["encoder"]]
             encoders["critic"] = encoder_module()
-            encoders["noise_critic"] = encoder_module()
             encoders["noise_actor"] = encoder_module()
             encoders["actor_drift"] = encoder_module()
 
@@ -382,48 +432,49 @@ class STDFPAgent(flax.struct.PyTreeNode):
             num_ensembles=config["num_qs"],
             encoder=encoders.get("critic"),
         )
-        noise_critic_def = Value(
-            hidden_dims=config["value_hidden_dims"],
-            layer_norm=config["layer_norm"],
-            num_ensembles=config["num_qs"],
-            encoder=encoders.get("noise_critic"),
-        )
-        noise_actor_base_cls = partial(
-            MLP,
-            hidden_dims=config["actor_hidden_dims"],
-            activate_final=True,
-            layer_norm=config["actor_layer_norm"],
-        )
-        noise_actor_def = Normal(
-            noise_actor_base_cls,
-            full_action_dim,
-            log_std_min=config["noise_log_std_min"],
-            log_std_max=config["noise_log_std_max"],
-            fixed_log_std=config["noise_fixed_log_std"],
-            state_dependent_std=config["noise_state_dependent_std"],
-            squash_tanh=config["noise_actor_squash_tanh"],
-            encoder=encoders.get("noise_actor"),
-        )
+        if actor_type in ("sac", "stochastic"):
+            noise_actor_base_cls = partial(
+                MLP,
+                hidden_dims=config["actor_hidden_dims"],
+                activate_final=True,
+                layer_norm=config["actor_layer_norm"],
+            )
+            noise_actor_cls = (
+                TanhNormal if config["noise_actor_squash_tanh"] else Normal
+            )
+            noise_actor_def = noise_actor_cls(
+                noise_actor_base_cls,
+                full_action_dim,
+                state_dependent_std=config["noise_state_dependent_std"],
+                encoder=encoders.get("noise_actor"),
+            )
+        else:
+            noise_actor_def = MLP(
+                hidden_dims=(*tuple(config["actor_hidden_dims"]), full_action_dim),
+                layer_norm=config["actor_layer_norm"],
+            )
         actor_drift_def = ActorVectorField(
             hidden_dims=config["actor_hidden_dims"],
             action_dim=full_action_dim,
             layer_norm=config["actor_layer_norm"],
             encoder=encoders.get("actor_drift"),
         )
-        noise_alpha_def = LogParam(init_value=config["noise_init_temp"])
 
         network_info = dict(
             critic=(critic_def, (ex_observations, full_actions)),
             target_critic=(copy.deepcopy(critic_def), (ex_observations, full_actions)),
-            noise_critic=(noise_critic_def, (ex_observations, full_actions)),
-            noise_actor=(noise_actor_def, (ex_observations,)),
-            noise_alpha=(noise_alpha_def, ()),
+            noise_actor=(noise_actor_def, (ex_observations, )),
             actor_drift=(actor_drift_def, (ex_observations, full_actions)),
             target_actor_drift=(
                 copy.deepcopy(actor_drift_def),
                 (ex_observations, full_actions),
             ),
         )
+        if actor_type in ("sac", "stochastic"):
+            network_info["noise_alpha"] = (
+                LogParam(init_value=config["noise_init_temp"]),
+                (),
+            )
         networks = {k: v[0] for k, v in network_info.items()}
         network_args = {k: v[1] for k, v in network_info.items()}
 
@@ -459,26 +510,20 @@ def get_config():
             q_agg="pessimistic",
             actor_q_agg="mean",
             sample_q_agg="mean",
-            rho=0.5,
+            rho=0.,
             discount=0.99,
             tau=0.005,
+            actor_type="sac",
             best_of_n=1,
             drift_temps=[0.1],
             gen_per_label=8,
-            noise_scale=1.0,
-            noise_log_std_min=-5.0,
-            noise_log_std_max=-0.5,
-            noise_fixed_log_std=ml_collections.config_dict.placeholder(float),
+            noise_regularizer="entropy",
             noise_state_dependent_std=True,
-            noise_actor_squash_tanh=False,
-            noise_pre_tanh_l2=0.1,
-            noise_log_prob_clip=100.0,
+            noise_actor_squash_tanh=True,
             use_target_latent=True,
             noise_target_entropy=ml_collections.config_dict.placeholder(float),
-            noise_target_entropy_multiplier=0.5,
-            noise_normal_target_entropy_multiplier=(
-                0.5 * (1.0 + math.log(2.0 * math.pi)) - 1.0
-            ),
+            noise_target_kl=ml_collections.config_dict.placeholder(float),
+            noise_normal_target_entropy_multiplier=0.5,
             noise_init_temp=1.0,
             encoder=ml_collections.config_dict.placeholder(str),
         )
