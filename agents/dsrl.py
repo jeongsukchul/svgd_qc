@@ -302,7 +302,7 @@ def get_config():
             action_dim=ml_collections.config_dict.placeholder(int), # Action dimension (will be set automatically).
 
             ## Common hyperparamters
-            lr=1e-4,  # Learning rate.
+            lr=3e-4,  # Learning rate.
             batch_size=256,  # Batch size.
             actor_hidden_dims=(512, 512, 512, 512),  # Actor network hidden dimensions.
             actor_layer_norm=False,
@@ -321,7 +321,7 @@ def get_config():
             tau=0.005,      # Target network update rate.
             flow_steps=10,  # Number of flow steps.
 
-            best_of_n=3,    # Best-of-n for computing Q-targets and sampling actions.
+            best_of_n=1,    # Best-of-n for computing Q-targets and sampling actions.
 
             ## Main hyperparameter(s)
             noise_scale=1.0,    # Noise action scale.
@@ -330,7 +330,7 @@ def get_config():
             regularizer="entropy",
             target_entropy=ml_collections.config_dict.placeholder(float),  # Target entropy (None for automatic tuning).
             target_entropy_multiplier=0.5,          # Multiplier to dim(A) for target entropy.
-            target_kl=ml_collections.config_dict.placeholder(float),
+            target_kl=ml_collections.config_dict.placeholder(float), #25
             use_target_latent=True,                 # Use the target BC policy network to form the latent space
         )
     )

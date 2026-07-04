@@ -70,18 +70,6 @@ class STDFPAgent(flax.struct.PyTreeNode):
             return "ddpg"
         raise ValueError(f"Unsupported actor_type: {actor_type}")
 
-    def _sample_policy_noises(self, dist, rng):
-        samples = dist.sample(seed=rng)
-        if self.config["noise_actor_squash_tanh"]:
-            noises = samples
-            prior_inputs = self._safe_atanh_value(noises)
-            log_probs = dist.log_prob(noises)
-        else:
-            prior_inputs = samples
-            noises = self._safe_tanh_value(jnp.tanh(prior_inputs))
-            log_probs = dist.log_prob(prior_inputs)
-        return prior_inputs, noises, log_probs
-
     def _masked_action_mse(self, squared_error, batch):
         if self.config["action_chunking"]:
             squared_error = jnp.reshape(
@@ -146,7 +134,7 @@ class STDFPAgent(flax.struct.PyTreeNode):
             drift_noises,
             params=grad_params,
         )
-        drift_actions = self._safe_clip(drift_actions)
+        # drift_actions = self._safe_clip(drift_actions)
         gen_samples = drift_actions.reshape(batch_size, gen_per_label, action_dim)
 
         drift_loss_val, drift_info = drift_loss(
@@ -161,14 +149,12 @@ class STDFPAgent(flax.struct.PyTreeNode):
                 batch["observations"],
                 params=grad_params,
             )
-            prior_inputs, noises, log_probs = self._sample_policy_noises(
-                dist,
-                actor_rng,
-            )
 
+            noises = dist.sample(seed=rng)
+            log_probs = dist.log_prob(noises)
             decoded_actions = self.network.select("actor_drift")(
                 batch["observations"],
-                noises,
+                noises * self.config['noise_scale'],
             )
             decoded_actions = self._safe_clip(decoded_actions)
             critic_qs = self.network.select("critic")(
@@ -212,15 +198,15 @@ class STDFPAgent(flax.struct.PyTreeNode):
                     f"Unsupported noise_regularizer: {self.config['noise_regularizer']}"
                 )
             alpha = alpha_train
-            raw_noises = prior_inputs
         else:
             raw_noises = self.network.select("noise_actor")(
                 batch["observations"],
                 params=grad_params,
             )
-            noises = self._safe_clip(raw_noises)
+            sq_sum = jnp.sum(jnp.square(raw_noises), axis=-1, keepdims=True)
+            norm = jnp.sqrt(sq_sum + 1e-6) 
+            noises = raw_noises / norm * jnp.sqrt(action_dim)
             log_probs = jnp.zeros((batch_size,))
-
             decoded_actions = self.network.select("actor_drift")(
                 batch["observations"],
                 noises,
@@ -253,10 +239,6 @@ class STDFPAgent(flax.struct.PyTreeNode):
             "kl": kl.mean(),
             "target_kl": target_kl,
             "q": actor_q.mean(),
-            "pre_tanh_noise_abs_mean": jnp.abs(raw_noises).mean(),
-            "pre_tanh_noise_std": raw_noises.std(),
-            "pre_tanh_noise_max": raw_noises.max(),
-            "pre_tanh_noise_min": raw_noises.min(),
             "noise_abs_mean": jnp.abs(noises).mean(),
             "noise_std": noises.std(),
             "noise_max": noises.max(),
@@ -349,20 +331,18 @@ class STDFPAgent(flax.struct.PyTreeNode):
         )
 
         if self._noise_actor_type() == "ddpg":
-            noises = self._safe_clip(self.network.select("noise_actor")(observations))
+            raw_noises = self._safe_clip(self.network.select("noise_actor")(observations))
+            sq_sum = jnp.sum(jnp.square(raw_noises), axis=-1, keepdims=True)
+            norm = jnp.sqrt(sq_sum + 1e-6) 
+            noises = raw_noises / norm * jnp.sqrt(action_dim)
             actions = self.sample_drift_actions(observations, noises)
             return self._safe_clip(actions)
 
         best_of_n = self.config["best_of_n"]
         observations = jnp.repeat(observations[..., None, :], best_of_n, axis=-2)
         dist = self.network.select("noise_actor")(observations)
-
-        if self.config["noise_actor_squash_tanh"]:
-            noises = dist.sample(seed=rng)
-        else:
-            noises = self._safe_tanh_value(jnp.tanh(dist.sample(seed=rng)))
-
-        actions = self.sample_drift_actions(observations, noises)
+        noises = dist.sample(seed=rng)
+        actions = self.sample_drift_actions(observations, noises * self.config['noise_scale'])
 
         q = self._aggregate_q(
             self.network.select("critic")(observations, actions),
@@ -439,10 +419,7 @@ class STDFPAgent(flax.struct.PyTreeNode):
                 activate_final=True,
                 layer_norm=config["actor_layer_norm"],
             )
-            noise_actor_cls = (
-                TanhNormal if config["noise_actor_squash_tanh"] else Normal
-            )
-            noise_actor_def = noise_actor_cls(
+            noise_actor_def = TanhNormal(
                 noise_actor_base_cls,
                 full_action_dim,
                 state_dependent_std=config["noise_state_dependent_std"],
@@ -510,21 +487,21 @@ def get_config():
             q_agg="pessimistic",
             actor_q_agg="mean",
             sample_q_agg="mean",
-            rho=0.,
+            rho=0.5,
             discount=0.99,
             tau=0.005,
             actor_type="sac",
             best_of_n=1,
             drift_temps=[0.1],
             gen_per_label=8,
-            noise_regularizer="entropy",
-            noise_state_dependent_std=True,
-            noise_actor_squash_tanh=True,
+            noise_regularizer="kl",
+            noise_state_dependent_std=False,
             use_target_latent=True,
             noise_target_entropy=ml_collections.config_dict.placeholder(float),
             noise_target_kl=ml_collections.config_dict.placeholder(float),
             noise_normal_target_entropy_multiplier=0.5,
             noise_init_temp=1.0,
+            noise_scale=1.5,
             encoder=ml_collections.config_dict.placeholder(str),
         )
     )
