@@ -3,7 +3,6 @@ set -euo pipefail
 
 PYTHON=${PYTHON:-python3}
 ENV_NAME=${ENV_NAME:-cube-double-play-singletask-task2-v0}
-SEED=${SEED:-123}
 HORIZON_LENGTH=${HORIZON_LENGTH:-5}
 OFFLINE_STEPS=${OFFLINE_STEPS:-1000000}
 ONLINE_STEPS=${ONLINE_STEPS:-0}
@@ -16,7 +15,6 @@ MUJOCO_GL=${MUJOCO_GL:-egl}
 COMMON=(
   main.py
   --run_group="${RUN_GROUP}"
-  --seed="${SEED}"
   --env_name="${ENV_NAME}"
   --sparse=False
   --horizon_length="${HORIZON_LENGTH}"
@@ -45,16 +43,16 @@ run_variant() {
 
 
 
-for target_entropy in 0.5 1.0 1.5 2.0 3.0 4.0 6.0; do
-  run_variant "ent_postsquash_${target_entropy}_lr1e4" \
-    --agent.noise_regularizer=entropy \
-    --agent.noise_actor_squash_tanh=True \
-    --agent.noise_target_entropy="${target_entropy}"
-done
-
 for target_kl in 10 20 30 40 50; do
   run_variant "kl_postsquash_${target_kl}_lr1e4" \
     --agent.noise_regularizer=kl \
-    --agent.noise_actor_squash_tanh=True \
-    --agent.noise_target_kl="${target_kl}"
+    --agent.noise_target_kl="${target_kl}" \
+    --agent.noise_scale=3.0
 done
+# for target_kl in 10 20 30 40 50; do
+#   run_variant "kl_postsquash_${target_kl}_lr1e4" \
+#     --agent.noise_regularizer=kl \
+#     --agent.noise_actor_squash_tanh=True \
+#     --agent.noise_target_kl="${target_kl}" \
+#     --agent.noise_scale=2.0
+# done

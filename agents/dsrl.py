@@ -302,7 +302,7 @@ def get_config():
             action_dim=ml_collections.config_dict.placeholder(int), # Action dimension (will be set automatically).
 
             ## Common hyperparamters
-            lr=3e-4,  # Learning rate.
+            lr=1e-4,  # Learning rate.
             batch_size=256,  # Batch size.
             actor_hidden_dims=(512, 512, 512, 512),  # Actor network hidden dimensions.
             actor_layer_norm=False,

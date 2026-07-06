@@ -51,16 +51,39 @@ class STDFPAgent(flax.struct.PyTreeNode):
         x = jnp.nan_to_num(x, nan=0.0, posinf=high, neginf=low)
         return jnp.clip(x, low, high)
 
-    def _safe_tanh_value(self, x, eps=1e-6):
-        x = jnp.nan_to_num(x, nan=0.0, posinf=1.0 - eps, neginf=-1.0 + eps)
-        return jnp.clip(x, -1.0 + eps, 1.0 - eps)
-
-    def _safe_atanh_value(self, x, eps=1e-6):
-        x = self._safe_tanh_value(x, eps=eps)
-        return jnp.arctanh(x)
 
     def _unit_normal_log_prob(self, x):
         return -0.5 * (jnp.square(x) + math.log(2.0 * math.pi)).sum(axis=-1)
+
+    def _sigreg_strong_loss(
+        self,
+        key,
+        x,
+        sketch_dim=64,
+        num_t=17,
+        t_min=-5.0,
+        t_max=5.0,
+        eps=1e-6,
+    ):
+        """Match a batch of latent noises to a unit Gaussian via ECF regression."""
+        _, c = x.shape
+
+        a = jax.random.normal(key, (c, sketch_dim))
+        a = a / (jnp.linalg.norm(a, axis=0, keepdims=True) + eps) # spherical projection
+
+        t = jnp.linspace(t_min, t_max, num_t) 
+        target_cf = jnp.exp(-0.5 * jnp.square(t))
+
+        proj = x @ a
+        args = proj[:, :, None] * t[None, None, :]
+        empirical_cf = jnp.mean(jnp.exp(1j * args), axis=0)
+
+        diff_sq = jnp.abs(empirical_cf - target_cf[None, :]) ** 2
+        err = diff_sq * target_cf[None, :]
+
+        dt = t[1:] - t[:-1]
+        trap = 0.5 * (err[:, 1:] + err[:, :-1]) * dt[None, :]
+        return jnp.mean(jnp.sum(trap, axis=1) * x.shape[0])
 
     def _noise_actor_type(self):
         actor_type = self.config["actor_type"] if "actor_type" in self.config else "sac"
@@ -91,7 +114,6 @@ class STDFPAgent(flax.struct.PyTreeNode):
         rng, sample_rng = jax.random.split(rng)
         next_obs = batch["next_observations"][..., -1, :]
         next_actions = self.sample_actions(next_obs, sample_rng)
-        next_actions = self._safe_clip(next_actions)
 
         next_qs = self.network.select("target_critic")(next_obs, next_actions)
         next_q = self._aggregate_q(next_qs)
@@ -120,14 +142,16 @@ class STDFPAgent(flax.struct.PyTreeNode):
     def actor_loss(self, batch, grad_params, rng):
         batch_actions = self._batch_actions(batch)
         batch_size, action_dim = batch_actions.shape
+        noise_actor_type = self._noise_actor_type()
 
         drift_rng, actor_rng = jax.random.split(rng)
+        actor_rng, sigreg_rng = jax.random.split(actor_rng)
 
         gen_per_label = self.config["gen_per_label"]
         obs_repeated = jnp.repeat(batch["observations"], gen_per_label, axis=0)
         drift_noises = jax.random.normal(
             drift_rng,
-            (batch_size * gen_per_label, action_dim),
+            (batch_size * gen_per_label, action_dim * 2),
         )
         drift_actions = self.network.select("actor_drift")(
             obs_repeated,
@@ -144,19 +168,20 @@ class STDFPAgent(flax.struct.PyTreeNode):
         )
         actor_drift_loss = drift_loss_val.mean()
 
-        if self._noise_actor_type() == "sac":
+        if noise_actor_type == "sac":
             dist = self.network.select("noise_actor")(
                 batch["observations"],
                 params=grad_params,
             )
 
-            noises = dist.sample(seed=rng)
-            log_probs = dist.log_prob(noises)
-            decoded_actions = self.network.select("actor_drift")(
-                batch["observations"],
-                noises * self.config['noise_scale'],
+            noises = dist.sample(seed=actor_rng)
+            log_probs = dist.log_prob(noises)- action_dim * jnp.log(self.config['noise_scale'])
+            scaled_noises = noises * self.config['noise_scale']
+            decoded_actions = self.sample_drift_actions(
+                batch["observations"], 
+                scaled_noises,
+                self.config["use_target_latent"]
             )
-            decoded_actions = self._safe_clip(decoded_actions)
             critic_qs = self.network.select("critic")(
                 batch["observations"],
                 decoded_actions,
@@ -166,7 +191,7 @@ class STDFPAgent(flax.struct.PyTreeNode):
             alpha = self.network.select("noise_alpha")()
             alpha_train = self.network.select("noise_alpha")(params=grad_params)
             entropy = -log_probs
-            log_prior = self._unit_normal_log_prob(noises)
+            log_prior = self._unit_normal_log_prob(scaled_noises)
             kl = log_probs - log_prior
 
             if self.config["noise_regularizer"] == "entropy":
@@ -198,31 +223,40 @@ class STDFPAgent(flax.struct.PyTreeNode):
                     f"Unsupported noise_regularizer: {self.config['noise_regularizer']}"
                 )
             alpha = alpha_train
+            sigreg_loss = jnp.zeros(())
         else:
-            raw_noises = self.network.select("noise_actor")(
+            noises = self.network.select("noise_actor")(
                 batch["observations"],
                 params=grad_params,
             )
-            sq_sum = jnp.sum(jnp.square(raw_noises), axis=-1, keepdims=True)
-            norm = jnp.sqrt(sq_sum + 1e-6) 
-            noises = raw_noises / norm * jnp.sqrt(action_dim)
             log_probs = jnp.zeros((batch_size,))
-            decoded_actions = self.network.select("actor_drift")(
+            decoded_actions = self.sample_drift_actions(
                 batch["observations"],
                 noises,
+                self.config["use_target_latent"],
             )
-            decoded_actions = self._safe_clip(decoded_actions)
             critic_qs = self.network.select("critic")(
                 batch["observations"],
                 decoded_actions,
             )
             actor_q = self._aggregate_q(critic_qs, mode=self.config["actor_q_agg"])
+            sigreg_loss = self._sigreg_strong_loss(
+                sigreg_rng,
+                noises,
+                sketch_dim=self.config["ddpg_sigreg_sketch_dim"],
+                num_t=self.config["ddpg_sigreg_num_t"],
+                t_min=self.config["ddpg_sigreg_t_min"],
+                t_max=self.config["ddpg_sigreg_t_max"],
+            )
 
             alpha = jnp.zeros(())
             entropy = jnp.zeros((batch_size,))
             kl = jnp.zeros((batch_size,))
             alpha_loss = jnp.zeros(())
-            policy_loss = -actor_q.mean()
+            policy_loss = (
+                -actor_q.mean()
+                + self.config["ddpg_sigreg_coeff"] * sigreg_loss
+            )
             target_entropy = jnp.zeros(())
             target_kl = jnp.zeros(())
 
@@ -238,6 +272,12 @@ class STDFPAgent(flax.struct.PyTreeNode):
             "target_entropy": target_entropy,
             "kl": kl.mean(),
             "target_kl": target_kl,
+            "sigreg_loss": sigreg_loss,
+            "sigreg_coeff": (
+                jnp.zeros(())
+                if noise_actor_type == "sac"
+                else self.config["ddpg_sigreg_coeff"]
+            ),
             "q": actor_q.mean(),
             "noise_abs_mean": jnp.abs(noises).mean(),
             "noise_std": noises.std(),
@@ -312,11 +352,11 @@ class STDFPAgent(flax.struct.PyTreeNode):
         agent, infos = jax.lax.scan(self._update, self, batch)
         return agent, jax.tree_util.tree_map(lambda x: x.mean(), infos)
 
-    @jax.jit
-    def sample_drift_actions(self, observations, noises):
+    @partial(jax.jit, static_argnames=("use_target_latent",))
+    def sample_drift_actions(self, observations, noises, use_target_latent=False):
         model_name = (
             "target_actor_drift"
-            if self.config["use_target_latent"]
+            if use_target_latent
             else "actor_drift"
         )
         actions = self.network.select(model_name)(observations, noises)
@@ -331,18 +371,19 @@ class STDFPAgent(flax.struct.PyTreeNode):
         )
 
         if self._noise_actor_type() == "ddpg":
-            raw_noises = self._safe_clip(self.network.select("noise_actor")(observations))
-            sq_sum = jnp.sum(jnp.square(raw_noises), axis=-1, keepdims=True)
-            norm = jnp.sqrt(sq_sum + 1e-6) 
-            noises = raw_noises / norm * jnp.sqrt(action_dim)
-            actions = self.sample_drift_actions(observations, noises)
+            noises = self.network.select("noise_actor")(observations)
+            actions = self.sample_drift_actions(observations, noises, self.config["use_target_latent"])
             return self._safe_clip(actions)
 
         best_of_n = self.config["best_of_n"]
         observations = jnp.repeat(observations[..., None, :], best_of_n, axis=-2)
         dist = self.network.select("noise_actor")(observations)
         noises = dist.sample(seed=rng)
-        actions = self.sample_drift_actions(observations, noises * self.config['noise_scale'])
+        print("noises", noises)
+        actions = self.sample_drift_actions(
+            observations, 
+            noises * self.config['noise_scale'],
+            self.config["use_target_latent"])
 
         q = self._aggregate_q(
             self.network.select("critic")(observations, actions),
@@ -381,6 +422,7 @@ class STDFPAgent(flax.struct.PyTreeNode):
             )
         else:
             full_actions = ex_actions
+        noises = jnp.concatenate([full_actions, full_actions], axis=-1)
         full_action_dim = full_actions.shape[-1]
 
         actor_type = config.get("actor_type", "sac")
@@ -421,13 +463,13 @@ class STDFPAgent(flax.struct.PyTreeNode):
             )
             noise_actor_def = TanhNormal(
                 noise_actor_base_cls,
-                full_action_dim,
+                full_action_dim * 2,
                 state_dependent_std=config["noise_state_dependent_std"],
                 encoder=encoders.get("noise_actor"),
             )
         else:
             noise_actor_def = MLP(
-                hidden_dims=(*tuple(config["actor_hidden_dims"]), full_action_dim),
+                hidden_dims=(*tuple(config["actor_hidden_dims"]), full_action_dim * 2),
                 layer_norm=config["actor_layer_norm"],
             )
         actor_drift_def = ActorVectorField(
@@ -441,10 +483,10 @@ class STDFPAgent(flax.struct.PyTreeNode):
             critic=(critic_def, (ex_observations, full_actions)),
             target_critic=(copy.deepcopy(critic_def), (ex_observations, full_actions)),
             noise_actor=(noise_actor_def, (ex_observations, )),
-            actor_drift=(actor_drift_def, (ex_observations, full_actions)),
+            actor_drift=(actor_drift_def, (ex_observations, noises)),
             target_actor_drift=(
                 copy.deepcopy(actor_drift_def),
-                (ex_observations, full_actions),
+                (ex_observations, noises),
             ),
         )
         if actor_type in ("sac", "stochastic"):
@@ -501,7 +543,12 @@ def get_config():
             noise_target_kl=ml_collections.config_dict.placeholder(float),
             noise_normal_target_entropy_multiplier=0.5,
             noise_init_temp=1.0,
-            noise_scale=1.5,
+            noise_scale=1.,
+            ddpg_sigreg_coeff=1.,
+            ddpg_sigreg_sketch_dim=64,
+            ddpg_sigreg_num_t=17,
+            ddpg_sigreg_t_min=-5.0,
+            ddpg_sigreg_t_max=5.0,
             encoder=ml_collections.config_dict.placeholder(str),
         )
     )
