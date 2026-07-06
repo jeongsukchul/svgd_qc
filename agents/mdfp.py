@@ -366,7 +366,7 @@ class MDFPAgent(flax.struct.PyTreeNode):
             num_ensembles=config['num_qs'],
             encoder=encoders.get('critic'),
         )
-        actor_drift_def = ActorDriftingField(
+        actor_drift_def = ActorVectorField(
             hidden_dims=config['actor_hidden_dims'],
             action_dim=full_action_dim,
             layer_norm=config['actor_layer_norm'],
@@ -424,7 +424,7 @@ def get_config():
             q_agg='mean',  # Aggregation method for target Q values.
             num_qs=2, # critic ensemble size
             num_generations=8,  # Number of sample generations.
-            R_list=(0.05,),  # Kernel temperatures for drift loss.
+            R_list=(0.2,),  # Kernel temperatures for drift loss.
             encoder=ml_collections.config_dict.placeholder(str),  # Visual encoder name (None, 'impala_small', etc.).
             horizon_length=ml_collections.config_dict.placeholder(int), # will be set
             action_chunking=True,  # False means n-step return

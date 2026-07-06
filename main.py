@@ -1,13 +1,13 @@
-import glob, tqdm, wandb, os, json, random, shutil, sys, time, jax
-os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+import glob, tqdm, wandb, os, json, random, time, jax
 from absl import app, flags
 from ml_collections import config_flags
 from log_utils import setup_wandb, get_exp_name, get_flag_dict, CsvLogger, get_wandb_video
 
-from envs.env_utils import is_robomimic_env_name, make_env_and_datasets
+from envs.env_utils import make_env_and_datasets
 from envs.ogbench_utils import make_ogbench_env_and_datasets
+# from envs.robomimic_utils import is_robomimic_env
 
-from utils.flax_utils import save_agent, save_critic
+from utils.flax_utils import save_agent
 from utils.datasets import Dataset, ReplayBuffer
 
 from evaluation import evaluate
@@ -22,7 +22,7 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string('run_group', 'Debug', 'Run group.')
 flags.DEFINE_integer('seed', 0, 'Random seed.')
-flags.DEFINE_string('env_name', 'cube-triple-play-singletask-task2-v0', 'Environment (dataset) name.')
+flags.DEFINE_string('env_name', 'cube-double-play-singletask-task2-v0', 'Environment (dataset) name.')
 flags.DEFINE_string('save_dir', 'exp/', 'Save directory.')
 
 flags.DEFINE_integer('offline_steps', 1000000, 'Number of online steps.')
@@ -30,15 +30,14 @@ flags.DEFINE_integer('online_steps', 1000000, 'Number of online steps.')
 flags.DEFINE_integer('buffer_size', 2000000, 'Replay buffer size.')
 flags.DEFINE_integer('log_interval', 5000, 'Logging interval.')
 flags.DEFINE_integer('eval_interval', 100000, 'Evaluation interval.')
-flags.DEFINE_integer('save_interval',  500000, 'Save interval.')
-flags.DEFINE_bool('save_best_eval', False, 'Save a checkpoint whenever eval success/return improves.')
+flags.DEFINE_integer('save_interval', -1, 'Save interval.')
 flags.DEFINE_integer('start_training', 5000, 'when does training start')
 
 flags.DEFINE_integer('utd_ratio', 1, "update to data ratio")
 
 flags.DEFINE_float('discount', 0.99, 'discount factor')
 
-flags.DEFINE_integer('eval_episodes', 40, 'Number of evaluation episodes.')
+flags.DEFINE_integer('eval_episodes', 20, 'Number of evaluation episodes.')
 flags.DEFINE_integer('video_episodes', 10, 'Number of video episodes for each task.')
 flags.DEFINE_integer('video_frame_skip', 3, 'Frame skip for videos.')
 
@@ -48,10 +47,11 @@ flags.DEFINE_float('dataset_proportion', 1.0, "Proportion of the dataset to use"
 flags.DEFINE_integer('dataset_replace_interval', 1000, 'Dataset replace interval, used for large datasets because of memory constraints')
 flags.DEFINE_string('ogbench_dataset_dir', None, 'OGBench dataset directory')
 
-flags.DEFINE_integer('horizon_length', 1, 'action chunking length.')
+flags.DEFINE_integer('horizon_length', 5, 'action chunking length.')
 flags.DEFINE_bool('sparse', False, "make the task sparse reward")
 
 flags.DEFINE_bool('save_all_online_states', False, "save all trajectories to npy")
+
 class LoggingHelper:
     def __init__(self, csv_loggers, wandb_logger):
         self.csv_loggers = csv_loggers
@@ -64,140 +64,18 @@ class LoggingHelper:
         self.csv_loggers[prefix].log(data, step=step)
         self.wandb_logger.log({f'{prefix}/{k}': v for k, v in data.items()}, step=step)
 
-def get_eval_success_postfix(eval_info):
-    """Return a tqdm postfix showing eval success rate when the env reports one."""
-    preferred_keys = (
-        "success",
-        "success_rate",
-        "episode.success",
-        "task_success",
-        "is_success",
-    )
-    success_key = None
-    for key in preferred_keys:
-        if key in eval_info:
-            success_key = key
-            break
-    if success_key is None:
-        for key in eval_info:
-            if "success" in key.lower():
-                success_key = key
-                break
-    if success_key is None:
-        return None
-
-    value = eval_info[success_key]
-    try:
-        value = f"{float(np.asarray(value)):.3f}"
-    except (TypeError, ValueError):
-        value = str(value)
-    return {"eval_success": value}
-
-
-def get_eval_score(eval_info):
-    """Return a comparable eval score tuple, preferring success then return."""
-    preferred_success_keys = (
-        "success",
-        "success_rate",
-        "episode.success",
-        "task_success",
-        "is_success",
-    )
-    success_key = None
-    for key in preferred_success_keys:
-        if key in eval_info:
-            success_key = key
-            break
-    if success_key is None:
-        for key in eval_info:
-            if "success" in key.lower():
-                success_key = key
-                break
-    if success_key is None:
-        return None
-
-    return_key = None
-    for key in ("episode.return", "return", "episode_return"):
-        if key in eval_info:
-            return_key = key
-            break
-    if return_key is None:
-        for key in eval_info:
-            if "return" in key.lower():
-                return_key = key
-                break
-
-    try:
-        success = float(np.asarray(eval_info[success_key]))
-        episode_return = (
-            float(np.asarray(eval_info[return_key])) if return_key is not None else 0.0
-        )
-    except (TypeError, ValueError):
-        return None
-
-    return success, episode_return
-
-
-def add_eval_video(eval_info, renders, fps=15):
-    """Attach rendered eval videos to the eval log payload when available."""
-    if len(renders) == 0:
-        return eval_info
-    renders = [render for render in renders if len(render) > 0]
-    if len(renders) == 0:
-        return eval_info
-
-    eval_info["video"] = get_wandb_video(renders=renders, fps=fps)
-    return eval_info
-
-def set_agent_online_learning(agent, online_learning):
-    if "online_learning" not in agent.config:
-        return agent
-    return agent.replace(config=agent.config.copy({"online_learning": online_learning}))
-
-
-def save_checkpoints(agent, save_dir, epoch):
-    save_agent(agent, save_dir, epoch)
-    save_critic(agent, save_dir, epoch)
-
-
-def _resolve_agent_config_path(argv, default_path):
-    for idx, arg in enumerate(argv[1:], start=1):
-        if arg.startswith("--agent="):
-            return arg.split("=", 1)[1]
-        if arg == "--agent" and idx + 1 < len(argv):
-            return argv[idx + 1]
-    return default_path
-
-
-def save_agent_source_snapshot(save_dir, default_agent_path):
-    agent_path = os.path.abspath(
-        _resolve_agent_config_path(sys.argv, default_agent_path)
-    )
-    snapshot_dir = os.path.join(save_dir, "source_snapshot", "agents")
-    os.makedirs(snapshot_dir, exist_ok=True)
-
-    if os.path.isfile(agent_path):
-        shutil.copy2(agent_path, os.path.join(snapshot_dir, os.path.basename(agent_path)))
-
-    with open(os.path.join(save_dir, "agent_source_path.txt"), "w") as f:
-        f.write(agent_path + "\n")
-
 def main(_):
-    exp_name = get_exp_name(FLAGS.seed, env_name=FLAGS.env_name)
-    run = setup_wandb(project='svgd-qc', group=FLAGS.run_group, name=exp_name, entity="tjrcjf410-seoul-national-university")
+    exp_name = get_exp_name(FLAGS.seed)
+    run = setup_wandb(project='svgd-qc', group=FLAGS.run_group, name=exp_name)
     
     FLAGS.save_dir = os.path.join(FLAGS.save_dir, wandb.run.project, FLAGS.run_group, FLAGS.env_name, exp_name)
     os.makedirs(FLAGS.save_dir, exist_ok=True)
-
-    config = FLAGS.agent
-    config["discount"] = FLAGS.discount
-    config["horizon_length"] = FLAGS.horizon_length
-
     flag_dict = get_flag_dict()
 
     with open(os.path.join(FLAGS.save_dir, 'flags.json'), 'w') as f:
         json.dump(flag_dict, f)
-    save_agent_source_snapshot(FLAGS.save_dir, "agents/acfql.py")
+
+    config = FLAGS.agent
     
     # data loading
     if FLAGS.ogbench_dataset_dir is not None:
@@ -224,6 +102,7 @@ def main(_):
     log_step = 0
     
     discount = FLAGS.discount
+    config["horizon_length"] = FLAGS.horizon_length
 
     # handle dataset
     def process_train_dataset(ds):
@@ -241,11 +120,11 @@ def main(_):
                 **{k: v[:new_size] for k, v in ds.items()}
             )
         
-        if is_robomimic_env_name(FLAGS.env_name):
-            penalty_rewards = ds["rewards"] - 1.0
-            ds_dict = {k: v for k, v in ds.items()}
-            ds_dict["rewards"] = penalty_rewards
-            ds = Dataset.create(**ds_dict)
+        # if is_robomimic_env(FLAGS.env_name):
+        #     penalty_rewards = ds["rewards"] - 1.0
+        #     ds_dict = {k: v for k, v in ds.items()}
+        #     ds_dict["rewards"] = penalty_rewards
+        #     ds = Dataset.create(**ds_dict)
         
         if FLAGS.sparse:
             # Create a new dataset with modified rewards instead of trying to modify the frozen one
@@ -280,25 +159,9 @@ def main(_):
         wandb_logger=wandb,
     )
 
-    best_eval_score = None
-
-    def maybe_save_best_eval(agent, eval_info, step):
-        nonlocal best_eval_score
-        if not FLAGS.save_best_eval:
-            return
-        eval_score = get_eval_score(eval_info)
-        if eval_score is None:
-            return
-        if best_eval_score is None or eval_score > best_eval_score:
-            best_eval_score = eval_score
-            print(f"New best eval at step {step}: {eval_score}", flush=True)
-            save_checkpoints(agent, FLAGS.save_dir, "best")
-
     offline_init_time = time.time()
-    agent = set_agent_online_learning(agent, False)
     # Offline RL
-    offline_pbar = tqdm.tqdm(range(1, FLAGS.offline_steps + 1), desc="offline")
-    for i in offline_pbar:
+    for i in tqdm.tqdm(range(1, FLAGS.offline_steps + 1), ncols=100):
         log_step += 1
 
         if FLAGS.ogbench_dataset_dir is not None and FLAGS.dataset_replace_interval != 0 and i % FLAGS.dataset_replace_interval == 0:
@@ -322,29 +185,32 @@ def main(_):
         
         # saving
         if FLAGS.save_interval > 0 and i % FLAGS.save_interval == 0:
-            save_checkpoints(agent, FLAGS.save_dir, log_step)
+            save_agent(agent, FLAGS.save_dir, log_step)
 
+        videos = {}
         # eval
-        if i == FLAGS.offline_steps - 1 or \
-            (FLAGS.eval_interval != 0 and i % FLAGS.eval_interval == 0):
+        if i == 1 or (FLAGS.eval_interval != 0 and i % FLAGS.eval_interval == 0):
             # during eval, the action chunk is executed fully
-            eval_info, _, renders = evaluate(
+            renders = []
+            eval_info, _, cur_renders = evaluate(
                 agent=agent,
                 env=eval_env,
                 action_dim=example_batch["actions"].shape[-1],
-                num_eval_episodes=FLAGS.eval_episodes,
+                num_eval_episodes=FLAGS.eval_episodes if i != 1 else 1,
                 num_video_episodes=FLAGS.video_episodes,
                 video_frame_skip=FLAGS.video_frame_skip,
             )
-            eval_info = add_eval_video(eval_info, renders)
+            print()
+            print("\nsuccess_rate =", 100 * eval_info['success'], "%")
+            print()
+            renders.extend(cur_renders)
+            if FLAGS.video_episodes > 0:
+                video = get_wandb_video(renders=renders)
+                videos.update(
+                    {f'video': video}
+                )
+                wandb.log(videos, step=log_step)
             logger.log(eval_info, "eval", step=log_step)
-            maybe_save_best_eval(agent, eval_info, log_step)
-            eval_postfix = get_eval_success_postfix(eval_info)
-            if eval_postfix is not None:
-                offline_pbar.set_postfix(eval_postfix, refresh=True)
-
-    if FLAGS.offline_steps > 0:
-        save_checkpoints(agent, FLAGS.save_dir, "offline")
 
     # transition from offline to online
     replay_buffer = ReplayBuffer.create_from_initial_dataset(
@@ -357,14 +223,12 @@ def main(_):
     action_dim = example_batch["actions"].shape[-1]
 
     # Online RL
-    agent = set_agent_online_learning(agent, True)
     update_info = {}
 
     from collections import defaultdict
     data = defaultdict(list)
     online_init_time = time.time()
-    online_pbar = tqdm.tqdm(range(1, FLAGS.online_steps + 1), desc="online")
-    for i in online_pbar:
+    for i in tqdm.tqdm(range(1, FLAGS.online_steps + 1), ncols=100):
         log_step += 1
         online_rng, key = jax.random.split(online_rng)
         
@@ -402,9 +266,9 @@ def main(_):
         ):
             # Adjust reward for D4RL antmaze.
             int_reward = int_reward - 1.0
-        elif is_robomimic_env_name(FLAGS.env_name):
-            # Adjust online (0, 1) reward for robomimic
-            int_reward = int_reward - 1.0
+        # elif is_robomimic_env(FLAGS.env_name):
+        #     # Adjust online (0, 1) reward for robomimic
+        #     int_reward = int_reward - 1.0
 
         if FLAGS.sparse:
             assert int_reward <= 0.0
@@ -440,9 +304,10 @@ def main(_):
                 logger.log(info, key, step=log_step)
             update_info = {}
 
-        if i == FLAGS.online_steps - 1 or \
-            (FLAGS.eval_interval != 0 and i % FLAGS.eval_interval == 0):
-            eval_info, _, renders = evaluate(
+        videos = {}
+        if FLAGS.eval_interval != 0 and i % FLAGS.eval_interval == 0:
+            renders = []
+            eval_info, _, cur_renders = evaluate(
                 agent=agent,
                 env=eval_env,
                 action_dim=action_dim,
@@ -450,16 +315,21 @@ def main(_):
                 num_video_episodes=FLAGS.video_episodes,
                 video_frame_skip=FLAGS.video_frame_skip,
             )
-            eval_info = add_eval_video(eval_info, renders)
+            print()
+            print("\nsuccess_rate =", 100 * eval_info['success'], "%")
+            print()
+            renders.extend(cur_renders)
+            if FLAGS.video_episodes > 0:
+                video = get_wandb_video(renders=renders)
+                videos.update(
+                    {f'video': video}
+                )
+                wandb.log(videos, step=log_step)
             logger.log(eval_info, "eval", step=log_step)
-            maybe_save_best_eval(agent, eval_info, log_step)
-            eval_postfix = get_eval_success_postfix(eval_info)
-            if eval_postfix is not None:
-                online_pbar.set_postfix(eval_postfix, refresh=True)
 
         # saving
         if FLAGS.save_interval > 0 and i % FLAGS.save_interval == 0:
-            save_checkpoints(agent, FLAGS.save_dir, log_step)
+            save_agent(agent, FLAGS.save_dir, log_step)
 
     end_time = time.time()
 

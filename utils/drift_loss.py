@@ -9,7 +9,7 @@ def cdist(x, y, eps=1e-8):
     xnorms = jnp.einsum("bnd,bnd->bn", x, x)
     ynorms = jnp.einsum("bmd,bmd->bm", y, y)
     sq_dist = xnorms[:, :, None] + ynorms[:, None, :] - 2 * xydot
-    return jnp.sqrt(jnp.clip(sq_dist, a_min=eps))
+    return jnp.clip(sq_dist, a_min=eps)
 
 
 @partial(jax.jit, static_argnames=("R_list", "plus_only", "use_neg_only"))

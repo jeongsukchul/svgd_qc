@@ -8,7 +8,7 @@ from agents.mfp import MFPAgent
 from agents.qam import QAMAgent
 from agents.stdfp import STDFPAgent
 from agents.trqam import TRQAMAgent
-from agents.modified_drift import MDFPAgent
+from agents.mdfp import MDFPAgent
 agents = dict(
     acfql=ACFQLAgent,
     acrlpd=ACRLPDAgent,
