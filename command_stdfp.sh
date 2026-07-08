@@ -25,11 +25,10 @@ COMMON=(
   --eval_interval="${EVAL_INTERVAL}"
   --save_interval="${SAVE_INTERVAL}"
   --agent.actor_type=sac
-  --agent.lr=1e-4
+  # --agent.lr=3e-4
   --agent.actor_q_agg=mean
   --agent.sample_q_agg=mean
   --agent.use_target_latent=True
-  --agent.noise_state_dependent_std=True
 )
 
 run_variant() {
@@ -40,19 +39,39 @@ run_variant() {
   echo "MUJOCO_GL=${MUJOCO_GL} ${PYTHON} ${COMMON[*]} $*"
   MUJOCO_GL="${MUJOCO_GL}" "${PYTHON}" "${COMMON[@]}" "$@"
 }
+# MUJOCO_GL="${MUJOCO_GL}" "${PYTHON}"  "$@" main.py --agent=agents/trqam.py --horizon_length=5
 
-
-
-for target_kl in 10 20 30 40 50; do
-  run_variant "kl_postsquash_${target_kl}_lr1e4" \
-    --agent.noise_regularizer=kl \
-    --agent.noise_target_kl="${target_kl}" \
-    --agent.noise_scale=3.0
-done
 # for target_kl in 10 20 30 40 50; do
 #   run_variant "kl_postsquash_${target_kl}_lr1e4" \
 #     --agent.noise_regularizer=kl \
-#     --agent.noise_actor_squash_tanh=True \
 #     --agent.noise_target_kl="${target_kl}" \
-#     --agent.noise_scale=2.0
+#     --agent.noise_scale=1.0
 # done
+# for target_kl in 10 20 30 40 50; do
+#   run_variant "kl_postsquash_${target_kl}_lr1e4" \
+#     --agent.noise_regularizer=kl \
+#     --agent.noise_target_kl="${target_kl}" \
+#     --agent.noise_scale=2.0 \
+#     --agent.noise_state_dependent_std=True
+# done
+for target_kl in 40 50; do
+  run_variant "kl_postsquash_${target_kl}_lr1e4" \
+    --agent.noise_regularizer=kl \
+    --agent.noise_target_kl="${target_kl}" \
+    --agent.noise_scale=2.0 \
+    --agent.noise_state_dependent_std=False
+done
+for target_kl in 30 40 50; do
+  run_variant "kl_postsquash_${target_kl}_lr1e4" \
+    --agent.noise_regularizer=kl \
+    --agent.noise_target_kl="${target_kl}" \
+    --agent.noise_scale=1.0 \
+    --agent.noise_state_dependent_std=True
+done
+for target_kl in 30 40 50; do
+  run_variant "kl_postsquash_${target_kl}_lr1e4" \
+    --agent.noise_regularizer=kl \
+    --agent.noise_target_kl="${target_kl}" \
+    --agent.noise_scale=1.0 \
+    --agent.noise_state_dependent_std=False
+done

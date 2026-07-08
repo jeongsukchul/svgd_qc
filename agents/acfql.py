@@ -327,7 +327,7 @@ def get_config():
             actor_hidden_dims=(512, 512, 512, 512),  # Actor network hidden dimensions.
             value_hidden_dims=(512, 512, 512, 512),  # Value network hidden dimensions.
             layer_norm=True,  # Whether to use layer normalization.
-            actor_layer_norm=False,  # Whether to use layer normalization for the actor.
+            actor_layer_norm=True,  # Whether to use layer normalization for the actor.
             discount=0.99,  # Discount factor.
             tau=0.005,  # Target network update rate.
             q_agg='mean',  # Aggregation method for target Q values.
@@ -337,7 +337,7 @@ def get_config():
             normalize_q_loss=False,  # Whether to normalize the Q loss.
             encoder=ml_collections.config_dict.placeholder(str),  # Visual encoder name (None, 'impala_small', etc.).
             horizon_length=ml_collections.config_dict.placeholder(int), # will be set
-            action_chunking=False,  # False means n-step return
+            action_chunking=True,  # False means n-step return
             actor_type="distill-ddpg",
             actor_num_samples=16, #32,  # for actor_type="best-of-n" only
             use_fourier_features=False,

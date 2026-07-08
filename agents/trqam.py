@@ -428,7 +428,7 @@ def get_config():
             lr=3e-4,  # Learning rate.
             batch_size=256,  # Batch size.
             actor_hidden_dims=(512, 512, 512, 512),  # Actor network hidden dimensions.
-            actor_layer_norm=False,
+            actor_layer_norm=True,
             value_hidden_dims=(512, 512, 512, 512),  # Value network hidden dimensions.
             value_layer_norm=True,
 
@@ -448,7 +448,7 @@ def get_config():
 
             ## Trust-region hyperparameters
             lam_scale=3.0,          # Fixed multiplicative scale applied to λ in σ(τ)
-            kl_budget=1.0,          # KL budget ε_KL (target path-space KL)
+            kl_budget=.5,          # KL budget ε_KL (target path-space KL)
             eta_lambda=0.01,        # Dual descent step size η_λ
             kl_ema_coef=0.1,        # EMA coefficient ρ for KL smoothing
             lambda_min=0.01,        # Lower bracket on λ

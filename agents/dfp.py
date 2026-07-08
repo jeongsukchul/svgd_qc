@@ -53,8 +53,7 @@ class DFPAgent(flax.struct.PyTreeNode):
         q = self.network.select("critic")(
             batch["observations"], actions=batch_actions, params=grad_params
         )
-        valid = batch["valid"][..., -1] if "valid" in batch else jnp.ones_like(target_q)
-        critic_loss = (jnp.square(q - target_q) * valid).mean()
+        critic_loss = (jnp.square(q - target_q) * batch['valid'][..., -1]).mean()
 
         info = {
             "critic_loss": critic_loss,
@@ -321,7 +320,7 @@ def get_config():
             actor_hidden_dims=(512, 512, 512, 512),
             value_hidden_dims=(512, 512, 512, 512),
             layer_norm=True,
-            actor_layer_norm=False,
+            actor_layer_norm=True,
             discount=0.99,
             tau=0.005,
             q_agg="mean",

@@ -372,14 +372,22 @@ class STDFPAgent(flax.struct.PyTreeNode):
 
         if self._noise_actor_type() == "ddpg":
             noises = self.network.select("noise_actor")(observations)
-            actions = self.sample_drift_actions(observations, noises, self.config["use_target_latent"])
+            noise = jnp.clip(
+                jax.random.normal(rng, noises.shape) * self.config["actor_noise"],
+                -self.config["actor_noise_clip"],
+                self.config["actor_noise_clip"],
+            )
+            actions = self.sample_drift_actions(
+                observations,
+                noises + noise,
+                self.config["use_target_latent"],
+            )
             return self._safe_clip(actions)
 
         best_of_n = self.config["best_of_n"]
         observations = jnp.repeat(observations[..., None, :], best_of_n, axis=-2)
         dist = self.network.select("noise_actor")(observations)
         noises = dist.sample(seed=rng)
-        print("noises", noises)
         actions = self.sample_drift_actions(
             observations, 
             noises * self.config['noise_scale'],
@@ -520,7 +528,7 @@ def get_config():
             lr=3e-4,
             batch_size=256,
             actor_hidden_dims=(512, 512, 512, 512),
-            actor_layer_norm=False,
+            actor_layer_norm=True,
             value_hidden_dims=(512, 512, 512, 512),
             layer_norm=True,
             horizon_length=ml_collections.config_dict.placeholder(int),
@@ -544,6 +552,8 @@ def get_config():
             noise_normal_target_entropy_multiplier=0.5,
             noise_init_temp=1.0,
             noise_scale=1.,
+            actor_noise=0.2,
+            actor_noise_clip=0.5,
             ddpg_sigreg_coeff=1.,
             ddpg_sigreg_sketch_dim=64,
             ddpg_sigreg_num_t=17,
