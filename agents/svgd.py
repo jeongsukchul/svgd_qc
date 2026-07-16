@@ -319,12 +319,12 @@ class SVGDAgent(ACFQLAgent):
         bandwidth = self.config["bandwidth"]
         score_gain = self._score_gain()
 
-        old_diff = old_actions[:, None, :, :] - query_actions[:, :, None, :]
+        # old_diff = old_actions[:, None, :, :] - query_actions[:, :, None, :]
         target_diff = positive_actions[:, None, :, :] - query_actions[:, :, None, :]
         self_diff = query_actions[:, None, :, :] - query_actions[:, :, None, :]
 
         dist_pos = jnp.sum(target_diff ** 2, axis=-1)
-        dist_old = jnp.sum(old_diff ** 2, axis=-1)
+        # dist_old = jnp.sum(old_diff ** 2, axis=-1)
         dist_self = jnp.sum(self_diff ** 2, axis=-1)
 
         # Need q_value_old = Q(s, old_actions)
@@ -339,19 +339,19 @@ class SVGDAgent(ACFQLAgent):
             -dist_pos / epsilon - log_Z[:, None, :],
             axis=-1
         )
-
+            
         weights_neg = jax.nn.softmax(-dist_self / bandwidth, axis=-1)
-        weights_old = jax.nn.softmax(-dist_old / bandwidth, axis=-1)
+        # weights_old = jax.nn.softmax(-dist_old / bandwidth, axis=-1)
 
         local_attraction = (2.0 / epsilon) * jnp.sum(
             weights_pos[..., None] * target_diff,
             axis=-2
         )
 
-        local_old_attraction = (2.0 / bandwidth) * jnp.sum(
-            weights_old[..., None] * old_diff,
-            axis=-2
-        )
+        # local_old_attraction = (2.0 / bandwidth) * jnp.sum(
+        #     weights_old[..., None] * old_diff,
+        #     axis=-2
+        # )
 
         attraction_term = weights_neg @ local_attraction
 
@@ -360,12 +360,12 @@ class SVGDAgent(ACFQLAgent):
             axis=-2
         )
 
-        tr_term = weights_neg @ local_old_attraction
+        #tr_term = weights_neg @ local_old_attraction
 
         score_term = weights_neg @ ((score_gain / epsilon) * score)
 
         original_drift = attraction_term - repulsion_term
-        drift = original_drift + score_term + tr_term
+        drift = original_drift + score_term #+ tr_term
         drift_norm = jnp.sqrt(jnp.clip((drift ** 2).mean(), a_min=1e-8))
         return drift/drift_norm, {
             "bandwidth": bandwidth,
@@ -375,7 +375,7 @@ class SVGDAgent(ACFQLAgent):
             'score_drift_scale':  jnp.sqrt((score_term ** 2).mean()) / drift_norm,
             'attraction_scale':  jnp.sqrt((attraction_term ** 2).mean()) / drift_norm,
             'repulsion_scale':  jnp.sqrt((repulsion_term ** 2).mean()) / drift_norm,
-            'tr_scale':  jnp.sqrt((tr_term ** 2).mean()) / drift_norm,
+            #'tr_scale':  jnp.sqrt((tr_term ** 2).mean()) / drift_norm,
         }
 
     def _sinkhorn_loss(self, query_actions, positive_actions, old_actions, q_value_old, score, batch):
@@ -730,7 +730,7 @@ def get_config():
             actor_hidden_dims=(512, 512, 512, 512),
             value_hidden_dims=(512, 512, 512, 512),
             layer_norm=True,
-            actor_layer_norm=False,
+            actor_layer_norm=True,
             discount=0.99,
             q_agg="pessimistic",
             action_q_agg="mean",

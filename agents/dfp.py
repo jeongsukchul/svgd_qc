@@ -18,7 +18,7 @@ import optax
 
 from utils.encoders import encoder_modules
 from utils.flax_utils import ModuleDict, TrainState, nonpytree_field
-from utils.networks import ActorVectorField, Value
+from utils.networks import ActorICNN, ActorVectorField, Value
 from utils.drift_loss import drift_loss
 
 
@@ -29,22 +29,53 @@ class DFPAgent(flax.struct.PyTreeNode):
     network: Any
     config: Any = nonpytree_field()
 
+    def _batch_actions(self, batch):
+        if self.config["action_chunking"]:
+            return jnp.reshape(batch["actions"], (batch["actions"].shape[0], -1))
+        return batch["actions"][..., 0, :]
+
+    def _aggregate_q(self, qs):
+        if self.config["q_agg"] == "min":
+            return qs.min(axis=0)
+        return qs.mean(axis=0)
+
+    def _clip_fraction(self, x, threshold=0.99):
+        return (jnp.abs(x) > threshold).mean()
+
+    def _ensemble_std(self, qs):
+        return qs.std(axis=0).mean()
+
+    def _drift_update_active(self):
+        freeze_after = self.config["freeze_actor_drift_after"]
+        return jnp.logical_or(freeze_after < 0, self.network.step <= freeze_after)
+
+    def _masked_action_mse(self, squared_error, batch):
+        if squared_error.ndim == 2:
+            squared_error = squared_error[:, None, :]
+        if self.config["action_chunking"]:
+            squared_error = jnp.reshape(
+                squared_error,
+                (
+                    squared_error.shape[0],
+                    squared_error.shape[1],
+                    self.config["horizon_length"],
+                    self.config["action_dim"],
+                ),
+            )
+            if "valid" in batch:
+                squared_error = squared_error * batch["valid"][:, None, :, None]
+        return jnp.mean(squared_error)
+
     def critic_loss(self, batch, grad_params, rng):
         """Compute the Drift critic loss."""
-        if self.config["action_chunking"]:
-            batch_actions = jnp.reshape(batch["actions"], (batch["actions"].shape[0], -1))
-        else:
-            batch_actions = batch["actions"][..., 0, :]
+        batch_actions = self._batch_actions(batch)
 
         rng, sample_rng = jax.random.split(rng)
         next_obs = batch["next_observations"][..., -1, :]
         next_actions = self.sample_actions(next_obs, sample_rng, use_q_bon=True)
 
         next_qs = self.network.select("target_critic")(next_obs, actions=next_actions)
-        if self.config["q_agg"] == "min":
-            next_q = next_qs.min(axis=0)
-        else:
-            next_q = next_qs.mean(axis=0)
+        next_q = self._aggregate_q(next_qs)
 
         target_q = batch["rewards"][..., -1] + (
             self.config["discount"] ** self.config["horizon_length"]
@@ -53,6 +84,8 @@ class DFPAgent(flax.struct.PyTreeNode):
         q = self.network.select("critic")(
             batch["observations"], actions=batch_actions, params=grad_params
         )
+        q_agg = self._aggregate_q(q)
+        td_error = q_agg - target_q
         critic_loss = (jnp.square(q - target_q) * batch['valid'][..., -1]).mean()
 
         info = {
@@ -61,15 +94,25 @@ class DFPAgent(flax.struct.PyTreeNode):
             "tgt_q_mean": next_q.mean(),
             "q_max": q.max(),
             "q_min": q.min(),
+            "q_std": self._ensemble_std(q),
+            "tgt_q_max": next_q.max(),
+            "tgt_q_min": next_q.min(),
+            "tgt_q_std": self._ensemble_std(next_qs),
+            "target_q_mean": target_q.mean(),
+            "td_error_mean": td_error.mean(),
+            "td_error_abs": jnp.abs(td_error).mean(),
+            "batch_action_abs_mean": jnp.abs(batch_actions).mean(),
+            "batch_action_abs_max": jnp.abs(batch_actions).max(),
+            "next_action_abs_mean": jnp.abs(next_actions).mean(),
+            "next_action_abs_max": jnp.abs(next_actions).max(),
+            "next_action_std": next_actions.std(),
+            "next_action_clip_frac": self._clip_fraction(next_actions),
         }
         return critic_loss, info
 
     def actor_loss(self, batch, grad_params, rng):
         """Compute actor loss with drift model."""
-        if self.config["action_chunking"]:
-            batch_actions = jnp.reshape(batch["actions"], (batch["actions"].shape[0], -1))
-        else:
-            batch_actions = batch["actions"][..., 0, :]
+        batch_actions = self._batch_actions(batch)
         batch_size, action_dim = batch_actions.shape
 
         _, drift_rng = jax.random.split(rng)
@@ -98,9 +141,13 @@ class DFPAgent(flax.struct.PyTreeNode):
             R_list=tuple(self.config.get("drift_temps", [0.1])),
         )
 
-        # Apply alpha to match Q loss magnitude.
-        alpha = self.config.get("alpha", 1.0)
-        actor_drift_loss = alpha * drift_loss_val.mean()
+        actor_drift_loss_raw = drift_loss_val.mean()
+        drift_update_active = self._drift_update_active()
+        actor_drift_loss = jnp.where(
+            drift_update_active,
+            actor_drift_loss_raw,
+            jnp.zeros_like(actor_drift_loss_raw),
+        )
 
         # Total loss (no distillation)
         actor_loss = actor_drift_loss #+ q_loss
@@ -108,12 +155,20 @@ class DFPAgent(flax.struct.PyTreeNode):
         info = dict(
             actor_loss=actor_loss,
             actor_drift_loss=actor_drift_loss,
+            actor_drift_loss_raw=actor_drift_loss_raw,
+            drift_update_active=drift_update_active.astype(jnp.float32),
             drift_scale=drift_info.get("scale", 0.0),
+            generated_to_data_mse=self._masked_action_mse(
+                jnp.square(gen_samples - batch_actions[:, None, :]),
+                batch,
+            ),
+            generated_action_abs_mean=jnp.abs(gen_samples).mean(),
+            generated_action_abs_max=jnp.abs(gen_samples).max(),
+            generated_action_clip_frac=self._clip_fraction(gen_samples),
         )
         # Add per-temperature losses
         for key, val in drift_info.items():
-            if key.startswith("loss_"):
-                info[f"drift_{key}"] = val
+            info[f"drift_{key}"] = val
         return actor_loss, info
 
 
@@ -140,20 +195,11 @@ class DFPAgent(flax.struct.PyTreeNode):
         """Update the target network."""
         new_target_params = jax.tree_util.tree_map(
             lambda p, tp: p * self.config["tau"] + tp * (1 - self.config["tau"]),
-            self.network.params[f"modules_{module_name}"],
+            network.params[f"modules_{module_name}"],
             self.network.params[f"modules_target_{module_name}"],
         )
         network.params[f"modules_target_{module_name}"] = new_target_params
 
-    def actor_ema_update(self, network):
-        """Polyak update for the actor EMA (online-stage only)."""
-        tau = self.config.get("actor_ema_tau")
-        new_ema_params = jax.tree_util.tree_map(
-            lambda p, ep: p * tau + ep * (1 - tau),
-            self.network.params["modules_actor_drift"],
-            self.network.params["modules_actor_drift_ema"],
-        )
-        network.params["modules_actor_drift_ema"] = new_ema_params
 
     @staticmethod
     def _update(agent, batch):
@@ -163,9 +209,13 @@ class DFPAgent(flax.struct.PyTreeNode):
             return agent.total_loss(batch, grad_params, rng=rng)
 
         new_network, info = agent.network.apply_loss_fn(loss_fn=loss_fn)
+        drift_update_active = agent._drift_update_active()
+        new_network.params["modules_actor_drift"] = jax.tree_util.tree_map(
+            lambda new, old: jnp.where(drift_update_active, new, old),
+            new_network.params["modules_actor_drift"],
+            agent.network.params["modules_actor_drift"],
+        )
         agent.target_update(new_network, "critic")
-        if agent.config.get("use_actor_ema", False):  
-            agent.actor_ema_update(new_network)      
         return agent.replace(network=new_network, rng=new_rng), info
 
     @jax.jit
@@ -276,19 +326,19 @@ class DFPAgent(flax.struct.PyTreeNode):
             layer_norm=config["layer_norm"],
             num_ensembles=config.get("num_qs", 2),
             encoder=encoders.get("critic"),
+            swap=False,
         )
         actor_drift_def = ActorVectorField(
             hidden_dims=config["actor_hidden_dims"],
             action_dim=full_action_dim,
             layer_norm=config["actor_layer_norm"],
             encoder=encoders.get("actor_drift"),
+            swap=True,
         )
-
         network_info = dict(
             critic=(critic_def, (ex_observations, full_actions)),
             target_critic=(copy.deepcopy(critic_def), (ex_observations, full_actions)),
             actor_drift=(actor_drift_def, (ex_observations, full_actions)),
-            actor_drift_ema=(copy.deepcopy(actor_drift_def), (ex_observations, full_actions)),  # ← 추가
         )
 
         networks = {k: v[0] for k, v in network_info.items()}
@@ -301,8 +351,6 @@ class DFPAgent(flax.struct.PyTreeNode):
 
         params = network.params
         params["modules_target_critic"] = params["modules_critic"]
-        # EMA mirrors actor_drift; only updated after switch_config_to_online.
-        params["modules_actor_drift_ema"] = params["modules_actor_drift"]  
 
         config["ob_dims"] = ob_dims
         config["action_dim"] = action_dim
@@ -320,14 +368,11 @@ def get_config():
             actor_hidden_dims=(512, 512, 512, 512),
             value_hidden_dims=(512, 512, 512, 512),
             layer_norm=True,
-            actor_layer_norm=True,
+            actor_layer_norm=False,
             discount=0.99,
             tau=0.005,
             q_agg="mean",
             num_qs=2,
-            alpha=1.,
-            alpha_pos=ml_collections.config_dict.placeholder(float),    # online: weight for top-a pos drift loss (default: alpha)
-            alpha_target=ml_collections.config_dict.placeholder(float), # online: weight for dataset target drift loss (default: alpha)
             encoder=ml_collections.config_dict.placeholder(str),
             horizon_length=ml_collections.config_dict.placeholder(int),
             action_chunking=True,
@@ -335,9 +380,7 @@ def get_config():
             actor_num_samples=16,
             drift_temps=(0.1,),
             gen_per_label=8,
-            # Actor EMA (for N-sample pool selection in online stage)
-            use_actor_ema=False,            # Set True automatically by switch_config_to_online
-            actor_ema_tau=ml_collections.config_dict.placeholder(float),  # If None, falls back to `tau`
+            freeze_actor_drift_after=-1,
         )
     )
     return config

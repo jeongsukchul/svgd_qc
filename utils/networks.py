@@ -3,6 +3,7 @@ from typing import Any, Optional, Sequence, Type
 
 import distrax
 import flax.linen as nn
+import jax
 import jax.numpy as jnp
 import tensorflow_probability
 
@@ -73,6 +74,7 @@ class MLP(nn.Module):
     activate_final: bool = False
     kernel_init: Any = default_init()
     layer_norm: bool = False
+    swap : bool = False
 
     @nn.compact
     def __call__(self, x):
@@ -80,9 +82,9 @@ class MLP(nn.Module):
             x = nn.Dense(size, kernel_init=self.kernel_init)(x)
             if i + 1 < len(self.hidden_dims) or self.activate_final:
                 if self.layer_norm:
-                    x = nn.LayerNorm()(x)
-                x = self.activations(x)
-                
+                    x = self.activations(nn.LayerNorm()(x)) if self.swap else nn.LayerNorm()(self.activations(x))
+                else:
+                    x = self.activations(x)
             if i == len(self.hidden_dims) - 2:
                 self.sow('intermediates', 'feature', x)
         return x
@@ -281,12 +283,12 @@ class Value(nn.Module):
     layer_norm: bool = True
     num_ensembles: int = 2
     encoder: nn.Module = None
-
+    swap : bool = False
     def setup(self):
         mlp_class = MLP
         if self.num_ensembles > 1:
             mlp_class = ensemblize(mlp_class, self.num_ensembles)
-        value_net = mlp_class((*self.hidden_dims, 1), activate_final=False, layer_norm=self.layer_norm)
+        value_net = mlp_class((*self.hidden_dims, 1), activate_final=False, layer_norm=self.layer_norm, swap=self.swap)
 
         self.value_net = value_net
 
@@ -310,6 +312,132 @@ class Value(nn.Module):
         return v
 
 
+class NonNegativeDense(nn.Module):
+    """Dense layer with non-negative kernel weights."""
+
+    features: int
+    use_bias: bool = False
+    kernel_init: Any = default_init()
+    bias_init: Any = nn.initializers.zeros
+
+    @nn.compact
+    def __call__(self, x):
+        kernel = self.param(
+            "kernel",
+            self.kernel_init,
+            (x.shape[-1], self.features),
+            jnp.float32,
+        )
+        y = jnp.matmul(x, jnp.square(kernel))
+        if self.use_bias:
+            bias = self.param("bias", self.bias_init, (self.features,), jnp.float32)
+            y = y + bias
+        return y
+
+
+class ICNN(nn.Module):
+    """Conditional input convex neural network scalar potential.
+
+    The output is convex in `actions` for each fixed observation/context. Context
+    inputs may enter through unrestricted affine terms; hidden-to-hidden convex
+    connections are constrained to be non-negative.
+    """
+
+    hidden_dims: Sequence[int]
+    layer_norm: bool = False
+    encoder: nn.Module = None
+    use_fourier_features: bool = False
+    fourier_feature_dim: int = 64
+    activations: Any = nn.softplus
+    input_quadratic_scale: float = 1.0
+
+    def setup(self) -> None:
+        if self.use_fourier_features:
+            self.ff = FourierFeatures(self.fourier_feature_dim)
+
+    @nn.compact
+    def __call__(self, observations, actions, times=None, is_encoded=False):
+        if not is_encoded and self.encoder is not None:
+            observations = self.encoder(observations)
+
+        context = observations
+        if times is not None:
+            if self.use_fourier_features:
+                times = self.ff(times)
+            context = jnp.concatenate([context, times], axis=-1)
+        if self.layer_norm:
+            context = nn.LayerNorm(name="context_layer_norm")(context)
+
+        z = None
+        for i, size in enumerate(self.hidden_dims):
+            hidden = nn.Dense(size, name=f"input_dense_{i}")(actions)
+            hidden += nn.Dense(size, name=f"context_dense_{i}")(context)
+            if z is not None:
+                hidden += NonNegativeDense(
+                    size,
+                    use_bias=False,
+                    name=f"hidden_dense_{i}",
+                )(z)
+            z = self.activations(hidden)
+
+        potential = nn.Dense(1, name="input_output_dense")(actions)
+        potential += nn.Dense(1, name="context_output_dense")(context)
+        if z is not None:
+            potential += NonNegativeDense(
+                1,
+                use_bias=False,
+                name="hidden_output_dense",
+            )(z)
+        potential = potential.squeeze(-1)
+
+        if self.input_quadratic_scale > 0.0:
+            potential += 0.5 * self.input_quadratic_scale * jnp.sum(
+                jnp.square(actions),
+                axis=-1,
+            )
+        return potential
+
+
+class ActorICNN(nn.Module):
+    """Drift actor given by the input gradient of an ICNN potential."""
+
+    hidden_dims: Sequence[int]
+    action_dim: int
+    layer_norm: bool = False
+    encoder: nn.Module = None
+    use_fourier_features: bool = False
+    fourier_feature_dim: int = 64
+    input_quadratic_scale: float = 1.0
+    output_scale: float = 1.0
+
+    def setup(self) -> None:
+        self.potential = ICNN(
+            hidden_dims=self.hidden_dims,
+            layer_norm=self.layer_norm,
+            encoder=self.encoder,
+            use_fourier_features=self.use_fourier_features,
+            fourier_feature_dim=self.fourier_feature_dim,
+            input_quadratic_scale=self.input_quadratic_scale,
+        )
+
+    def __call__(self, observations, actions, times=None, is_encoded=False):
+        if actions.shape[-1] != self.action_dim:
+            raise ValueError(
+                f"Expected action dimension {self.action_dim}, got {actions.shape[-1]}"
+            )
+
+        def potential_sum(convex_inputs):
+            potential = self.potential(
+                observations,
+                convex_inputs,
+                times=times,
+                is_encoded=is_encoded,
+            )
+            return potential.sum()
+
+        return self.output_scale * jax.grad(potential_sum)(actions)
+
+
 class ActorVectorField(nn.Module):
     """Actor vector field network for flow matching.
 
@@ -326,9 +454,10 @@ class ActorVectorField(nn.Module):
     encoder: nn.Module = None
     use_fourier_features: bool = False
     fourier_feature_dim: int = 64
+    swap : bool =False
 
     def setup(self) -> None:
-        self.mlp = MLP((*self.hidden_dims, self.action_dim), activate_final=False, layer_norm=self.layer_norm)
+        self.mlp = MLP((*self.hidden_dims, self.action_dim), activate_final=False, layer_norm=self.layer_norm, swap=self.swap)
         if self.use_fourier_features:
             self.ff = FourierFeatures(self.fourier_feature_dim)
 

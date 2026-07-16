@@ -305,7 +305,7 @@ def get_config():
             lr=3e-4,  # Learning rate.
             batch_size=256,  # Batch size.
             actor_hidden_dims=(512, 512, 512, 512),  # Actor network hidden dimensions.
-            actor_layer_norm=True,
+            actor_layer_norm=False,
             value_hidden_dims=(512, 512, 512, 512),  # Value network hidden dimensions.
             value_layer_norm=True,
 
@@ -321,7 +321,7 @@ def get_config():
             tau=0.005,      # Target network update rate.
             flow_steps=10,  # Number of flow steps.
 
-            best_of_n=1,    # Best-of-n for computing Q-targets and sampling actions.
+            best_of_n=16,    # Best-of-n for computing Q-targets and sampling actions.
 
             ## Main hyperparameter(s)
             noise_scale=1.0,    # Noise action scale.

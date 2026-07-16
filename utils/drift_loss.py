@@ -109,8 +109,8 @@ def drift_loss(
             logits = -dist_normed / R
 
             affinity = jax.nn.softmax(logits, axis=-1)
-            aff_transpose = jax.nn.softmax(logits, axis=-2)
-            affinity = jnp.sqrt(jnp.clip(affinity * aff_transpose, a_min=1e-6))
+            # aff_transpose = jax.nn.softmax(logits, axis=-2)
+            # affinity = jnp.sqrt(jnp.clip(affinity * aff_transpose, a_min=1e-6))
 
             affinity = affinity * targets_w_in[:, None, :]
 
