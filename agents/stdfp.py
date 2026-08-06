@@ -15,12 +15,12 @@ import flax
 import jax
 import jax.numpy as jnp
 import ml_collections
-import optax
 
 from utils.drift_loss import drift_loss
 from utils.encoders import encoder_modules
 from utils.flax_utils import ModuleDict, TrainState, nonpytree_field
 from utils.networks import ActorVectorField, LogParam, MLP, Normal, TanhNormal, Value
+from utils.optimizers import make_optimizer
 
 
 
@@ -151,7 +151,7 @@ class STDFPAgent(flax.struct.PyTreeNode):
         obs_repeated = jnp.repeat(batch["observations"], gen_per_label, axis=0)
         drift_noises = jax.random.normal(
             drift_rng,
-            (batch_size * gen_per_label, action_dim * 2),
+            (batch_size * gen_per_label, action_dim),
         )
         drift_actions = self.network.select("actor_drift")(
             obs_repeated,
@@ -430,7 +430,7 @@ class STDFPAgent(flax.struct.PyTreeNode):
             )
         else:
             full_actions = ex_actions
-        noises = jnp.concatenate([full_actions, full_actions], axis=-1)
+        noises = full_actions # jnp.concatenate([full_actions, full_actions], axis=-1)
         full_action_dim = full_actions.shape[-1]
 
         actor_type = config.get("actor_type", "sac")
@@ -439,10 +439,12 @@ class STDFPAgent(flax.struct.PyTreeNode):
             if regularizer == "entropy" and config["noise_target_entropy"] is None:
 
                 config["noise_target_entropy"] = (
-                    config["noise_normal_target_entropy_multiplier"] * full_action_dim
+                    config["target_multiplier"] * full_action_dim
                 )
             if regularizer == "kl" and config["noise_target_kl"] is None:
-                raise ValueError("noise_target_kl must be set when noise_regularizer='kl'")
+                config["noise_target_kl"] = (
+                    config["target_multiplier"] * full_action_dim
+                )
         elif actor_type in ("ddpg", "deterministic"):
             config["noise_target_entropy"] = 0.0
             config["noise_target_kl"] = 0.0
@@ -471,13 +473,13 @@ class STDFPAgent(flax.struct.PyTreeNode):
             )
             noise_actor_def = TanhNormal(
                 noise_actor_base_cls,
-                full_action_dim * 2,
+                full_action_dim,
                 state_dependent_std=config["noise_state_dependent_std"],
                 encoder=encoders.get("noise_actor"),
             )
         else:
             noise_actor_def = MLP(
-                hidden_dims=(*tuple(config["actor_hidden_dims"]), full_action_dim * 2),
+                hidden_dims=(*tuple(config["actor_hidden_dims"]), full_action_dim),
                 layer_norm=config["actor_layer_norm"],
             )
         actor_drift_def = ActorVectorField(
@@ -506,7 +508,7 @@ class STDFPAgent(flax.struct.PyTreeNode):
         network_args = {k: v[1] for k, v in network_info.items()}
 
         network_def = ModuleDict(networks)
-        network_tx = optax.adam(learning_rate=config["lr"])
+        network_tx = make_optimizer(config["optimizer"], config["lr"])
         network_params = network_def.init(init_rng, **network_args)["params"]
         network = TrainState.create(network_def, network_params, tx=network_tx)
 
@@ -525,10 +527,11 @@ def get_config():
             agent_name="stdfp",
             ob_dims=ml_collections.config_dict.placeholder(list),
             action_dim=ml_collections.config_dict.placeholder(int),
+            optimizer="adam",
             lr=3e-4,
             batch_size=256,
             actor_hidden_dims=(512, 512, 512, 512),
-            actor_layer_norm=True,
+            actor_layer_norm=False,
             value_hidden_dims=(512, 512, 512, 512),
             layer_norm=True,
             horizon_length=ml_collections.config_dict.placeholder(int),
@@ -549,7 +552,7 @@ def get_config():
             use_target_latent=True,
             noise_target_entropy=ml_collections.config_dict.placeholder(float),
             noise_target_kl=ml_collections.config_dict.placeholder(float),
-            noise_normal_target_entropy_multiplier=0.5,
+            target_multiplier=0.5,
             noise_init_temp=1.0,
             noise_scale=1.,
             actor_noise=0.2,

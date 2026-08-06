@@ -79,10 +79,10 @@ class MLP(nn.Module):
         for i, size in enumerate(self.hidden_dims):
             x = nn.Dense(size, kernel_init=self.kernel_init)(x)
             if i + 1 < len(self.hidden_dims) or self.activate_final:
+                
+                x = self.activations(x)
                 if self.layer_norm:
                     x = nn.LayerNorm()(x)
-                x = self.activations(x)
-                
             if i == len(self.hidden_dims) - 2:
                 self.sow('intermediates', 'feature', x)
         return x

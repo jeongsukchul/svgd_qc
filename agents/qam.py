@@ -450,7 +450,7 @@ def get_config():
             lr=3e-4,
             batch_size=256,
             actor_hidden_dims=(512, 512, 512, 512),
-            actor_layer_norm=True,
+            actor_layer_norm=False,
             value_hidden_dims=(512, 512, 512, 512),
             value_layer_norm=True,
             horizon_length=ml_collections.config_dict.placeholder(int),

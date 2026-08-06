@@ -67,6 +67,46 @@ MUJOCO_GL=egl python main_online.py --env_name=cube-triple-play-singletask-task2
 MUJOCO_GL=egl python main_online.py --env_name=cube-triple-play-singletask-task2-v0 --sparse=False --horizon_length=5 --agent.bc_alpha=0.01
 ```
 
+## Drift Flow Matching agent
+
+`agents/dfm.py` is a time-conditioned mean-velocity policy. Unlike DFP's
+direct noise-to-action prediction, it parameterizes transport as
+`x_r = x_t + (r - t) * velocity(observation, x_t, t, r)`. At training time,
+`time_grid_ratio` controls the fraction of groups sampled from adjacent
+intervals of the inference grid; the remaining groups use uniformly sampled
+time pairs. At inference, `num_flow_steps` controls the number of iterative
+transports from time 0 to 1. The defaults are 10 steps and a 0.5 grid ratio.
+The loss is selected through `agent.drift_backend`:
+
+```bash
+# Existing utils/drift_loss.py calculation
+MUJOCO_GL=egl python main.py --agent=agents/dfm.py --agent.drift_backend=drift_loss --env_name=cube-triple-play-singletask-task2-v0 --horizon_length=5 --online_steps=0 --agent.actor_num_samples=16
+
+# Grouped Sinkhorn calculation from the DFM pseudocode
+MUJOCO_GL=egl python main.py --agent=agents/dfm.py --agent.drift_backend=sinkhorn --env_name=cube-triple-play-singletask-task2-v0 --horizon_length=5 --online_steps=0 --agent.actor_num_samples=16
+
+# Conservative Gaussian log-KDE scalar loss
+MUJOCO_GL=egl python main.py --agent=agents/dfm.py --agent.drift_backend=log_kde --agent.log_kde_bandwidth=0.4 --env_name=cube-triple-play-singletask-task2-v0 --horizon_length=5 --online_steps=0 --agent.actor_num_samples=16
+```
+
+`actor_num_samples` controls the number of candidates ranked by the critic.
+The Sinkhorn version uses `temp_pos`, `temp_neg`, and `sinkhorn_iters`; use a
+positive odd iteration count so the final truncated plan has completed a row
+projection. The `drift_loss.py` version uses `drift_temps`. These temperature
+values are not numerically interchangeable because `drift_loss.py` rescales
+distances and forces internally. The log-KDE version implements Algorithm 1's
+Gaussian leave-one-out KDE objective and uses `log_kde_bandwidth`.
+
+Set `num_flow_steps=1` and `time_grid_ratio=1.0` to recover endpoint-only
+training and one-step inference.
+
+The same log-KDE objective is also available for the original DFP direct
+noise-to-action policy (DFP does not use the Sinkhorn backend):
+
+```bash
+MUJOCO_GL=egl python main.py --agent=agents/dfp.py --agent.drift_backend=log_kde --agent.log_kde_bandwidth=0.4 --env_name=cube-triple-play-singletask-task2-v0 --horizon_length=5 --online_steps=0 --agent.actor_num_samples=16
+```
+
 ```
 @inproceedings{
   li2025reinforcement,

@@ -665,9 +665,9 @@ class SVGDAgent(ACFQLAgent):
 
         network_info = dict(
             actor=(actor_def, (ex_observations, full_actions)),
+            old_actor=(copy.deepcopy(actor_def), (ex_observations, full_actions)),
             bc_actor=(copy.deepcopy(actor_def), (ex_observations, full_actions)),
             target_bc_actor=(copy.deepcopy(actor_def), (ex_observations, full_actions)),
-            old_actor=(copy.deepcopy(actor_def), (ex_observations, full_actions)),
             critic=(critic_def, (ex_observations, full_actions)),
             target_critic=(copy.deepcopy(critic_def), (ex_observations, full_actions)),
         )
@@ -757,7 +757,7 @@ def get_config():
             fourier_feature_dim=64,
 
             use_dual_score_gain=True,
-            normalize_q=False,
+            normalize_q=True,
             q_norm_eps=1e-6,
             q_norm_stop_grad_stats=True,
             update_flag="td",

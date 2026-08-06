@@ -14,12 +14,18 @@ import flax
 import jax
 import jax.numpy as jnp
 import ml_collections
-import optax
 
 from utils.encoders import encoder_modules
 from utils.flax_utils import ModuleDict, TrainState, nonpytree_field
+from utils.log_kde_loss import grouped_log_kde_loss
 from utils.networks import ActorVectorField, Value
 from utils.drift_loss import drift_loss
+from utils.optimizers import make_optimizer
+
+
+def dfp_log_kde_loss(generated, positives, bandwidth):
+    """Return the Gaussian leave-one-out log-KDE loss for each group."""
+    return grouped_log_kde_loss(generated, positives, bandwidth)
 
 
 class DFPAgent(flax.struct.PyTreeNode):
@@ -90,17 +96,29 @@ class DFPAgent(flax.struct.PyTreeNode):
         # Positive samples: dataset actions [B, 1, action_dim]
         pos_samples = jnp.expand_dims(batch_actions, axis=1)
 
-        # Compute drift loss (per sample in batch)
-        # Note: drift_loss already normalizes internally by scale_inputs
-        drift_loss_val, drift_info = drift_loss(
-            gen=gen_samples,
-            fixed_pos=pos_samples,
-            R_list=tuple(self.config.get("drift_temps", [0.1])),
-        )
+        drift_backend = self.config.get("drift_backend", "drift_loss")
+        if drift_backend == "log_kde":
+            behavior_loss_val, behavior_info = dfp_log_kde_loss(
+                generated=gen_samples,
+                positives=pos_samples,
+                bandwidth=self.config["log_kde_bandwidth"],
+            )
+        else:
+            # drift_loss already normalizes internally by scale_inputs.
+            drift_temps = self.config.get("drift_temps", (0.1,))
+            if isinstance(drift_temps, (int, float)):
+                drift_temps = (float(drift_temps),)
+            else:
+                drift_temps = tuple(drift_temps)
+            behavior_loss_val, behavior_info = drift_loss(
+                gen=gen_samples,
+                fixed_pos=pos_samples,
+                R_list=drift_temps,
+            )
 
         # Apply alpha to match Q loss magnitude.
         alpha = self.config.get("alpha", 1.0)
-        actor_drift_loss = alpha * drift_loss_val.mean()
+        actor_drift_loss = alpha * behavior_loss_val.mean()
 
         # Total loss (no distillation)
         actor_loss = actor_drift_loss #+ q_loss
@@ -108,12 +126,17 @@ class DFPAgent(flax.struct.PyTreeNode):
         info = dict(
             actor_loss=actor_loss,
             actor_drift_loss=actor_drift_loss,
-            drift_scale=drift_info.get("scale", 0.0),
         )
-        # Add per-temperature losses
-        for key, val in drift_info.items():
-            if key.startswith("loss_"):
-                info[f"drift_{key}"] = val
+        if drift_backend == "log_kde":
+            info["log_kde_loss"] = behavior_loss_val.mean()
+            info["log_kde_log_p"] = behavior_info["per_group_log_p"].mean()
+            info["log_kde_log_q"] = behavior_info["per_group_log_q"].mean()
+        else:
+            info["drift_scale"] = behavior_info.get("scale", 0.0)
+            # Add per-temperature losses.
+            for key, val in behavior_info.items():
+                if key.startswith("loss_"):
+                    info[f"drift_{key}"] = val
         return actor_loss, info
 
 
@@ -145,15 +168,6 @@ class DFPAgent(flax.struct.PyTreeNode):
         )
         network.params[f"modules_target_{module_name}"] = new_target_params
 
-    def actor_ema_update(self, network):
-        """Polyak update for the actor EMA (online-stage only)."""
-        tau = self.config.get("actor_ema_tau")
-        new_ema_params = jax.tree_util.tree_map(
-            lambda p, ep: p * tau + ep * (1 - tau),
-            self.network.params["modules_actor_drift"],
-            self.network.params["modules_actor_drift_ema"],
-        )
-        network.params["modules_actor_drift_ema"] = new_ema_params
 
     @staticmethod
     def _update(agent, batch):
@@ -164,8 +178,6 @@ class DFPAgent(flax.struct.PyTreeNode):
 
         new_network, info = agent.network.apply_loss_fn(loss_fn=loss_fn)
         agent.target_update(new_network, "critic")
-        if agent.config.get("use_actor_ema", False):  
-            agent.actor_ema_update(new_network)      
         return agent.replace(network=new_network, rng=new_rng), info
 
     @jax.jit
@@ -252,6 +264,17 @@ class DFPAgent(flax.struct.PyTreeNode):
             ex_actions: Example batch of actions.
             config: Configuration dictionary.
         """
+        drift_backend = config.get("drift_backend", "drift_loss")
+        if drift_backend not in ("drift_loss", "log_kde"):
+            raise ValueError("drift_backend must be 'drift_loss' or 'log_kde'")
+        if drift_backend == "log_kde":
+            if config["log_kde_bandwidth"] <= 0.0:
+                raise ValueError("log_kde_bandwidth must be positive")
+            if config["gen_per_label"] < 2:
+                raise ValueError(
+                    "gen_per_label must be at least 2 for leave-one-out log-KDE"
+                )
+
         rng = jax.random.PRNGKey(seed)
         rng, init_rng = jax.random.split(rng, 2)
 
@@ -288,21 +311,18 @@ class DFPAgent(flax.struct.PyTreeNode):
             critic=(critic_def, (ex_observations, full_actions)),
             target_critic=(copy.deepcopy(critic_def), (ex_observations, full_actions)),
             actor_drift=(actor_drift_def, (ex_observations, full_actions)),
-            actor_drift_ema=(copy.deepcopy(actor_drift_def), (ex_observations, full_actions)),  # ← 추가
         )
 
         networks = {k: v[0] for k, v in network_info.items()}
         network_args = {k: v[1] for k, v in network_info.items()}
 
         network_def = ModuleDict(networks)
-        network_tx = optax.adam(learning_rate=config["lr"])
+        network_tx = make_optimizer(config["optimizer"], config["lr"])
         network_params = network_def.init(init_rng, **network_args)["params"]
         network = TrainState.create(network_def, network_params, tx=network_tx)
 
         params = network.params
         params["modules_target_critic"] = params["modules_critic"]
-        # EMA mirrors actor_drift; only updated after switch_config_to_online.
-        params["modules_actor_drift_ema"] = params["modules_actor_drift"]  
 
         config["ob_dims"] = ob_dims
         config["action_dim"] = action_dim
@@ -315,12 +335,13 @@ def get_config():
             agent_name="dfp",
             ob_dims=ml_collections.config_dict.placeholder(list),
             action_dim=ml_collections.config_dict.placeholder(int),
+            optimizer="adam",
             lr=3e-4,
             batch_size=256,
             actor_hidden_dims=(512, 512, 512, 512),
             value_hidden_dims=(512, 512, 512, 512),
             layer_norm=True,
-            actor_layer_norm=True,
+            actor_layer_norm=False,
             discount=0.99,
             tau=0.005,
             q_agg="mean",
@@ -333,11 +354,10 @@ def get_config():
             action_chunking=True,
             actor_type="best-of-n",
             actor_num_samples=16,
+            drift_backend="drift_loss", # or "log_kde"
             drift_temps=(0.1,),
+            log_kde_bandwidth=0.4,
             gen_per_label=8,
-            # Actor EMA (for N-sample pool selection in online stage)
-            use_actor_ema=False,            # Set True automatically by switch_config_to_online
-            actor_ema_tau=ml_collections.config_dict.placeholder(float),  # If None, falls back to `tau`
         )
     )
     return config

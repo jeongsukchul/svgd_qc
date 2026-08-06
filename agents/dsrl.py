@@ -305,7 +305,7 @@ def get_config():
             lr=3e-4,  # Learning rate.
             batch_size=256,  # Batch size.
             actor_hidden_dims=(512, 512, 512, 512),  # Actor network hidden dimensions.
-            actor_layer_norm=True,
+            actor_layer_norm=False,
             value_hidden_dims=(512, 512, 512, 512),  # Value network hidden dimensions.
             value_layer_norm=True,
 

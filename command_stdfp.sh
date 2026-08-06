@@ -24,8 +24,7 @@ COMMON=(
   --log_interval="${LOG_INTERVAL}"
   --eval_interval="${EVAL_INTERVAL}"
   --save_interval="${SAVE_INTERVAL}"
-  --agent.actor_type=sac
-  # --agent.lr=3e-4
+  --agent.actor_type=ddpg
   --agent.actor_q_agg=mean
   --agent.sample_q_agg=mean
   --agent.use_target_latent=True
@@ -39,39 +38,14 @@ run_variant() {
   echo "MUJOCO_GL=${MUJOCO_GL} ${PYTHON} ${COMMON[*]} $*"
   MUJOCO_GL="${MUJOCO_GL}" "${PYTHON}" "${COMMON[@]}" "$@"
 }
-# MUJOCO_GL="${MUJOCO_GL}" "${PYTHON}"  "$@" main.py --agent=agents/trqam.py --horizon_length=5
 
-# for target_kl in 10 20 30 40 50; do
-#   run_variant "kl_postsquash_${target_kl}_lr1e4" \
-#     --agent.noise_regularizer=kl \
-#     --agent.noise_target_kl="${target_kl}" \
-#     --agent.noise_scale=1.0
+# for ddpg_sigreg_coeff in 0 ; do
+#   run_variant "ddpg_sigreg_coeff_${ddpg_sigreg_coeff}" \
+#     --agent.ddpg_sigreg_coeff="${ddpg_sigreg_coeff}" \
+#     --agent.actor_noise=0.
 # done
-# for target_kl in 10 20 30 40 50; do
-#   run_variant "kl_postsquash_${target_kl}_lr1e4" \
-#     --agent.noise_regularizer=kl \
-#     --agent.noise_target_kl="${target_kl}" \
-#     --agent.noise_scale=2.0 \
-#     --agent.noise_state_dependent_std=True
-# done
-for target_kl in 40 50; do
-  run_variant "kl_postsquash_${target_kl}_lr1e4" \
-    --agent.noise_regularizer=kl \
-    --agent.noise_target_kl="${target_kl}" \
-    --agent.noise_scale=2.0 \
-    --agent.noise_state_dependent_std=False
-done
-for target_kl in 30 40 50; do
-  run_variant "kl_postsquash_${target_kl}_lr1e4" \
-    --agent.noise_regularizer=kl \
-    --agent.noise_target_kl="${target_kl}" \
-    --agent.noise_scale=1.0 \
-    --agent.noise_state_dependent_std=True
-done
-for target_kl in 30 40 50; do
-  run_variant "kl_postsquash_${target_kl}_lr1e4" \
-    --agent.noise_regularizer=kl \
-    --agent.noise_target_kl="${target_kl}" \
-    --agent.noise_scale=1.0 \
-    --agent.noise_state_dependent_std=False
+for ddpg_sigreg_coeff in 0 ; do
+  run_variant "ddpg_sigreg_coeff_${ddpg_sigreg_coeff}" \
+    --agent.ddpg_sigreg_coeff="${ddpg_sigreg_coeff}" \
+    --agent.actor_noise=0.1
 done
