@@ -12,6 +12,9 @@ from agents.trqam import TRQAMAgent
 from agents.mdfp import MDFPAgent
 from agents.rebrac import ReBRACAgent
 from agents.rql import RQLAgent
+from agents.anq import ANQAgent
+from agents.anq_dfp import ANQDFPAgent
+from agents.anq_stdfp import ANQSTDFPAgent
 agents = dict(
     acfql=ACFQLAgent,
     acrlpd=ACRLPDAgent,
@@ -26,5 +29,8 @@ agents = dict(
     trqam=TRQAMAgent,
     mdfp=MDFPAgent,
     rql=RQLAgent,
-    rebrac=ReBRACAgent
+    rebrac=ReBRACAgent,
+    anq=ANQAgent,
+    anq_dfp=ANQDFPAgent,
+    anq_stdfp=ANQSTDFPAgent,
 )

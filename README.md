@@ -107,6 +107,20 @@ noise-to-action policy (DFP does not use the Sinkhorn backend):
 MUJOCO_GL=egl python main.py --agent=agents/dfp.py --agent.drift_backend=log_kde --agent.log_kde_bandwidth=0.4 --env_name=cube-triple-play-singletask-task2-v0 --horizon_length=5 --online_steps=0 --agent.actor_num_samples=16
 ```
 
+## Adaptive Neighborhood-constrained Q learning (ANQ)
+
+A native JAX/Flax ANQ agent for OGBench single-task training is available in
+`agents/anq.py`.  It ports the paper's value, critic, adaptive-neighborhood,
+and weighted policy-extraction objectives and respects OGBench's task-completion
+`masks`.  For a baseline command, task-family profiles, and a staged
+hyperparameter region, see [docs/anq_ogbench.md](docs/anq_ogbench.md).
+
+Critic-only drift variants without a learned value or auxiliary actor are also
+available: `agents/anq_dfp.py` uses Gaussian drift latents, and
+`agents/anq_stdfp.py` adds a learned latent-noise actor.  See
+[docs/anq_drift_variants.md](docs/anq_drift_variants.md) for their objectives,
+AntMaze commands, and refinement sweep.
+
 ```
 @inproceedings{
   li2025reinforcement,
