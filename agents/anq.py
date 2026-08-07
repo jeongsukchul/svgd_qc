@@ -5,7 +5,7 @@ https://github.com/thu-rllab/ANQ
 
 The agent follows the four objectives in the paper:
 
-* expectile regression for V on actions refined by a target auxiliary actor;
+* expectile regression for V on actions refined by the auxiliary actor;
 * Bellman regression for an ensemble Q function;
 * neighborhood optimization with an advantage-adaptive penalty; and
 * advantage-weighted regression of the final policy toward refined actions.
@@ -64,16 +64,13 @@ class ANQAgent(flax.struct.PyTreeNode):
             return qs.min(axis=0)
         return qs.mean(axis=0)
 
-    def _aux_delta(self, observations, actions, params=None, target=False):
-        name = "target_aux_actor" if target else "aux_actor"
+    def _aux_delta(self, observations, actions, params=None):
         inputs = jnp.concatenate([observations, actions], axis=-1)
-        delta = self.network.select(name)(inputs, params=params).mode()
+        delta = self.network.select("aux_actor")(inputs, params=params).mode()
         return self.config["aux_action_scale"] * delta
 
-    def _refine_actions(self, observations, actions, params=None, target=False):
-        delta = self._aux_delta(
-            observations, actions, params=params, target=target
-        )
+    def _refine_actions(self, observations, actions, params=None):
+        delta = self._aux_delta(observations, actions, params=params)
         return jnp.clip(actions + delta, -1.0, 1.0), delta
 
     def value_loss(self, batch, grad_params):
@@ -82,9 +79,7 @@ class ANQAgent(flax.struct.PyTreeNode):
         actions = self._batch_actions(batch)
         valid = batch["valid"][..., -1]
 
-        refined_actions, _ = self._refine_actions(
-            observations, actions, target=True
-        )
+        refined_actions, _ = self._refine_actions(observations, actions)
         target_qs = self.network.select("target_critic")(
             observations, actions=refined_actions
         )
@@ -257,16 +252,13 @@ class ANQAgent(flax.struct.PyTreeNode):
         # updates.  The optimizer masks actor updates on the same schedule.
         policy_update = agent.network.step % agent.config["policy_freq"] == 0
         target_rate = jnp.where(policy_update, agent.config["tau"], 0.0)
-        for module_name in ("critic", "aux_actor"):
-            source = new_network.params[f"modules_{module_name}"]
-            target = agent.network.params[f"modules_target_{module_name}"]
-            new_network.params[f"modules_target_{module_name}"] = (
-                jax.tree_util.tree_map(
-                    lambda p, tp: target_rate * p + (1.0 - target_rate) * tp,
-                    source,
-                    target,
-                )
-            )
+        source = new_network.params["modules_critic"]
+        target = agent.network.params["modules_target_critic"]
+        new_network.params["modules_target_critic"] = jax.tree_util.tree_map(
+            lambda p, tp: target_rate * p + (1.0 - target_rate) * tp,
+            source,
+            target,
+        )
 
         info["policy_update"] = policy_update.astype(jnp.float32)
         return agent.replace(network=new_network, rng=new_rng), info
@@ -368,7 +360,6 @@ class ANQAgent(flax.struct.PyTreeNode):
         network_info = {
             "actor": (actor_def, (ex_observations,)),
             "aux_actor": (aux_actor_def, (aux_inputs,)),
-            "target_aux_actor": (copy.deepcopy(aux_actor_def), (aux_inputs,)),
             "critic": (critic_def, (ex_observations, full_actions)),
             "target_critic": (
                 copy.deepcopy(critic_def),
@@ -380,7 +371,6 @@ class ANQAgent(flax.struct.PyTreeNode):
         network_args = {key: value[1] for key, value in network_info.items()}
         network_params = network_def.init(init_rng, **network_args)["params"]
         network_params["modules_target_critic"] = network_params["modules_critic"]
-        network_params["modules_target_aux_actor"] = network_params["modules_aux_actor"]
 
         if config["use_actor_lr_schedule"]:
             actor_lr = optax.cosine_decay_schedule(

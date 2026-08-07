@@ -48,6 +48,13 @@ def tree_allclose(left, right):
 
 
 class ANQAgentTest(unittest.TestCase):
+    def test_critic_is_the_only_target_network(self):
+        agent = make_agent()
+        targets = {
+            key for key in agent.network.params if "modules_target_" in key
+        }
+        self.assertEqual(targets, {"modules_target_critic"})
+
     def test_expectile_loss_is_asymmetric(self):
         losses = expectile_loss(jnp.array([-2.0, 2.0]), expectile=0.8)
         self.assertTrue(bool(jnp.allclose(losses, jnp.array([0.8, 3.2]))))

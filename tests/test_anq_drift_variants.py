@@ -93,7 +93,6 @@ class ANQDriftVariantsTest(unittest.TestCase):
                 "modules_critic",
                 "modules_refine_actor",
                 "modules_target_critic",
-                "modules_target_refine_actor",
             },
         )
 
@@ -103,10 +102,24 @@ class ANQDriftVariantsTest(unittest.TestCase):
         self.assertIn("modules_noise_actor", modules)
         self.assertIn("modules_actor_drift", modules)
         self.assertIn("modules_refine_actor", modules)
-        self.assertIn("modules_target_refine_actor", modules)
         self.assertNotIn("modules_value", modules)
         self.assertNotIn("modules_aux_actor", modules)
         self.assertNotIn("modules_actor", modules)
+
+    def test_only_critic_has_target_and_agents_do_not_inherit_dfp(self):
+        for agent, forbidden_base in (
+            (make_dfp(), "DFPAgent"),
+            (make_stdfp(), "STDFPAgent"),
+        ):
+            with self.subTest(agent=agent.config["agent_name"]):
+                targets = {
+                    key
+                    for key in agent.network.params
+                    if "modules_target_" in key
+                }
+                self.assertEqual(targets, {"modules_target_critic"})
+                mro_names = {base.__name__ for base in type(agent).__mro__}
+                self.assertNotIn(forbidden_base, mro_names)
 
     def test_refinement_is_bounded_by_action_space_and_radius(self):
         agent = make_dfp(refine_radius=0.15)
@@ -149,13 +162,13 @@ class ANQDriftVariantsTest(unittest.TestCase):
                 ):
                     self.assertTrue(bool(jnp.isfinite(info[key])), key)
 
-    def test_refine_actor_and_target_are_updated(self):
+    def test_refine_actor_and_target_critic_are_updated(self):
         agent = make_dfp()
         source_before = agent.network.params["modules_refine_actor"]
-        target_before = agent.network.params["modules_target_refine_actor"]
+        target_before = agent.network.params["modules_target_critic"]
         updated, _ = agent.update(make_batch())
         source_after = updated.network.params["modules_refine_actor"]
-        target_after = updated.network.params["modules_target_refine_actor"]
+        target_after = updated.network.params["modules_target_critic"]
 
         source_changed = any(
             not bool(jnp.allclose(before, after))

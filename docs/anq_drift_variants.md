@@ -22,25 +22,28 @@ L_refine = -normalized_Q_aggregate(s, a_refined)
            + refine_lambda * ||delta||^2
 ```
 
-The critic target uses the slowly updated target refiner:
+The critic target uses the current drift and refinement actors with stopped
+target gradients, then evaluates the action with the target critic:
 
 ```text
 y = reward + discount * mask
-    * aggregate(target_Q(s', a_b' + target_delta'))
+    * aggregate(target_Q(s', current_refine(current_drift(s'))))
 ```
 
 Each critic is trained with an asymmetric expectile loss on `y - Q(s, a)`.
-There is no separately learned `V(s)`. `target_refine_actor` is Polyak-updated
-with the same `tau` as the target critic.
+There is no separately learned `V(s)`. `target_critic` is the only EMA network;
+the drift, latent, and refinement actors never have target copies.
 
 ## Variants
 
 - [`agents/anq_dfp.py`](../agents/anq_dfp.py): samples `z` from a unit Gaussian.
   The drift decoder is trained only with behavior-cloning drift loss. The
-  learned refinement actor provides the Q-directed action delta.
+  learned refinement actor provides the Q-directed action delta. The agent is
+  standalone and does not inherit from `DFPAgent`.
 - [`agents/anq_stdfp.py`](../agents/anq_stdfp.py): adds STDFP's learned latent
   noise actor. The latent actor selects a behavior mode, the drift decoder maps
   it to action space, and the refinement actor applies the final bounded delta.
+  The agent is standalone and does not inherit from `STDFPAgent`.
 
 ## AntMaze commands
 

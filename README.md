@@ -119,7 +119,8 @@ Value-free drift variants with a learned bounded refinement actor are also
 available: `agents/anq_dfp.py` uses Gaussian drift latents, and
 `agents/anq_stdfp.py` adds a learned latent-noise actor.  See
 [docs/anq_drift_variants.md](docs/anq_drift_variants.md) for their objectives,
-AntMaze commands, and refinement sweep.
+AntMaze commands, and refinement sweep. Both are standalone implementations,
+and all three ANQ agents use `target_critic` as their only EMA network.
 
 ```
 @inproceedings{
