@@ -82,6 +82,16 @@ class DFPLogKDETest(unittest.TestCase):
                 else:
                     self.assertIn("drift_scale", info)
 
+    def test_noise_scale_controls_sampled_actor_noise(self):
+        agent = make_agent(noise_scale=0.25)
+        observations = jnp.zeros((3, 3), dtype=jnp.float32)
+        rng = jax.random.PRNGKey(12)
+
+        noises = agent.sample_noises(observations, rng)
+        expected = jax.random.normal(rng, (3, 4)) * 0.25
+
+        self.assertTrue(bool(jnp.allclose(noises, expected)))
+
     def test_log_kde_complete_update_is_finite(self):
         agent = make_agent(drift_backend="log_kde")
 
@@ -101,6 +111,8 @@ class DFPLogKDETest(unittest.TestCase):
             make_agent(drift_backend="log_kde", log_kde_bandwidth=0.0)
         with self.assertRaisesRegex(ValueError, "gen_per_label"):
             make_agent(drift_backend="log_kde", gen_per_label=1)
+        with self.assertRaisesRegex(ValueError, "noise_scale"):
+            make_agent(noise_scale=-0.1)
 
 
 if __name__ == "__main__":

@@ -83,7 +83,10 @@ class DFPAgent(flax.struct.PyTreeNode):
         # Generate multiple samples per observation.
         gen_per_label = self.config.get("gen_per_label", 8)
         obs_repeated = jnp.repeat(batch["observations"], gen_per_label, axis=0)
-        drift_noises = jax.random.normal(drift_rng, (batch_size * gen_per_label, action_dim))
+        drift_noises = (
+            jax.random.normal(drift_rng, (batch_size * gen_per_label, action_dim))
+            * self.config.get("noise_scale", 1.0)
+        )
 
         # Get actions from drift model
         drift_actions_all = self.network.select("actor_drift")(
@@ -193,12 +196,15 @@ class DFPAgent(flax.struct.PyTreeNode):
         full_action_dim = self.config["action_dim"] * (
             self.config["horizon_length"] if self.config["action_chunking"] else 1
         )
-        return jax.random.normal(
-            rng,
-            (
-                *obs.shape[: -len(self.config["ob_dims"])],
-                full_action_dim,
-            ),
+        return (
+            jax.random.normal(
+                rng,
+                (
+                    *obs.shape[: -len(self.config["ob_dims"])],
+                    full_action_dim,
+                ),
+            )
+            * self.config.get("noise_scale", 1.0)
         )
 
     def _score_actions(self, observations, actions):
@@ -229,13 +235,16 @@ class DFPAgent(flax.struct.PyTreeNode):
         if actor_type == "best-of-n":
             num_samples = self.config['actor_num_samples']
             rng, init_noise_rng = jax.random.split(rng)
-            noises = jax.random.normal(
-                init_noise_rng,
-                (
-                    *observations.shape[: -len(self.config["ob_dims"])],
-                    num_samples,
-                    full_action_dim,
-                ),
+            noises = (
+                jax.random.normal(
+                    init_noise_rng,
+                    (
+                        *observations.shape[: -len(self.config["ob_dims"])],
+                        num_samples,
+                        full_action_dim,
+                    ),
+                )
+                * self.config.get("noise_scale", 1.0)
             )
             obs_rep = jnp.repeat(observations[..., None, :], num_samples, axis=-2)
             actions = self.network.select("actor_drift")(obs_rep, noises)
@@ -267,6 +276,8 @@ class DFPAgent(flax.struct.PyTreeNode):
         drift_backend = config.get("drift_backend", "drift_loss")
         if drift_backend not in ("drift_loss", "log_kde"):
             raise ValueError("drift_backend must be 'drift_loss' or 'log_kde'")
+        if config.get("noise_scale", 1.0) < 0.0:
+            raise ValueError("noise_scale must be non-negative")
         if drift_backend == "log_kde":
             if config["log_kde_bandwidth"] <= 0.0:
                 raise ValueError("log_kde_bandwidth must be positive")
@@ -358,6 +369,7 @@ def get_config():
             drift_temps=(0.1,),
             log_kde_bandwidth=0.4,
             gen_per_label=8,
+            noise_scale=.2,
         )
     )
     return config

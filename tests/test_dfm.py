@@ -53,14 +53,18 @@ class DFMAgentTest(unittest.TestCase):
         self.assertGreater(config.num_flow_steps, 1)
         self.assertGreaterEqual(config.time_grid_ratio, 0.0)
         self.assertLess(config.time_grid_ratio, 1.0)
+        self.assertEqual(config.noise_scale, 1.0)
 
         make_agent(num_flow_steps=4, time_grid_ratio=0.25)
+        make_agent(noise_scale=0.5)
         with self.assertRaisesRegex(ValueError, "num_flow_steps"):
             make_agent(num_flow_steps=0)
         with self.assertRaisesRegex(ValueError, "time_grid_ratio"):
             make_agent(time_grid_ratio=-0.1)
         with self.assertRaisesRegex(ValueError, "time_grid_ratio"):
             make_agent(time_grid_ratio=1.1)
+        with self.assertRaisesRegex(ValueError, "noise_scale"):
+            make_agent(noise_scale=-0.1)
 
     def test_time_pair_sampler_mixes_exact_number_of_grid_pairs(self):
         start, end = sample_time_pairs(

@@ -206,7 +206,13 @@ class MDFPAgent(flax.struct.PyTreeNode):
         rng, noise_rng, sample_rng = jax.random.split(rng, 3)
 
         # BC drift loss.
-        noises = jax.random.normal(noise_rng, (batch_size * self.config['num_generations'], action_dim))
+        noises = (
+            jax.random.normal(
+                noise_rng,
+                (batch_size * self.config['num_generations'], action_dim),
+            )
+            * self.config.get("noise_scale", 1.0)
+        )
         obs_repeated = jnp.repeat(batch['observations'], self.config['num_generations'], axis=0)
         generated_actions = self.network.select('actor_drift')(obs_repeated, noises, params=grad_params).reshape(batch_size, self.config['num_generations'], action_dim)
 
@@ -283,13 +289,20 @@ class MDFPAgent(flax.struct.PyTreeNode):
     ):
         
         if self.config["actor_type"] == "distill-ddpg":
-            noises = jax.random.normal(
-                rng,
-                (
-                    *observations.shape[: -len(self.config['ob_dims'])],  # batch_size
-                    self.config['action_dim'] * \
-                        (self.config['horizon_length'] if self.config["action_chunking"] else 1),
-                ),
+            noises = (
+                jax.random.normal(
+                    rng,
+                    (
+                        *observations.shape[: -len(self.config['ob_dims'])],
+                        self.config['action_dim']
+                        * (
+                            self.config['horizon_length']
+                            if self.config["action_chunking"]
+                            else 1
+                        ),
+                    ),
+                )
+                * self.config.get("noise_scale", 1.0)
             )
             actions = self.network.select(f'actor_drift')(observations, noises)
             # actions = self.network.select(f'actor_distill')(observations, noises)
@@ -298,12 +311,16 @@ class MDFPAgent(flax.struct.PyTreeNode):
         elif self.config["actor_type"] == "best-of-n":
             action_dim = self.config['action_dim'] * \
                         (self.config['horizon_length'] if self.config["action_chunking"] else 1)
-            noises = jax.random.normal(
-                rng,
-                (
-                    *observations.shape[: -len(self.config['ob_dims'])],  # batch_size
-                    self.config["actor_num_samples"], action_dim
-                ),
+            noises = (
+                jax.random.normal(
+                    rng,
+                    (
+                        *observations.shape[: -len(self.config['ob_dims'])],
+                        self.config["actor_num_samples"],
+                        action_dim,
+                    ),
+                )
+                * self.config.get("noise_scale", 1.0)
             )
             observations = jnp.repeat(observations[..., None, :], self.config["actor_num_samples"], axis=-2)
             actions = self.network.select(f'actor_drift')(observations, noises)
@@ -341,6 +358,9 @@ class MDFPAgent(flax.struct.PyTreeNode):
         """
         rng = jax.random.PRNGKey(seed)
         rng, init_rng = jax.random.split(rng, 2)
+
+        if config.get("noise_scale", 1.0) < 0.0:
+            raise ValueError("noise_scale must be non-negative")
 
         ex_times = ex_actions[..., :1]
         ob_dims = ex_observations.shape
@@ -432,6 +452,7 @@ def get_config():
             use_fourier_features=False,
             fourier_feature_dim=64,
             weight_decay=0.,
+            noise_scale=1.0,
             what=ml_collections.config_dict.placeholder(str),
         )
     )

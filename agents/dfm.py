@@ -180,8 +180,9 @@ class DFMAgent(DFPAgent):
         # For a high-dimensional condition such as an observation, the paper
         # constructs multiple marginal samples from one dataset action by
         # pairing it with independently drawn source samples.
-        source = jax.random.normal(
-            source_rng, (batch_size, num_particles, action_dim)
+        source = (
+            jax.random.normal(source_rng, (batch_size, num_particles, action_dim))
+            * self.config.get("noise_scale", 1.0)
         )
         target_endpoint = jnp.broadcast_to(
             batch_actions[:, None, :], (batch_size, num_particles, action_dim)
@@ -279,13 +280,16 @@ class DFMAgent(DFPAgent):
             else 1
         )
         num_candidates = self.config["actor_num_samples"]
-        source = jax.random.normal(
-            rng,
-            (
-                *observations.shape[: -len(self.config["ob_dims"])],
-                num_candidates,
-                full_action_dim,
-            ),
+        source = (
+            jax.random.normal(
+                rng,
+                (
+                    *observations.shape[: -len(self.config["ob_dims"])],
+                    num_candidates,
+                    full_action_dim,
+                ),
+            )
+            * self.config.get("noise_scale", 1.0)
         )
         candidate_observations = self._expand_observations_for_particles(
             observations, num_candidates
@@ -327,6 +331,8 @@ class DFMAgent(DFPAgent):
             raise ValueError("actor_num_samples must be at least 1")
         if config["gen_per_label"] < 2:
             raise ValueError("gen_per_label must be at least 2 for a drift field")
+        if config.get("noise_scale", 1.0) < 0.0:
+            raise ValueError("noise_scale must be non-negative")
         if config["drift_backend"] not in (
             "drift_loss",
             "log_kde",
@@ -438,5 +444,6 @@ def get_config():
             drift_temps=(0.1,),
             log_kde_bandwidth=0.1,
             gen_per_label=8,
+            noise_scale=1.0,
         )
     )
