@@ -115,7 +115,7 @@ and weighted policy-extraction objectives and respects OGBench's task-completion
 `masks`.  For a baseline command, task-family profiles, and a staged
 hyperparameter region, see [docs/anq_ogbench.md](docs/anq_ogbench.md).
 
-Critic-only drift variants without a learned value or auxiliary actor are also
+Value-free drift variants with a learned bounded refinement actor are also
 available: `agents/anq_dfp.py` uses Gaussian drift latents, and
 `agents/anq_stdfp.py` adds a learned latent-noise actor.  See
 [docs/anq_drift_variants.md](docs/anq_drift_variants.md) for their objectives,

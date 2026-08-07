@@ -9,8 +9,8 @@ SEEDS=${SEEDS:-"0 1 2"}
 RADII=${RADII:-"0.05 0.1 0.2 0.4"}
 EXPECTILES=${EXPECTILES:-"0.7 0.8 0.9"}
 Q_AGG=${Q_AGG:-min}
-REFINE_STEPS=${REFINE_STEPS:-3}
-REFINE_STEP_SIZE=${REFINE_STEP_SIZE:-0.05}
+REFINE_Q_AGG=${REFINE_Q_AGG:-min}
+REFINE_LAMBDA=${REFINE_LAMBDA:-5.0}
 DISCOUNT=${DISCOUNT:-0.995}
 PYTHON_BIN=${PYTHON_BIN:-python}
 RUN_GROUP=${RUN_GROUP:-${VARIANT}-antmaze-${STAGE}}
@@ -43,10 +43,10 @@ run_one() {
     --horizon_length=1 \
     --agent.action_chunking=False \
     --agent.q_agg="${Q_AGG}" \
+    --agent.refine_q_agg="${REFINE_Q_AGG}" \
     --agent.critic_expectile="${expectile}" \
     --agent.refine_radius="${radius}" \
-    --agent.refine_steps="${REFINE_STEPS}" \
-    --agent.refine_step_size="${REFINE_STEP_SIZE}"
+    --agent.refine_lambda="${REFINE_LAMBDA}"
 }
 
 case "${STAGE}" in

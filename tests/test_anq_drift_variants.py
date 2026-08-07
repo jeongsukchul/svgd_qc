@@ -47,7 +47,6 @@ def make_dfp(**overrides):
     config.num_qs = 2
     config.actor_num_samples = 3
     config.gen_per_label = 4
-    config.refine_steps = 2
     for key, value in overrides.items():
         config[key] = value
     return ANQDFPAgent.create(
@@ -66,7 +65,6 @@ def make_stdfp(**overrides):
     config.num_qs = 2
     config.gen_per_label = 4
     config.best_of_n = 2
-    config.refine_steps = 2
     config.noise_state_dependent_std = False
     for key, value in overrides.items():
         config[key] = value
@@ -85,7 +83,7 @@ class ANQDriftVariantsTest(unittest.TestCase):
         )
         self.assertTrue(bool(jnp.allclose(losses, jnp.array([0.8, 3.2]))))
 
-    def test_dfp_has_no_value_auxiliary_or_final_actor(self):
+    def test_dfp_has_refiner_but_no_value_auxiliary_or_final_actor(self):
         agent = make_dfp()
         modules = set(agent.network.params)
         self.assertEqual(
@@ -93,21 +91,25 @@ class ANQDriftVariantsTest(unittest.TestCase):
             {
                 "modules_actor_drift",
                 "modules_critic",
+                "modules_refine_actor",
                 "modules_target_critic",
+                "modules_target_refine_actor",
             },
         )
 
-    def test_stdfp_adds_a_latent_actor_but_no_value_or_auxiliary_actor(self):
+    def test_stdfp_has_latent_and_refine_actors_but_no_value_or_final_actor(self):
         agent = make_stdfp()
         modules = set(agent.network.params)
         self.assertIn("modules_noise_actor", modules)
         self.assertIn("modules_actor_drift", modules)
+        self.assertIn("modules_refine_actor", modules)
+        self.assertIn("modules_target_refine_actor", modules)
         self.assertNotIn("modules_value", modules)
         self.assertNotIn("modules_aux_actor", modules)
         self.assertNotIn("modules_actor", modules)
 
     def test_refinement_is_bounded_by_action_space_and_radius(self):
-        agent = make_dfp(refine_radius=0.15, refine_steps=4)
+        agent = make_dfp(refine_radius=0.15)
         observations = jax.random.normal(jax.random.PRNGKey(1), (6, 5))
         base_actions = jnp.zeros((6, 3), dtype=jnp.float32)
         refined, delta = refine_actions(agent, observations, base_actions)
@@ -142,9 +144,40 @@ class ANQDriftVariantsTest(unittest.TestCase):
                     "critic/critic_loss",
                     "critic/target_delta_rms",
                     "actor/actor_drift_loss",
+                    "actor/refine_actor_loss",
                     "grad/norm",
                 ):
                     self.assertTrue(bool(jnp.isfinite(info[key])), key)
+
+    def test_refine_actor_and_target_are_updated(self):
+        agent = make_dfp()
+        source_before = agent.network.params["modules_refine_actor"]
+        target_before = agent.network.params["modules_target_refine_actor"]
+        updated, _ = agent.update(make_batch())
+        source_after = updated.network.params["modules_refine_actor"]
+        target_after = updated.network.params["modules_target_refine_actor"]
+
+        source_changed = any(
+            not bool(jnp.allclose(before, after))
+            for before, after in zip(
+                jax.tree_util.tree_leaves(source_before),
+                jax.tree_util.tree_leaves(source_after),
+            )
+        )
+        target_changed = any(
+            not bool(jnp.allclose(before, after))
+            for before, after in zip(
+                jax.tree_util.tree_leaves(target_before),
+                jax.tree_util.tree_leaves(target_after),
+            )
+        )
+        self.assertTrue(source_changed)
+        self.assertTrue(target_changed)
+
+    def test_refinement_is_one_actor_forward_pass(self):
+        config = get_anq_dfp_config()
+        self.assertNotIn("refine_steps", config)
+        self.assertNotIn("refine_step_size", config)
 
     def test_q_aggregation_modes_update(self):
         for q_agg in ("min", "mean"):
@@ -156,10 +189,10 @@ class ANQDriftVariantsTest(unittest.TestCase):
     def test_invalid_refinement_configuration_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "critic_expectile"):
             make_dfp(critic_expectile=1.0)
-        with self.assertRaisesRegex(ValueError, "refine_steps"):
-            make_dfp(refine_steps=0)
         with self.assertRaisesRegex(ValueError, "refine_radius"):
             make_dfp(refine_radius=-0.1)
+        with self.assertRaisesRegex(ValueError, "refine_lambda"):
+            make_dfp(refine_lambda=-0.1)
         with self.assertRaisesRegex(ValueError, "q_agg"):
             make_dfp(q_agg="pessimistic")
 

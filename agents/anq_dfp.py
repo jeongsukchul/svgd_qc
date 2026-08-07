@@ -1,19 +1,24 @@
-"""Critic-only ANQ with a drift behavior policy.
+"""Value-free ANQ with a drift behavior policy and learned refiner.
 
-This variant removes ANQ's learned value function, auxiliary delta actor, and
-final weighted-regression actor.  A DFP model is trained only by drift behavior
-cloning.  At target/action time, its decoded behavior action is refined by a
-small number of bounded Q-gradient steps, which explicitly implements ANQ's
-inner neighborhood optimization without another learned network.  The Q
-ensemble is trained with an expectile TD loss.
+The drift decoder is trained only with its behavior-cloning objective.  A
+separate refinement actor predicts a bounded action delta around each decoded
+behavior action.  The refiner is optimized through the Q ensemble, and the
+critic is trained with an expectile Bellman loss.  There is no learned V
+function and no final weighted-regression actor.
 """
 
+import copy
 from functools import partial
 
+import flax
 import jax
 import jax.numpy as jnp
 
 from agents.dfp import DFPAgent, get_config as get_dfp_config
+from utils.encoders import encoder_modules
+from utils.flax_utils import ModuleDict, TrainState
+from utils.networks import Actor, ActorVectorField, Value
+from utils.optimizers import make_optimizer
 
 
 def td_expectile_loss(td_error, expectile):
@@ -44,81 +49,95 @@ def select_best(actions, scores):
     return selected.reshape(batch_shape + (actions.shape[-1],))
 
 
-def refine_actions(
-    agent,
-    observations,
-    base_actions,
-    critic_name="critic",
-    straight_through=False,
-):
-    """Perform projected Q-gradient ascent around drift-decoded actions.
+def _bounded_delta(raw_delta, radius, eps):
+    """Map a tanh refiner output into an L2 ball of the given radius."""
+    raw_norm = jnp.linalg.norm(raw_delta, axis=-1, keepdims=True)
+    unit_ball_scale = jnp.minimum(1.0, 1.0 / jnp.maximum(raw_norm, eps))
+    return radius * unit_ball_scale * raw_delta
 
-    The total displacement is projected into an L2 ball of radius
-    ``refine_radius`` around the behavior action.  With ``straight_through``,
-    the numerical refinement is detached while retaining an identity gradient
-    through the base action; this lets ANQ-STDFP train its latent policy without
-    expensive second-order derivatives through the inner optimization.
-    """
+
+def refine_actions(agent, observations, base_actions, params=None, target=False):
+    """Apply the learned, bounded refinement actor in one forward pass."""
     base_actions = jnp.clip(base_actions, -1.0, 1.0)
-    radius = agent.config["refine_radius"]
-    if radius == 0.0:
-        return base_actions, jnp.zeros_like(base_actions)
+    model_name = "target_refine_actor" if target else "refine_actor"
+    inputs = jnp.concatenate([observations, base_actions], axis=-1)
+    raw_delta = agent.network.select(model_name)(inputs, params=params).mode()
+    delta = _bounded_delta(
+        raw_delta,
+        agent.config["refine_radius"],
+        agent.config["refine_eps"],
+    )
+    refined_actions = jnp.clip(base_actions + delta, -1.0, 1.0)
+    # Clipping at an action-space boundary can make the applied delta smaller.
+    applied_delta = refined_actions - base_actions
+    return refined_actions, applied_delta
 
-    refined = base_actions
-    for _ in range(agent.config["refine_steps"]):
 
-        def q_objective(candidate_actions):
-            candidate_actions = jnp.clip(candidate_actions, -1.0, 1.0)
-            qs = agent.network.select(critic_name)(
-                observations, actions=candidate_actions
-            )
-            return aggregate_qs(qs, agent.config).sum()
+def refine_actor_loss(agent, batch, grad_params, rng):
+    """Optimize the refiner through Q while keeping it near drift behavior."""
+    observations = batch["observations"]
+    action_dim = agent.config["action_dim"] * (
+        agent.config["horizon_length"]
+        if agent.config["action_chunking"]
+        else 1
+    )
+    noises = jax.random.normal(rng, observations.shape[:-1] + (action_dim,))
 
-        action_grad = jax.grad(q_objective)(refined)
-        action_grad = jnp.nan_to_num(action_grad)
-        if agent.config["normalize_refine_grad"]:
-            grad_norm = jnp.linalg.norm(action_grad, axis=-1, keepdims=True)
-            action_grad = action_grad / jnp.maximum(
-                grad_norm, agent.config["refine_eps"]
-            )
+    # The drift decoder remains behavior-cloned: stop refiner gradients from
+    # changing it, while retaining gradients through Q into the refiner.
+    base_actions = agent.network.select("actor_drift")(observations, noises)
+    base_actions = jax.lax.stop_gradient(jnp.clip(base_actions, -1.0, 1.0))
+    refined_actions, delta = refine_actions(
+        agent,
+        observations,
+        base_actions,
+        params=grad_params,
+    )
+    qs = agent.network.select("critic")(
+        observations, actions=refined_actions
+    )
+    q = aggregate_qs(qs, agent.config, mode=agent.config["refine_q_agg"])
 
-        refined = jnp.clip(
-            refined + agent.config["refine_step_size"] * action_grad,
-            -1.0,
-            1.0,
-        )
-        delta = refined - base_actions
-        delta_norm = jnp.linalg.norm(delta, axis=-1, keepdims=True)
-        projection = jnp.minimum(
-            1.0,
-            radius / jnp.maximum(delta_norm, agent.config["refine_eps"]),
-        )
-        refined = jnp.clip(base_actions + projection * delta, -1.0, 1.0)
+    valid = batch.get("valid", jnp.ones_like(batch["rewards"]))[..., -1]
+    denom = jnp.maximum(valid.sum(), 1.0)
+    q_objective = (q * valid).sum() / denom
+    delta_sq = jnp.sum(jnp.square(delta), axis=-1)
+    penalty = (delta_sq * valid).sum() / denom
+    q_scale = jax.lax.stop_gradient(
+        1.0 / jnp.maximum(jnp.abs(q).mean(), agent.config["refine_q_eps"])
+    )
+    loss = -q_scale * q_objective + agent.config["refine_lambda"] * penalty
 
-    numerical_refined = refined
-    delta = numerical_refined - base_actions
-    if straight_through:
-        refined = base_actions + jax.lax.stop_gradient(delta)
-    return refined, jax.lax.stop_gradient(delta)
+    return loss, {
+        "refine_actor_loss": loss,
+        "refine_q": q_objective,
+        "refine_q_scale": q_scale,
+        "refine_penalty": penalty,
+        "refine_delta_rms": jnp.sqrt(jnp.mean(jnp.square(delta))),
+        "refine_delta_norm": jnp.linalg.norm(delta, axis=-1).mean(),
+    }
 
 
 def validate_refinement_config(config, q_modes=("min", "mean")):
     if not 0.0 < config["critic_expectile"] < 1.0:
         raise ValueError("critic_expectile must be in (0, 1)")
-    if config["q_agg"] not in q_modes:
-        raise ValueError(f"q_agg must be one of {q_modes}")
-    if config["refine_steps"] < 1:
-        raise ValueError("refine_steps must be positive")
-    if config["refine_step_size"] <= 0.0:
-        raise ValueError("refine_step_size must be positive")
+    for key in ("q_agg", "refine_q_agg"):
+        if config[key] not in q_modes:
+            raise ValueError(f"{key} must be one of {q_modes}")
     if config["refine_radius"] < 0.0:
         raise ValueError("refine_radius must be non-negative")
+    if config["refine_lambda"] < 0.0:
+        raise ValueError("refine_lambda must be non-negative")
     if config["refine_eps"] <= 0.0:
         raise ValueError("refine_eps must be positive")
+    if config["refine_q_eps"] <= 0.0:
+        raise ValueError("refine_q_eps must be positive")
+    if config["refine_fc_scale"] <= 0.0:
+        raise ValueError("refine_fc_scale must be positive")
 
 
 class ANQDFPAgent(DFPAgent):
-    """ANQ neighborhood refinement over a behavior-cloned DFP decoder."""
+    """Learned action refinement over a behavior-cloned DFP decoder."""
 
     def _batch_actions(self, batch):
         if self.config["action_chunking"]:
@@ -133,6 +152,7 @@ class ANQDFPAgent(DFPAgent):
             rng,
             use_q_bon=True,
             critic_name="target_critic",
+            target_refiner=True,
         )
 
         next_qs = self.network.select("target_critic")(
@@ -164,12 +184,25 @@ class ANQDFPAgent(DFPAgent):
             "target_delta_rms": jnp.sqrt(jnp.mean(jnp.square(target_delta))),
         }
 
+    def actor_loss(self, batch, grad_params, rng):
+        drift_rng, refine_rng = jax.random.split(rng)
+        drift_loss, info = super().actor_loss(batch, grad_params, drift_rng)
+        refinement_loss, refinement_info = refine_actor_loss(
+            self, batch, grad_params, refine_rng
+        )
+        total_loss = drift_loss + refinement_loss
+        info = dict(info)
+        info.update(refinement_info)
+        info["actor_loss"] = total_loss
+        return total_loss, info
+
     def _sample_refined_actions(
         self,
         observations,
         rng,
         use_q_bon=False,
         critic_name="critic",
+        target_refiner=False,
     ):
         if rng is None:
             rng = jax.random.PRNGKey(0)
@@ -198,7 +231,7 @@ class ANQDFPAgent(DFPAgent):
                 self,
                 repeated_observations,
                 base_actions,
-                critic_name=critic_name,
+                target=target_refiner,
             )
             scores = aggregate_qs(
                 self.network.select(critic_name)(
@@ -214,12 +247,12 @@ class ANQDFPAgent(DFPAgent):
         base_actions = self.network.select("actor_drift")(observations, noises)
         base_actions = self._add_actor_output_noise(base_actions, output_rng)
         return refine_actions(
-            self, observations, base_actions, critic_name=critic_name
+            self, observations, base_actions, target=target_refiner
         )
 
     @partial(
         jax.jit,
-        static_argnames=("use_q_bon", "critic_name"),
+        static_argnames=("use_q_bon", "critic_name", "target_refiner"),
     )
     def sample_actions(
         self,
@@ -227,19 +260,126 @@ class ANQDFPAgent(DFPAgent):
         rng=None,
         use_q_bon=False,
         critic_name="critic",
+        target_refiner=False,
     ):
         actions, _ = self._sample_refined_actions(
             observations,
             rng,
             use_q_bon=use_q_bon,
             critic_name=critic_name,
+            target_refiner=target_refiner,
         )
         return jnp.clip(actions, -1.0, 1.0)
+
+    @staticmethod
+    def _update(agent, batch):
+        new_rng, rng = jax.random.split(agent.rng)
+
+        def loss_fn(grad_params):
+            return agent.total_loss(batch, grad_params, rng=rng)
+
+        new_network, info = agent.network.apply_loss_fn(loss_fn=loss_fn)
+        for module_name in ("critic", "refine_actor"):
+            source = new_network.params[f"modules_{module_name}"]
+            target = agent.network.params[f"modules_target_{module_name}"]
+            new_network.params[f"modules_target_{module_name}"] = (
+                jax.tree_util.tree_map(
+                    lambda p, tp: (
+                        agent.config["tau"] * p
+                        + (1.0 - agent.config["tau"]) * tp
+                    ),
+                    source,
+                    target,
+                )
+            )
+        return agent.replace(network=new_network, rng=new_rng), info
 
     @classmethod
     def create(cls, seed, ex_observations, ex_actions, config):
         validate_refinement_config(config)
-        return super().create(seed, ex_observations, ex_actions, config)
+        drift_backend = config.get("drift_backend", "drift_loss")
+        if drift_backend not in ("drift_loss", "log_kde"):
+            raise ValueError("drift_backend must be 'drift_loss' or 'log_kde'")
+        if config.get("noise_scale", 0.0) < 0.0:
+            raise ValueError("noise_scale must be non-negative")
+        if drift_backend == "log_kde":
+            if config["log_kde_bandwidth"] <= 0.0:
+                raise ValueError("log_kde_bandwidth must be positive")
+            if config["gen_per_label"] < 2:
+                raise ValueError(
+                    "gen_per_label must be at least 2 for leave-one-out log-KDE"
+                )
+
+        rng = jax.random.PRNGKey(seed)
+        rng, init_rng = jax.random.split(rng)
+        ob_dims = ex_observations.shape
+        action_dim = ex_actions.shape[-1]
+        if config["action_chunking"]:
+            full_actions = jnp.concatenate(
+                [ex_actions] * config["horizon_length"], axis=-1
+            )
+        else:
+            full_actions = ex_actions
+        full_action_dim = full_actions.shape[-1]
+        refine_inputs = jnp.concatenate([ex_observations, full_actions], axis=-1)
+
+        encoders = {}
+        if config["encoder"] is not None:
+            encoder_module = encoder_modules[config["encoder"]]
+            encoders["critic"] = encoder_module()
+            encoders["actor_drift"] = encoder_module()
+
+        critic_def = Value(
+            hidden_dims=config["value_hidden_dims"],
+            layer_norm=config["layer_norm"],
+            num_ensembles=config["num_qs"],
+            encoder=encoders.get("critic"),
+        )
+        actor_drift_def = ActorVectorField(
+            hidden_dims=config["actor_hidden_dims"],
+            action_dim=full_action_dim,
+            layer_norm=config["actor_layer_norm"],
+            encoder=encoders.get("actor_drift"),
+        )
+        refine_actor_def = Actor(
+            hidden_dims=config["refine_hidden_dims"],
+            action_dim=full_action_dim,
+            layer_norm=config["refine_layer_norm"],
+            tanh_squash=True,
+            state_dependent_std=False,
+            const_std=True,
+            final_fc_init_scale=config["refine_fc_scale"],
+        )
+
+        network_info = {
+            "critic": (critic_def, (ex_observations, full_actions)),
+            "target_critic": (
+                copy.deepcopy(critic_def),
+                (ex_observations, full_actions),
+            ),
+            "actor_drift": (actor_drift_def, (ex_observations, full_actions)),
+            "refine_actor": (refine_actor_def, (refine_inputs,)),
+            "target_refine_actor": (
+                copy.deepcopy(refine_actor_def),
+                (refine_inputs,),
+            ),
+        }
+        network_def = ModuleDict(
+            {name: definition for name, (definition, _) in network_info.items()}
+        )
+        network_args = {name: args for name, (_, args) in network_info.items()}
+        network_params = network_def.init(init_rng, **network_args)["params"]
+        network_params["modules_target_critic"] = network_params["modules_critic"]
+        network_params["modules_target_refine_actor"] = network_params[
+            "modules_refine_actor"
+        ]
+        network_tx = make_optimizer(config["optimizer"], config["lr"])
+        network = TrainState.create(network_def, network_params, tx=network_tx)
+
+        config["ob_dims"] = ob_dims
+        config["action_dim"] = action_dim
+        config["full_action_dim"] = full_action_dim
+        return cls(rng, network=network, config=flax.core.FrozenDict(**config))
 
 
 def get_config():
@@ -251,9 +391,12 @@ def get_config():
     config.actor_type = "best-of-n"
     config.noise_scale = 0.0
     config.critic_expectile = 0.7
-    config.refine_steps = 3
-    config.refine_step_size = 0.05
+    config.refine_hidden_dims = (512, 512)
+    config.refine_layer_norm = False
+    config.refine_fc_scale = 0.01
+    config.refine_q_agg = "min"
     config.refine_radius = 0.2
-    config.normalize_refine_grad = True
+    config.refine_lambda = 5.0
     config.refine_eps = 1e-6
+    config.refine_q_eps = 1e-6
     return config

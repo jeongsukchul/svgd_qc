@@ -1,29 +1,42 @@
-"""Critic-only ANQ with a learned latent-noise drift policy.
+"""Value-free ANQ with latent-noise and action-refinement actors.
 
-ANQ-STDFP uses the same explicit bounded action refinement as ANQ-DFP, but
-retains STDFP's learned stochastic/deterministic actor in the drift decoder's
-latent-noise space.  The drift decoder remains behavior-cloned; the latent
-actor chooses a behavior mode and is optimized through the Q value of the
-refined decoded action.
+ANQ-STDFP retains STDFP's latent-noise policy and behavior-cloned drift
+decoder.  A learned refinement actor then predicts a bounded action delta.
+The critic uses expectile Bellman regression; no V function or final policy is
+learned.
 """
 
+import copy
 from functools import partial
 
+import flax
 import jax
 import jax.numpy as jnp
 
 from agents.anq_dfp import (
     aggregate_qs,
     refine_actions,
+    refine_actor_loss,
     select_best,
     td_expectile_loss,
     validate_refinement_config,
 )
 from agents.stdfp import STDFPAgent, get_config as get_stdfp_config
+from utils.encoders import encoder_modules
+from utils.flax_utils import ModuleDict, TrainState
+from utils.networks import (
+    Actor,
+    ActorVectorField,
+    LogParam,
+    MLP,
+    TanhNormal,
+    Value,
+)
+from utils.optimizers import make_optimizer
 
 
 class ANQSTDFPAgent(STDFPAgent):
-    """ANQ action refinement plus an STDFP latent-noise actor."""
+    """Latent behavior-mode selection followed by learned action refinement."""
 
     def critic_loss(self, batch, grad_params, rng):
         batch_actions = self._batch_actions(batch)
@@ -62,6 +75,20 @@ class ANQSTDFPAgent(STDFPAgent):
             "target_delta_rms": jnp.sqrt(jnp.mean(jnp.square(target_delta))),
         }
 
+    def actor_loss(self, batch, grad_params, rng):
+        latent_drift_rng, refine_rng = jax.random.split(rng)
+        base_loss, info = super().actor_loss(
+            batch, grad_params, latent_drift_rng
+        )
+        refinement_loss, refinement_info = refine_actor_loss(
+            self, batch, grad_params, refine_rng
+        )
+        total_loss = base_loss + refinement_loss
+        info = dict(info)
+        info.update(refinement_info)
+        info["total_loss"] = total_loss
+        return total_loss, info
+
     @partial(jax.jit, static_argnames=("use_target_latent",))
     def sample_drift_actions(
         self,
@@ -75,13 +102,11 @@ class ANQSTDFPAgent(STDFPAgent):
         )
         base_actions = self.network.select(model_name)(observations, noises)
         base_actions = self._add_actor_output_noise(base_actions, rng)
-        critic_name = "target_critic" if use_target_latent else "critic"
         refined_actions, _ = refine_actions(
             self,
             observations,
             base_actions,
-            critic_name=critic_name,
-            straight_through=True,
+            target=use_target_latent,
         )
         return self._safe_clip(refined_actions)
 
@@ -90,11 +115,6 @@ class ANQSTDFPAgent(STDFPAgent):
     ):
         if rng is None:
             rng = jax.random.PRNGKey(0)
-        action_dim = self.config["action_dim"] * (
-            self.config["horizon_length"]
-            if self.config["action_chunking"]
-            else 1
-        )
         critic_name = "target_critic" if use_target_critic else "critic"
         latent_rng, output_rng = jax.random.split(rng)
 
@@ -119,7 +139,7 @@ class ANQSTDFPAgent(STDFPAgent):
                 self,
                 observations,
                 base_actions,
-                critic_name=critic_name,
+                target=use_target_critic,
             )
 
         num_samples = self.config["best_of_n"]
@@ -141,7 +161,7 @@ class ANQSTDFPAgent(STDFPAgent):
             self,
             repeated_observations,
             base_actions,
-            critic_name=critic_name,
+            target=use_target_critic,
         )
         scores = aggregate_qs(
             self.network.select(critic_name)(
@@ -159,6 +179,29 @@ class ANQSTDFPAgent(STDFPAgent):
         )
         return self._safe_clip(actions)
 
+    @staticmethod
+    def _update(agent, batch):
+        new_rng, rng = jax.random.split(agent.rng)
+
+        def loss_fn(grad_params):
+            return agent.total_loss(batch, grad_params, rng=rng)
+
+        new_network, info = agent.network.apply_loss_fn(loss_fn=loss_fn)
+        for module_name in ("critic", "actor_drift", "refine_actor"):
+            source = new_network.params[f"modules_{module_name}"]
+            target = agent.network.params[f"modules_target_{module_name}"]
+            new_network.params[f"modules_target_{module_name}"] = (
+                jax.tree_util.tree_map(
+                    lambda p, tp: (
+                        agent.config["tau"] * p
+                        + (1.0 - agent.config["tau"]) * tp
+                    ),
+                    source,
+                    target,
+                )
+            )
+        return agent.replace(network=new_network, rng=new_rng), info
+
     @classmethod
     def create(cls, seed, ex_observations, ex_actions, config):
         q_modes = ("min", "mean", "pessimistic")
@@ -166,7 +209,132 @@ class ANQSTDFPAgent(STDFPAgent):
         for key in ("actor_q_agg", "sample_q_agg"):
             if config[key] not in q_modes:
                 raise ValueError(f"{key} must be one of {q_modes}")
-        return super().create(seed, ex_observations, ex_actions, config)
+
+        rng = jax.random.PRNGKey(seed)
+        rng, init_rng = jax.random.split(rng)
+        ob_dims = ex_observations.shape
+        action_dim = ex_actions.shape[-1]
+        if config["action_chunking"]:
+            full_actions = jnp.concatenate(
+                [ex_actions] * config["horizon_length"], axis=-1
+            )
+        else:
+            full_actions = ex_actions
+        full_action_dim = full_actions.shape[-1]
+        noises = full_actions
+        refine_inputs = jnp.concatenate([ex_observations, full_actions], axis=-1)
+
+        actor_type = config.get("actor_type", "sac")
+        regularizer = config.get("noise_regularizer", "entropy")
+        if config.get("noise_scale", 0.0) < 0.0:
+            raise ValueError("noise_scale must be non-negative")
+        if config.get("latent_noise_scale", 1.0) <= 0.0:
+            raise ValueError("latent_noise_scale must be positive")
+        if actor_type in ("sac", "stochastic"):
+            if regularizer == "entropy" and config["noise_target_entropy"] is None:
+                config["noise_target_entropy"] = (
+                    config["target_multiplier"] * full_action_dim
+                )
+            if regularizer == "kl" and config["noise_target_kl"] is None:
+                config["noise_target_kl"] = (
+                    config["target_multiplier"] * full_action_dim
+                )
+        elif actor_type in ("ddpg", "deterministic"):
+            config["noise_target_entropy"] = 0.0
+            config["noise_target_kl"] = 0.0
+        else:
+            raise ValueError(f"Unsupported actor_type: {actor_type}")
+
+        encoders = {}
+        if config["encoder"] is not None:
+            encoder_module = encoder_modules[config["encoder"]]
+            encoders["critic"] = encoder_module()
+            encoders["noise_actor"] = encoder_module()
+            encoders["actor_drift"] = encoder_module()
+
+        critic_def = Value(
+            hidden_dims=config["value_hidden_dims"],
+            layer_norm=config["layer_norm"],
+            num_ensembles=config["num_qs"],
+            encoder=encoders.get("critic"),
+        )
+        if actor_type in ("sac", "stochastic"):
+            noise_actor_base_cls = partial(
+                MLP,
+                hidden_dims=config["actor_hidden_dims"],
+                activate_final=True,
+                layer_norm=config["actor_layer_norm"],
+            )
+            noise_actor_def = TanhNormal(
+                noise_actor_base_cls,
+                full_action_dim,
+                state_dependent_std=config["noise_state_dependent_std"],
+                encoder=encoders.get("noise_actor"),
+            )
+        else:
+            noise_actor_def = MLP(
+                hidden_dims=(*tuple(config["actor_hidden_dims"]), full_action_dim),
+                layer_norm=config["actor_layer_norm"],
+            )
+        actor_drift_def = ActorVectorField(
+            hidden_dims=config["actor_hidden_dims"],
+            action_dim=full_action_dim,
+            layer_norm=config["actor_layer_norm"],
+            encoder=encoders.get("actor_drift"),
+        )
+        refine_actor_def = Actor(
+            hidden_dims=config["refine_hidden_dims"],
+            action_dim=full_action_dim,
+            layer_norm=config["refine_layer_norm"],
+            tanh_squash=True,
+            state_dependent_std=False,
+            const_std=True,
+            final_fc_init_scale=config["refine_fc_scale"],
+        )
+
+        network_info = {
+            "critic": (critic_def, (ex_observations, full_actions)),
+            "target_critic": (
+                copy.deepcopy(critic_def),
+                (ex_observations, full_actions),
+            ),
+            "noise_actor": (noise_actor_def, (ex_observations,)),
+            "actor_drift": (actor_drift_def, (ex_observations, noises)),
+            "target_actor_drift": (
+                copy.deepcopy(actor_drift_def),
+                (ex_observations, noises),
+            ),
+            "refine_actor": (refine_actor_def, (refine_inputs,)),
+            "target_refine_actor": (
+                copy.deepcopy(refine_actor_def),
+                (refine_inputs,),
+            ),
+        }
+        if actor_type in ("sac", "stochastic"):
+            network_info["noise_alpha"] = (
+                LogParam(init_value=config["noise_init_temp"]),
+                (),
+            )
+
+        network_def = ModuleDict(
+            {name: definition for name, (definition, _) in network_info.items()}
+        )
+        network_args = {name: args for name, (_, args) in network_info.items()}
+        network_params = network_def.init(init_rng, **network_args)["params"]
+        network_params["modules_target_critic"] = network_params["modules_critic"]
+        network_params["modules_target_actor_drift"] = network_params[
+            "modules_actor_drift"
+        ]
+        network_params["modules_target_refine_actor"] = network_params[
+            "modules_refine_actor"
+        ]
+        network_tx = make_optimizer(config["optimizer"], config["lr"])
+        network = TrainState.create(network_def, network_params, tx=network_tx)
+
+        config["ob_dims"] = ob_dims
+        config["action_dim"] = action_dim
+        config["full_action_dim"] = full_action_dim
+        return cls(rng, network=network, config=flax.core.FrozenDict(**config))
 
 
 def get_config():
@@ -179,9 +347,12 @@ def get_config():
     config.sample_q_agg = "min"
     config.noise_scale = 0.0
     config.critic_expectile = 0.7
-    config.refine_steps = 3
-    config.refine_step_size = 0.05
+    config.refine_hidden_dims = (512, 512)
+    config.refine_layer_norm = False
+    config.refine_fc_scale = 0.01
+    config.refine_q_agg = "min"
     config.refine_radius = 0.2
-    config.normalize_refine_grad = True
+    config.refine_lambda = 5.0
     config.refine_eps = 1e-6
+    config.refine_q_eps = 1e-6
     return config
