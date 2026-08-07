@@ -91,9 +91,9 @@ class DFPAgent(flax.struct.PyTreeNode):
         drift_actions_all = self.network.select("actor_drift")(
             obs_repeated, drift_noises, params=grad_params
         )
-        drift_actions_all = self._add_actor_output_noise(
-            drift_actions_all, output_noise_rng
-        )
+        # drift_actions_all = self._add_actor_output_noise(
+        #     drift_actions_all, output_noise_rng
+        # )
         # drift_actions_all = jnp.clip(drift_actions_all, -1, 1)
         # Reshape to [B, gen_per_label, action_dim]
         gen_samples = drift_actions_all.reshape(batch_size, gen_per_label, action_dim)

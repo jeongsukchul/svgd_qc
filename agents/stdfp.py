@@ -52,6 +52,15 @@ class STDFPAgent(flax.struct.PyTreeNode):
         return jnp.clip(x, low, high)
 
 
+    def _add_actor_output_noise(self, actions, rng):
+        noise_scale = self.config.get("noise_scale", 0.0)
+        if rng is None or noise_scale == 0.0:
+            return actions
+        return actions + jax.random.normal(
+            rng, actions.shape, dtype=actions.dtype
+        ) * noise_scale
+
+
     def _unit_normal_log_prob(self, x):
         return -0.5 * (jnp.square(x) + math.log(2.0 * math.pi)).sum(axis=-1)
 
@@ -145,7 +154,12 @@ class STDFPAgent(flax.struct.PyTreeNode):
         noise_actor_type = self._noise_actor_type()
 
         drift_rng, actor_rng = jax.random.split(rng)
-        actor_rng, sigreg_rng = jax.random.split(actor_rng)
+        (
+            actor_rng,
+            sigreg_rng,
+            drift_output_noise_rng,
+            decoded_output_noise_rng,
+        ) = jax.random.split(actor_rng, 4)
 
         gen_per_label = self.config["gen_per_label"]
         obs_repeated = jnp.repeat(batch["observations"], gen_per_label, axis=0)
@@ -157,6 +171,9 @@ class STDFPAgent(flax.struct.PyTreeNode):
             obs_repeated,
             drift_noises,
             params=grad_params,
+        )
+        drift_actions = self._add_actor_output_noise(
+            drift_actions, drift_output_noise_rng
         )
         # drift_actions = self._safe_clip(drift_actions)
         gen_samples = drift_actions.reshape(batch_size, gen_per_label, action_dim)
@@ -175,12 +192,17 @@ class STDFPAgent(flax.struct.PyTreeNode):
             )
 
             noises = dist.sample(seed=actor_rng)
-            log_probs = dist.log_prob(noises)- action_dim * jnp.log(self.config['noise_scale'])
-            scaled_noises = noises * self.config['noise_scale']
+            latent_noise_scale = self.config.get("latent_noise_scale", 1.0)
+            log_probs = (
+                dist.log_prob(noises)
+                - action_dim * jnp.log(latent_noise_scale)
+            )
+            scaled_noises = noises * latent_noise_scale
             decoded_actions = self.sample_drift_actions(
-                batch["observations"], 
+                batch["observations"],
                 scaled_noises,
-                self.config["use_target_latent"]
+                self.config["use_target_latent"],
+                rng=decoded_output_noise_rng,
             )
             critic_qs = self.network.select("critic")(
                 batch["observations"],
@@ -234,6 +256,7 @@ class STDFPAgent(flax.struct.PyTreeNode):
                 batch["observations"],
                 noises,
                 self.config["use_target_latent"],
+                rng=decoded_output_noise_rng,
             )
             critic_qs = self.network.select("critic")(
                 batch["observations"],
@@ -353,13 +376,20 @@ class STDFPAgent(flax.struct.PyTreeNode):
         return agent, jax.tree_util.tree_map(lambda x: x.mean(), infos)
 
     @partial(jax.jit, static_argnames=("use_target_latent",))
-    def sample_drift_actions(self, observations, noises, use_target_latent=False):
+    def sample_drift_actions(
+        self,
+        observations,
+        noises,
+        use_target_latent=False,
+        rng=None,
+    ):
         model_name = (
             "target_actor_drift"
             if use_target_latent
             else "actor_drift"
         )
         actions = self.network.select(model_name)(observations, noises)
+        actions = self._add_actor_output_noise(actions, rng)
         return self._safe_clip(actions)
 
     @jax.jit
@@ -371,9 +401,11 @@ class STDFPAgent(flax.struct.PyTreeNode):
         )
 
         if self._noise_actor_type() == "ddpg":
+            latent_noise_rng, output_noise_rng = jax.random.split(rng)
             noises = self.network.select("noise_actor")(observations)
             noise = jnp.clip(
-                jax.random.normal(rng, noises.shape) * self.config["actor_noise"],
+                jax.random.normal(latent_noise_rng, noises.shape)
+                * self.config["actor_noise"],
                 -self.config["actor_noise_clip"],
                 self.config["actor_noise_clip"],
             )
@@ -381,17 +413,22 @@ class STDFPAgent(flax.struct.PyTreeNode):
                 observations,
                 noises + noise,
                 self.config["use_target_latent"],
+                rng=output_noise_rng,
             )
             return self._safe_clip(actions)
 
+        latent_noise_rng, output_noise_rng = jax.random.split(rng)
         best_of_n = self.config["best_of_n"]
         observations = jnp.repeat(observations[..., None, :], best_of_n, axis=-2)
         dist = self.network.select("noise_actor")(observations)
-        noises = dist.sample(seed=rng)
+        noises = dist.sample(seed=latent_noise_rng)
+        latent_noise_scale = self.config.get("latent_noise_scale", 1.0)
         actions = self.sample_drift_actions(
-            observations, 
-            noises * self.config['noise_scale'],
-            self.config["use_target_latent"])
+            observations,
+            noises * latent_noise_scale,
+            self.config["use_target_latent"],
+            rng=output_noise_rng,
+        )
 
         q = self._aggregate_q(
             self.network.select("critic")(observations, actions),
@@ -435,6 +472,10 @@ class STDFPAgent(flax.struct.PyTreeNode):
 
         actor_type = config.get("actor_type", "sac")
         regularizer = config.get("noise_regularizer", "entropy")
+        if config.get("noise_scale", 0.0) < 0.0:
+            raise ValueError("noise_scale must be non-negative")
+        if config.get("latent_noise_scale", 1.0) <= 0.0:
+            raise ValueError("latent_noise_scale must be positive")
         if actor_type in ("sac", "stochastic"):
             if regularizer == "entropy" and config["noise_target_entropy"] is None:
 
@@ -554,7 +595,8 @@ def get_config():
             noise_target_kl=ml_collections.config_dict.placeholder(float),
             target_multiplier=0.5,
             noise_init_temp=1.0,
-            noise_scale=1.,
+            noise_scale=0.0,
+            latent_noise_scale=1.0,
             actor_noise=0.2,
             actor_noise_clip=0.5,
             ddpg_sigreg_coeff=1.,
