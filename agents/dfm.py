@@ -177,12 +177,14 @@ class DFMAgent(DFPAgent):
         batch_size, action_dim = batch_actions.shape
         num_particles = self.config["gen_per_label"]
         source_rng, time_rng = jax.random.split(rng)
+        output_noise_rng = source_rng
+        if self.config.get("noise_scale", 0.0) != 0.0:
+            source_rng, output_noise_rng = jax.random.split(source_rng)
         # For a high-dimensional condition such as an observation, the paper
         # constructs multiple marginal samples from one dataset action by
         # pairing it with independently drawn source samples.
-        source = (
-            jax.random.normal(source_rng, (batch_size, num_particles, action_dim))
-            * self.config.get("noise_scale", 1.0)
+        source = jax.random.normal(
+            source_rng, (batch_size, num_particles, action_dim)
         )
         target_endpoint = jnp.broadcast_to(
             batch_actions[:, None, :], (batch_size, num_particles, action_dim)
@@ -213,6 +215,9 @@ class DFMAgent(DFPAgent):
             grouped_start_time,
             grouped_end_time,
             params=grad_params,
+        )
+        predicted_state = self._add_actor_output_noise(
+            predicted_state, output_noise_rng
         )
 
         drift_backend = self.config["drift_backend"]
@@ -280,16 +285,17 @@ class DFMAgent(DFPAgent):
             else 1
         )
         num_candidates = self.config["actor_num_samples"]
-        source = (
-            jax.random.normal(
-                rng,
-                (
-                    *observations.shape[: -len(self.config["ob_dims"])],
-                    num_candidates,
-                    full_action_dim,
-                ),
-            )
-            * self.config.get("noise_scale", 1.0)
+        source_rng = rng
+        output_noise_rng = rng
+        if self.config.get("noise_scale", 0.0) != 0.0:
+            source_rng, output_noise_rng = jax.random.split(rng)
+        source = jax.random.normal(
+            source_rng,
+            (
+                *observations.shape[: -len(self.config["ob_dims"])],
+                num_candidates,
+                full_action_dim,
+            ),
         )
         candidate_observations = self._expand_observations_for_particles(
             observations, num_candidates
@@ -311,6 +317,7 @@ class DFMAgent(DFPAgent):
         actions = jax.lax.fori_loop(
             0, self.config["num_flow_steps"], transport_step, source
         )
+        actions = self._add_actor_output_noise(actions, output_noise_rng)
 
         # Clipping intermediate states would alter the learned probability
         # path; only project completed action candidates to the environment.
@@ -331,7 +338,7 @@ class DFMAgent(DFPAgent):
             raise ValueError("actor_num_samples must be at least 1")
         if config["gen_per_label"] < 2:
             raise ValueError("gen_per_label must be at least 2 for a drift field")
-        if config.get("noise_scale", 1.0) < 0.0:
+        if config.get("noise_scale", 0.0) < 0.0:
             raise ValueError("noise_scale must be non-negative")
         if config["drift_backend"] not in (
             "drift_loss",
@@ -444,6 +451,6 @@ def get_config():
             drift_temps=(0.1,),
             log_kde_bandwidth=0.1,
             gen_per_label=8,
-            noise_scale=1.0,
+            noise_scale=0.0,
         )
     )
