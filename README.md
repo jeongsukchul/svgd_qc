@@ -115,12 +115,17 @@ and weighted policy-extraction objectives and respects OGBench's task-completion
 `masks`.  For a baseline command, task-family profiles, and a staged
 hyperparameter region, see [docs/anq_ogbench.md](docs/anq_ogbench.md).
 
+The standalone value-free [`agents/anq2.py`](agents/anq2.py) removes `V(s)` and
+uses expectile TD critic learning plus critic-only local-improvement weights.
+See [docs/anq2_ogbench.md](docs/anq2_ogbench.md) for its formulation and
+AntMaze tuning region.
+
 Value-free drift variants with a learned bounded refinement actor are also
 available: `agents/anq_dfp.py` uses Gaussian drift latents, and
 `agents/anq_stdfp.py` adds a learned latent-noise actor.  See
 [docs/anq_drift_variants.md](docs/anq_drift_variants.md) for their objectives,
 AntMaze commands, and refinement sweep. Both are standalone implementations,
-and all three ANQ agents use `target_critic` as their only EMA network.
+and all ANQ-family agents use `target_critic` as their only EMA network.
 
 ```
 @inproceedings{

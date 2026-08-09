@@ -115,6 +115,28 @@ class ANQAgentTest(unittest.TestCase):
             bool(jnp.allclose(mean_agent._aggregate_qs(qs), jnp.array([2.0, 3.0])))
         )
 
+        mixed_agent = make_agent(data_q_agg="min", refine_q_agg="mean")
+        self.assertTrue(
+            bool(
+                jnp.allclose(
+                    mixed_agent._aggregate_qs(
+                        qs, mode=mixed_agent.config["data_q_agg"]
+                    ),
+                    jnp.array([1.0, 2.0]),
+                )
+            )
+        )
+        self.assertTrue(
+            bool(
+                jnp.allclose(
+                    mixed_agent._aggregate_qs(
+                        qs, mode=mixed_agent.config["refine_q_agg"]
+                    ),
+                    jnp.array([2.0, 3.0]),
+                )
+            )
+        )
+
     def test_actor_and_target_updates_are_delayed(self):
         agent = make_agent(policy_freq=2)
         original_actor = agent.network.params["modules_actor"]
@@ -153,6 +175,10 @@ class ANQAgentTest(unittest.TestCase):
             make_agent(policy_freq=0)
         with self.assertRaisesRegex(ValueError, "q_agg"):
             make_agent(q_agg="median")
+        with self.assertRaisesRegex(ValueError, "data_q_agg"):
+            make_agent(data_q_agg="median")
+        with self.assertRaisesRegex(ValueError, "refine_q_agg"):
+            make_agent(refine_q_agg="median")
         with self.assertRaisesRegex(ValueError, "clipping range"):
             make_agent(aux_weight_min=2.0, aux_weight_max=1.0)
 

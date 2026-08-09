@@ -82,11 +82,7 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
         raw_delta = self.network.select("refine_actor")(
             inputs, params=params
         ).mode()
-        norm = jnp.linalg.norm(raw_delta, axis=-1, keepdims=True)
-        projection = jnp.minimum(
-            1.0, 1.0 / jnp.maximum(norm, self.config["refine_eps"])
-        )
-        delta = self.config["refine_radius"] * projection * raw_delta
+        delta = self.config["aux_action_scale"] * raw_delta
         refined = self._safe_clip(base_actions + delta)
         return refined, refined - base_actions
 
@@ -431,11 +427,11 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
             raise ValueError("latent_noise_scale must be positive")
         if config["noise_scale"] < 0.0:
             raise ValueError("noise_scale must be non-negative")
-        if config["refine_radius"] < 0.0:
-            raise ValueError("refine_radius must be non-negative")
+        if config["aux_action_scale"] <= 0.0:
+            raise ValueError("aux_action_scale must be positive")
         if config["refine_lambda"] < 0.0:
             raise ValueError("refine_lambda must be non-negative")
-        if config["refine_eps"] <= 0.0 or config["refine_q_eps"] <= 0.0:
+        if config["refine_q_eps"] <= 0.0:
             raise ValueError("refinement epsilons must be positive")
 
 
@@ -458,16 +454,15 @@ def get_config():
             refine_fc_scale=0.01,
             discount=0.99,
             tau=0.005,
-            num_qs=4,
-            q_agg="min",
-            refine_q_agg="min",
+            num_qs=2,
+            rho=0.5,
+            q_agg="mean",
+            refine_q_agg="mean",
             actor_q_agg="mean",
             sample_q_agg="min",
-            rho=0.5,
-            critic_expectile=0.7,
-            refine_radius=0.2,
+            critic_expectile=0.5,
+            aux_action_scale=2.0,
             refine_lambda=5.0,
-            refine_eps=1e-6,
             refine_q_eps=1e-6,
             horizon_length=ml_collections.config_dict.placeholder(int),
             action_chunking=False,

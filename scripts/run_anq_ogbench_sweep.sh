@@ -9,7 +9,9 @@ STAGE=${STAGE:-lambda}
 SEEDS=${SEEDS:-"0"}
 LAMS=${LAMS:-"0.1 0.3 1 3 5 10"}
 ALPHAS=${ALPHAS:-"0.5 1 2"}
-Q_AGG=${Q_AGG:-min} 
+Q_AGG=${Q_AGG:-mean}
+DATA_Q_AGG=${DATA_Q_AGG:-mean}
+REFINE_Q_AGG=${REFINE_Q_AGG:-min}
 PYTHON_BIN=${PYTHON_BIN:-python}
 RUN_GROUP=${RUN_GROUP:-anq-ogbench-${PROFILE}-${STAGE}}
 OFFLINE_STEPS=${OFFLINE_STEPS:-1000000}
@@ -25,7 +27,7 @@ case "${PROFILE}" in
     ;;
   navigation)
     DISCOUNT=${DISCOUNT:-0.995}
-    EXPECTILE=${EXPECTILE:-0.9}
+    EXPECTILE=${EXPECTILE:-0.5}
     BETA=${BETA:-10}
     AUX_WEIGHT_MAX=${AUX_WEIGHT_MAX:-10}
     ACTOR_WEIGHT_MAX=${ACTOR_WEIGHT_MAX:-100}
@@ -54,6 +56,8 @@ run_one() {
     --agent.lam="${lam}" \
     --agent.alpha="${alpha}" \
     --agent.q_agg="${Q_AGG}" \
+    --agent.data_q_agg="${DATA_Q_AGG}" \
+    --agent.refine_q_agg="${REFINE_Q_AGG}" \
     --agent.expectile="${EXPECTILE}" \
     --agent.beta="${BETA}" \
     --agent.aux_weight_max="${AUX_WEIGHT_MAX}" \

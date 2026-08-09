@@ -58,7 +58,9 @@ usually wasteful.
 | `agent.alpha` | fix at `1` | `0.5, 1, 2`; optionally `0` as the non-adaptive ablation | Larger makes radii more sensitive to data quality. |
 | `agent.expectile` | `0.7` manipulation, `0.9` navigation | `0.7, 0.8, 0.9` | Higher makes the implicit outer maximization more optimistic. |
 | `agent.beta` | `3` manipulation, `10` navigation | `1, 3, 10` | Policy-extraction advantage temperature. |
-| `agent.q_agg` | `min` | `min, mean` | `min` is pessimistic and safer offline; `mean` is less conservative. |
+| `agent.q_agg` | `mean` | `min, mean` | Aggregation for the refined-Q target used by the value loss. |
+| `agent.data_q_agg` | `mean` | `min, mean` | Aggregation of `Q(s, a_data)` in the adaptive radius calculation. |
+| `agent.refine_q_agg` | `min` | `min, mean` | Aggregation of Q for the refiner objective and final actor weighting. |
 | `discount` | `0.99` manipulation, `0.995` long-horizon navigation | `0.99, 0.995` | Use the longer horizon only where delayed success requires it. |
 
 Start with the `lambda` stage on one seed and at least 200k updates.  Discard
@@ -93,9 +95,16 @@ PROFILE=navigation STAGE=alpha LAMS="1 3" ALPHAS="0.5 1 2" SEEDS="0 1 2" \
 bash scripts/run_anq_ogbench_sweep.sh
 ```
 
-Set `Q_AGG=mean` on either sweep command to use ensemble means instead of the
-default pessimistic minimum, for example
-`Q_AGG=mean bash scripts/run_anq_ogbench_sweep.sh`.
+The sweep exposes all three reductions independently. For example:
+
+```bash
+Q_AGG=mean DATA_Q_AGG=mean REFINE_Q_AGG=min \
+bash scripts/run_anq_ogbench_sweep.sh
+```
+
+This mixed setting matches the best logged current-architecture AntMaze run:
+the value/data paths use ensemble means, while Q-directed refinement remains
+pessimistic.
 
 The paper searched `lam` mainly in `{0.1, 5}` and fixed `alpha=1`; the wider
 region above is intentional because OGBench spans substantially different

@@ -116,19 +116,7 @@ class ReBRACAgent(flax.struct.PyTreeNode):
         )
         network.params[f'modules_target_{module_name}'] = new_target_params
 
-    @partial(jax.jit, static_argnames=('full_update',))
-    def update(self, batch, full_update=True):
-        new_rng, rng = jax.random.split(self.rng)
 
-        def loss_fn(grad_params):
-            return self.total_loss(batch, grad_params, full_update, rng=rng)
-
-        new_network, info = self.network.apply_loss_fn(loss_fn=loss_fn)
-        if full_update:
-            self.target_update(new_network, 'critic')
-            self.target_update(new_network, 'actor')
-
-        return self.replace(network=new_network, rng=new_rng), info
 
     @staticmethod
     def _update(agent, batch, full_update=False):
@@ -144,7 +132,7 @@ class ReBRACAgent(flax.struct.PyTreeNode):
         return agent.replace(network=new_network, rng=new_rng), info
 
     @partial(jax.jit, static_argnames="full_update")
-    def update(self, batch, full_update=False):
+    def update(self, batch, full_update=True):
         return self._update(self, batch, full_update=full_update)
     
     @partial(jax.jit, static_argnames="full_update")
@@ -240,15 +228,15 @@ def get_config():
             action_chunking=False,                                      # Use Q-chunking or just n-step return
             
             ## RL hyperparameters
-            num_qs=10,       # Critic ensemble size
-            rho=0.5,        # Pessimistic backup
+            num_qs=2,       # Critic ensemble size
+            rho=0.0,        # Pessimistic backup
 
             discount=0.99,  # Discount factor.
             tau=0.005,      # Target network update rate.
             
             ## Main hyperparameter(s)
-            actor_noise=0.2,  # Actor noise scale.
-            alpha_actor=0.0,  # Actor BC coefficient.
+            actor_noise=0.,  # Actor noise scale.
+            alpha_actor=0.01,  # Actor BC coefficient.
             
             ## Other hyperparameter(s)
             actor_freq=2,           # Actor update frequency.

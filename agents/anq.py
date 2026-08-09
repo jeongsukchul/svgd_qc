@@ -58,11 +58,14 @@ class ANQAgent(flax.struct.PyTreeNode):
         mask = jnp.broadcast_to(mask, values.shape)
         return (values * mask).sum() / jnp.maximum(mask.sum(), 1.0)
 
-    def _aggregate_qs(self, qs):
-        """Aggregate the leading critic-ensemble dimension."""
-        if self.config["q_agg"] == "min":
+    def _aggregate_qs(self, qs, mode=None):
+        """Aggregate the leading critic ensemble with the requested role."""
+        mode = self.config["q_agg"] if mode is None else mode
+        if mode == "min":
             return qs.min(axis=0)
-        return qs.mean(axis=0)
+        if mode == "mean":
+            return qs.mean(axis=0)
+        raise ValueError(f"Unsupported Q aggregation: {mode}")
 
     def _aux_delta(self, observations, actions, params=None):
         inputs = jnp.concatenate([observations, actions], axis=-1)
@@ -141,7 +144,9 @@ class ANQAgent(flax.struct.PyTreeNode):
         data_qs = self.network.select("target_critic")(
             observations, actions=actions
         )
-        data_q = self._aggregate_qs(data_qs)
+        data_q = self._aggregate_qs(
+            data_qs, mode=self.config["data_q_agg"]
+        )
         radius_weight = jnp.exp(
             self.config["alpha"] * (data_q - value)
         )
@@ -158,7 +163,9 @@ class ANQAgent(flax.struct.PyTreeNode):
         refined_qs = self.network.select("critic")(
             observations, actions=refined_actions
         )
-        refined_q = self._aggregate_qs(refined_qs)
+        refined_q = self._aggregate_qs(
+            refined_qs, mode=self.config["refine_q_agg"]
+        )
         q_scale = jax.lax.stop_gradient(
             1.0 / jnp.maximum(jnp.abs(refined_q).mean(), self.config["q_eps"])
         )
@@ -189,7 +196,9 @@ class ANQAgent(flax.struct.PyTreeNode):
         refined_qs = self.network.select("target_critic")(
             observations, actions=refined_actions
         )
-        refined_q = self._aggregate_qs(refined_qs)
+        refined_q = self._aggregate_qs(
+            refined_qs, mode=self.config["refine_q_agg"]
+        )
         value = self.network.select("value")(observations)
         actor_weight = jnp.exp(
             self.config["beta"] * (refined_q - value)
@@ -301,8 +310,9 @@ class ANQAgent(flax.struct.PyTreeNode):
             raise ValueError("q_eps must be positive")
         if config["num_qs"] < 1:
             raise ValueError("num_qs must be positive")
-        if config["q_agg"] not in ("min", "mean"):
-            raise ValueError("q_agg must be 'min' or 'mean'")
+        for key in ("q_agg", "data_q_agg", "refine_q_agg"):
+            if config[key] not in ("min", "mean"):
+                raise ValueError(f"{key} must be 'min' or 'mean'")
         if config["use_actor_lr_schedule"] and config["actor_decay_steps"] < 1:
             raise ValueError("actor_decay_steps must be positive when scheduling")
         if not (
@@ -424,21 +434,25 @@ def get_config():
             batch_size=256,
             discount=0.99,
             tau=0.005,
-            num_qs=4,
-            q_agg="min",
+            num_qs=2,
+            q_agg="mean",
+            # Keep the empirically used mixed aggregation explicit: dataset
+            # actions use the ensemble mean, refined actions use the minimum.
+            data_q_agg="mean",
+            refine_q_agg="min",
             policy_freq=2,
-            use_actor_lr_schedule=True,
+            use_actor_lr_schedule=False,
             actor_decay_steps=500000,
             # Main ANQ hyperparameters (paper defaults).
-            lam=5.0,
+            lam=.1,
             alpha=1.0,
             expectile=0.7,
-            beta=3.0,
+            beta=10.0,
             aux_weight_min=0.01,
             aux_weight_max=30.0,
             actor_weight_min=0.0,
-            actor_weight_max=3.0,
-            aux_action_scale=2.0,
+            actor_weight_max=100.0,
+            aux_action_scale=1.0,
             q_eps=1e-6,
             # Faithful single-step ANQ by default.  Setting both options below
             # enables the same objective in Q-chunk action space.
