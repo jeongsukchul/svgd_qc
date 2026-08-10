@@ -3,9 +3,9 @@
 ANQ2 removes ANQ's V network and value loss.  It keeps an ensemble critic, a
 local refinement actor, and a distilled execution actor.  The critic performs
 expectile TD regression toward target-Q values of refined next dataset actions.
-The refiner uses a fixed displacement penalty, while policy weights use the
-critic-only local improvement Q(refined) - Q(data).  Only the critic has an EMA
-target.
+The refiner uses a target-Q-improvement-weighted displacement penalty, while
+policy weights use the critic-only local improvement Q(refined) - Q(data).
+Only the critic has an EMA target.
 """
 
 import copy
@@ -24,6 +24,22 @@ from utils.networks import Actor, Value
 def expectile_loss(diff, expectile):
     weight = jnp.where(diff > 0.0, expectile, 1.0 - expectile)
     return weight * jnp.square(diff)
+
+
+def improvement_penalty_weight(
+    improvement,
+    alpha,
+    improvement_clip,
+    weight_min,
+    weight_max,
+):
+    """Return a stopped exponential weight for a target-Q improvement."""
+    improvement = jnp.clip(
+        improvement, -improvement_clip, improvement_clip
+    )
+    weight = jnp.exp(-alpha * improvement)
+    weight = jnp.clip(weight, weight_min, weight_max)
+    return jax.lax.stop_gradient(weight)
 
 
 class ANQ2Agent(flax.struct.PyTreeNode):
@@ -136,21 +152,45 @@ class ANQ2Agent(flax.struct.PyTreeNode):
         refined_q = self._aggregate_qs(
             refined_qs, mode=self.config["refine_q_agg"]
         )
-        q_scale = jax.lax.stop_gradient(
-            1.0
-            / jnp.maximum(jnp.abs(refined_q).mean(), self.config["q_eps"])
+        target_refined_qs = self.network.select("target_critic")(
+            observations, actions=refined
+        )
+        target_base_q = self._aggregate_qs(
+            data_qs, mode=self.config["improvement_q_agg"]
+        )
+        target_refined_q = self._aggregate_qs(
+            target_refined_qs, mode=self.config["improvement_q_agg"]
+        )
+        target_improvement = target_refined_q - target_base_q
+        improvement_weight = improvement_penalty_weight(
+            target_improvement,
+            alpha=self.config["alpha"],
+            improvement_clip=self.config["improvement_clip"],
+            weight_min=self.config["aux_weight_min"],
+            weight_max=self.config["aux_weight_max"],
         )
         q_objective = self._masked_mean(refined_q, valid)
-        penalty = self._masked_mean(jnp.square(delta), action_mask)
-        loss = -q_scale * q_objective + self.config["lam"] * penalty
-        improvement = self._masked_mean(refined_q - data_q, valid)
+        unweighted_penalty = self._masked_mean(
+            jnp.square(delta), action_mask
+        )
+        penalty = self._masked_mean(
+            improvement_weight[..., None] * jnp.square(delta), action_mask
+        )
+        loss = - q_objective + self.config["lam"] * penalty
         return loss, {
             "loss": loss,
             "q_objective": q_objective,
             "data_q": self._masked_mean(data_q, valid),
-            "improvement": improvement,
-            "q_scale": q_scale,
+            "target_base_q": self._masked_mean(target_base_q, valid),
+            "target_refined_q": self._masked_mean(
+                target_refined_q, valid
+            ),
+            "improvement": self._masked_mean(target_improvement, valid),
+            "improvement_weight": self._masked_mean(
+                improvement_weight, valid
+            ),
             "penalty": penalty,
+            "unweighted_penalty": unweighted_penalty,
             "delta_rms": jnp.sqrt(
                 self._masked_mean(jnp.square(delta), action_mask)
             ),
@@ -346,13 +386,22 @@ class ANQ2Agent(flax.struct.PyTreeNode):
     def _validate_config(config):
         if not 0.0 < config["critic_expectile"] < 1.0:
             raise ValueError("critic_expectile must be in (0, 1)")
-        for key in ("q_agg", "data_q_agg", "refine_q_agg"):
+        for key in (
+            "q_agg",
+            "data_q_agg",
+            "refine_q_agg",
+            "improvement_q_agg",
+        ):
             if config[key] not in ("min", "mean"):
                 raise ValueError(f"{key} must be 'min' or 'mean'")
         if config["num_qs"] < 1:
             raise ValueError("num_qs must be positive")
         if config["lam"] < 0.0:
             raise ValueError("lam must be non-negative")
+        if config["alpha"] < 0.0:
+            raise ValueError("alpha must be non-negative")
+        if config["improvement_clip"] <= 0.0:
+            raise ValueError("improvement_clip must be positive")
         if config["beta"] < 0.0:
             raise ValueError("beta must be non-negative")
         if config["policy_freq"] < 1:
@@ -367,6 +416,10 @@ class ANQ2Agent(flax.struct.PyTreeNode):
             0.0 <= config["actor_weight_min"] <= config["actor_weight_max"]
         ):
             raise ValueError("invalid actor weight clipping range")
+        if not (
+            0.0 < config["aux_weight_min"] <= config["aux_weight_max"]
+        ):
+            raise ValueError("invalid auxiliary weight clipping range")
 
 
 def get_config():
@@ -389,13 +442,18 @@ def get_config():
             num_qs=2,
             q_agg="mean",
             data_q_agg="mean",
-            refine_q_agg="min",
-            critic_expectile=0.7,
+            refine_q_agg="mean",
+            improvement_q_agg="min",
+            critic_expectile=0.5,
             policy_freq=1,
             use_actor_lr_schedule=False,
             actor_decay_steps=500000,
-            lam=0.1,
-            beta=10.0,
+            lam=10,
+            alpha=1.0,
+            improvement_clip=10.0,
+            aux_weight_min=0.01,
+            aux_weight_max=10.0,
+            beta=1.0,
             actor_weight_min=0.0,
             actor_weight_max=100.0,
             aux_action_scale=1.0,

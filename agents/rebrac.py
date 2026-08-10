@@ -239,7 +239,6 @@ def get_config():
             alpha_actor=0.01,  # Actor BC coefficient.
             
             ## Other hyperparameter(s)
-            actor_freq=2,           # Actor update frequency.
             actor_fc_scale=0.01,    # Final layer initialization scale for actor.
             actor_noise_clip=0.5,   # Actor noise clipping threshold.
         )

@@ -166,19 +166,19 @@ class ANQAgent(flax.struct.PyTreeNode):
         refined_q = self._aggregate_qs(
             refined_qs, mode=self.config["refine_q_agg"]
         )
-        q_scale = jax.lax.stop_gradient(
-            1.0 / jnp.maximum(jnp.abs(refined_q).mean(), self.config["q_eps"])
-        )
+        # q_scale = jax.lax.stop_gradient(
+        #     1.0 / jnp.maximum(jnp.abs(refined_q).mean(), self.config["q_eps"])
+        # )
 
         q_objective = self._masked_mean(refined_q, valid)
         penalty = self._masked_mean(
             radius_weight[..., None] * jnp.square(delta), action_mask
         )
-        loss = -q_scale * q_objective + self.config["lam"] * penalty
+        loss = -q_objective + self.config["lam"] * penalty
         return loss, {
             "loss": loss,
             "q_objective": q_objective,
-            "q_scale": q_scale,
+            # "q_scale": q_scale,
             "penalty": penalty,
             "delta_rms": jnp.sqrt(self._masked_mean(jnp.square(delta), action_mask)),
             "radius_weight": self._masked_mean(radius_weight, valid),
@@ -438,16 +438,16 @@ def get_config():
             q_agg="mean",
             # Keep the empirically used mixed aggregation explicit: dataset
             # actions use the ensemble mean, refined actions use the minimum.
-            data_q_agg="mean",
+            data_q_agg="min",
             refine_q_agg="min",
-            policy_freq=2,
+            policy_freq=1,
             use_actor_lr_schedule=False,
             actor_decay_steps=500000,
             # Main ANQ hyperparameters (paper defaults).
-            lam=.1,
+            lam=10,
             alpha=1.0,
-            expectile=0.7,
-            beta=10.0,
+            expectile=0.5,
+            beta=1.0,
             aux_weight_min=0.01,
             aux_weight_max=30.0,
             actor_weight_min=0.0,

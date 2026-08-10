@@ -184,7 +184,7 @@ def save_agent_source_snapshot(save_dir, default_agent_path):
 
 def main(_):
     exp_name = get_exp_name(FLAGS.seed, env_name=FLAGS.env_name)
-    run = setup_wandb(project='svgd-qc', group=FLAGS.run_group, name=exp_name, entity="tjrcjf410-seoul-national-university")
+    run = setup_wandb(project='anq', group=FLAGS.run_group, name=exp_name, entity="tjrcjf410-seoul-national-university")
     
     FLAGS.save_dir = os.path.join(FLAGS.save_dir, wandb.run.project, FLAGS.run_group, FLAGS.env_name, exp_name)
     os.makedirs(FLAGS.save_dir, exist_ok=True)

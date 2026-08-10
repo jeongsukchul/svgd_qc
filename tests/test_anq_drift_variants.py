@@ -12,6 +12,7 @@ from agents.anq_dfp import (
 from agents.anq_stdfp import (
     ANQSTDFPAgent,
     get_config as get_anq_stdfp_config,
+    improvement_penalty_weight as stdfp_improvement_penalty_weight,
 )
 
 
@@ -82,6 +83,46 @@ class ANQDriftVariantsTest(unittest.TestCase):
             jnp.array([-2.0, 2.0]), expectile=0.8
         )
         self.assertTrue(bool(jnp.allclose(losses, jnp.array([0.8, 3.2]))))
+
+    def test_stdfp_improvement_weight_is_exponential_and_stopped(self):
+        improvements = jnp.array([-2.0, 0.0, 2.0])
+
+        def weights(values):
+            return stdfp_improvement_penalty_weight(
+                values,
+                alpha=1.0,
+                improvement_clip=10.0,
+                weight_min=0.01,
+                weight_max=10.0,
+            )
+
+        self.assertTrue(
+            bool(jnp.allclose(weights(improvements), jnp.exp(-improvements)))
+        )
+        self.assertTrue(
+            bool(
+                jnp.allclose(
+                    jax.grad(lambda x: weights(x).sum())(improvements),
+                    0.0,
+                )
+            )
+        )
+
+    def test_stdfp_refine_base_is_latent_actor_then_drift(self):
+        agent = make_stdfp(latent_noise_scale=0.7)
+        observations = jax.random.normal(jax.random.PRNGKey(31), (5, 5))
+        rng = jax.random.PRNGKey(32)
+        base, noises = agent._latent_base_actions(observations, rng)
+
+        dist = agent.network.select("noise_actor")(observations)
+        expected_noises = dist.sample(seed=rng) * 0.7
+        expected_base = agent._safe_clip(
+            agent.network.select("actor_drift")(
+                observations, expected_noises
+            )
+        )
+        self.assertTrue(bool(jnp.allclose(noises, expected_noises)))
+        self.assertTrue(bool(jnp.allclose(base, expected_base)))
 
     def test_dfp_has_refiner_but_no_value_auxiliary_or_final_actor(self):
         agent = make_dfp()
@@ -161,6 +202,16 @@ class ANQDriftVariantsTest(unittest.TestCase):
                     "grad/norm",
                 ):
                     self.assertTrue(bool(jnp.isfinite(info[key])), key)
+                if agent.config["agent_name"] == "anq_stdfp":
+                    for key in (
+                        "actor/refine_improvement",
+                        "actor/refine_improvement_weight",
+                        "actor/refine_target_base_q",
+                        "actor/refine_target_q",
+                        "actor/refine_base_action_rms",
+                        "actor/refine_latent_noise_std",
+                    ):
+                        self.assertTrue(bool(jnp.isfinite(info[key])), key)
 
     def test_refine_actor_and_target_critic_are_updated(self):
         agent = make_dfp()
@@ -208,6 +259,12 @@ class ANQDriftVariantsTest(unittest.TestCase):
             make_dfp(refine_lambda=-0.1)
         with self.assertRaisesRegex(ValueError, "q_agg"):
             make_dfp(q_agg="pessimistic")
+        with self.assertRaisesRegex(ValueError, "improvement_q_agg"):
+            make_stdfp(improvement_q_agg="median")
+        with self.assertRaisesRegex(ValueError, "alpha"):
+            make_stdfp(alpha=-0.1)
+        with self.assertRaisesRegex(ValueError, "auxiliary weight"):
+            make_stdfp(aux_weight_min=2.0, aux_weight_max=1.0)
 
 
 if __name__ == "__main__":

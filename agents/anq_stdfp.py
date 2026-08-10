@@ -33,6 +33,22 @@ def td_expectile_loss(td_error, expectile):
     return weight * jnp.square(td_error)
 
 
+def improvement_penalty_weight(
+    improvement,
+    alpha,
+    improvement_clip,
+    weight_min,
+    weight_max,
+):
+    """Return a stopped exponential weight for a target-Q improvement."""
+    improvement = jnp.clip(
+        improvement, -improvement_clip, improvement_clip
+    )
+    weight = jnp.exp(-alpha * improvement)
+    weight = jnp.clip(weight, weight_min, weight_max)
+    return jax.lax.stop_gradient(weight)
+
+
 def select_best(actions, scores):
     indices = jnp.argmax(scores, axis=-1)
     batch_shape = indices.shape
@@ -90,6 +106,16 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
         base = self.network.select("actor_drift")(observations, noises)
         base = self._add_output_noise(base, output_rng)
         return self._refine(observations, base)
+
+    def _latent_base_actions(self, observations, rng):
+        """Sample the current latent actor and decode its drift action."""
+        dist = self.network.select("noise_actor")(observations)
+        noises = dist.sample(seed=rng) * self.config["latent_noise_scale"]
+        base = self.network.select("actor_drift")(observations, noises)
+        return (
+            jax.lax.stop_gradient(self._safe_clip(base)),
+            jax.lax.stop_gradient(noises),
+        )
 
     def critic_loss(self, batch, grad_params, rng):
         next_observations = batch["next_observations"][..., -1, :]
@@ -159,33 +185,57 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
 
     def refine_actor_loss(self, batch, grad_params, rng):
         observations = batch["observations"]
-        noises = jax.random.normal(
-            rng,
-            observations.shape[:-1] + (self.config["full_action_dim"],),
-        )
-        base = self.network.select("actor_drift")(observations, noises)
-        base = jax.lax.stop_gradient(self._safe_clip(base))
+        base, noises = self._latent_base_actions(observations, rng)
         refined, delta = self._refine(
             observations, base, params=grad_params
         )
         qs = self.network.select("critic")(observations, actions=refined)
         q = self._aggregate_q(qs, mode=self.config["refine_q_agg"])
 
+        target_base_qs = self.network.select("target_critic")(
+            observations, actions=base
+        )
+        target_refined_qs = self.network.select("target_critic")(
+            observations, actions=refined
+        )
+        target_base_q = self._aggregate_q(
+            target_base_qs, mode=self.config["improvement_q_agg"]
+        )
+        target_refined_q = self._aggregate_q(
+            target_refined_qs, mode=self.config["improvement_q_agg"]
+        )
+        target_improvement = target_refined_q - target_base_q
+        improvement_weight = improvement_penalty_weight(
+            target_improvement,
+            alpha=self.config["alpha"],
+            improvement_clip=self.config["improvement_clip"],
+            weight_min=self.config["aux_weight_min"],
+            weight_max=self.config["aux_weight_max"],
+        )
+
         valid = batch.get("valid", jnp.ones_like(batch["rewards"]))[..., -1]
         denom = jnp.maximum(valid.sum(), 1.0)
         q_objective = (q * valid).sum() / denom
         delta_sq = jnp.sum(jnp.square(delta), axis=-1)
-        penalty = (delta_sq * valid).sum() / denom
-        q_scale = jax.lax.stop_gradient(
-            1.0 / jnp.maximum(jnp.abs(q).mean(), self.config["refine_q_eps"])
-        )
-        loss = -q_scale * q_objective + self.config["refine_lambda"] * penalty
+        unweighted_penalty = (delta_sq * valid).sum() / denom
+        penalty = (improvement_weight * delta_sq * valid).sum() / denom
+
+        loss = - q_objective + self.config["refine_lambda"] * penalty
         return loss, {
             "refine_actor_loss": loss,
             "refine_q": q_objective,
             "refine_penalty": penalty,
+            "refine_unweighted_penalty": unweighted_penalty,
+            "refine_target_base_q": (target_base_q * valid).sum() / denom,
+            "refine_target_q": (target_refined_q * valid).sum() / denom,
+            "refine_improvement": (target_improvement * valid).sum() / denom,
+            "refine_improvement_weight": (
+                (improvement_weight * valid).sum() / denom
+            ),
             "refine_delta_rms": jnp.sqrt(jnp.mean(jnp.square(delta))),
             "refine_delta_norm": jnp.linalg.norm(delta, axis=-1).mean(),
+            "refine_base_action_rms": jnp.sqrt(jnp.mean(jnp.square(base))),
+            "refine_latent_noise_std": noises.std(),
         }
 
     def latent_actor_loss(self, batch, grad_params, rng):
@@ -412,7 +462,13 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
     @staticmethod
     def _validate_config(config):
         q_modes = ("min", "mean", "pessimistic")
-        for key in ("q_agg", "refine_q_agg", "actor_q_agg", "sample_q_agg"):
+        for key in (
+            "q_agg",
+            "refine_q_agg",
+            "improvement_q_agg",
+            "actor_q_agg",
+            "sample_q_agg",
+        ):
             if config[key] not in q_modes:
                 raise ValueError(f"{key} must be one of {q_modes}")
         if not 0.0 < config["critic_expectile"] < 1.0:
@@ -431,6 +487,14 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
             raise ValueError("aux_action_scale must be positive")
         if config["refine_lambda"] < 0.0:
             raise ValueError("refine_lambda must be non-negative")
+        if config["alpha"] < 0.0:
+            raise ValueError("alpha must be non-negative")
+        if config["improvement_clip"] <= 0.0:
+            raise ValueError("improvement_clip must be positive")
+        if not (
+            0.0 < config["aux_weight_min"] <= config["aux_weight_max"]
+        ):
+            raise ValueError("invalid auxiliary weight clipping range")
         if config["refine_q_eps"] <= 0.0:
             raise ValueError("refinement epsilons must be positive")
 
@@ -458,15 +522,20 @@ def get_config():
             rho=0.5,
             q_agg="mean",
             refine_q_agg="mean",
+            improvement_q_agg="mean",
             actor_q_agg="mean",
-            sample_q_agg="min",
+            sample_q_agg="mean",
             critic_expectile=0.5,
             aux_action_scale=2.0,
             refine_lambda=5.0,
+            alpha=1.0,
+            improvement_clip=10.0,
+            aux_weight_min=0.01,
+            aux_weight_max=10.0,
             refine_q_eps=1e-6,
             horizon_length=ml_collections.config_dict.placeholder(int),
             action_chunking=False,
-            best_of_n=4,
+            best_of_n=1,
             gen_per_label=8,
             drift_temps=(0.1,),
             noise_regularizer="kl",

@@ -22,11 +22,25 @@ delta = aux_action_scale * aux_actor(s, a)
 a_refined = clip(a + delta, -1, 1)
 ```
 
-ANQ2 trains the refiner with a fixed neighborhood penalty:
+ANQ2 compares the edited action against the dataset action with the same
+target critic and the same ensemble aggregation:
 
 ```text
-L_refine = -normalized_refine_Q(s, a_refined) + lam * ||delta||^2
+target_improvement = improvement_agg(target_Q(s, a_refined))
+                   - improvement_agg(target_Q(s, a))
+penalty_weight = clip(
+    exp(-alpha * clip(target_improvement, -improvement_clip,
+                      improvement_clip)),
+    aux_weight_min,
+    aux_weight_max)
+L_refine = -normalized_refine_Q(s, a_refined)
+           + lam * stop_gradient(penalty_weight) * ||delta||^2
 ```
+
+Thus a target-Q-improving edit pays a smaller delta penalty, while a degrading
+edit pays a larger one. Setting `alpha=0` exactly recovers the unweighted
+penalty. `improvement_q_agg` is intentionally shared by the edited and base Q
+terms; `data_q_agg` and `refine_q_agg` remain available for their other roles.
 
 Without `V(s)`, the policy-extraction advantage is the local critic
 improvement:
@@ -65,6 +79,8 @@ MUJOCO_GL=egl python main.py \
   --agent.q_agg=mean \
   --agent.data_q_agg=mean \
   --agent.refine_q_agg=min \
+  --agent.improvement_q_agg=min \
+  --agent.alpha=1 \
   --agent.beta=10 \
   --agent.aux_action_scale=1 \
   --agent.actor_weight_max=100
@@ -79,6 +95,10 @@ MUJOCO_GL=egl python main.py \
 | `q_agg` | `mean, min` | Bootstrap-target aggregation. |
 | `data_q_agg` | `mean, min` | Baseline Q used for local improvement. |
 | `refine_q_agg` | `min, mean` | Refiner objective and improved-action Q. |
+| `improvement_q_agg` | `min, mean` | Shared target-Q aggregation in the delta-penalty improvement. |
+| `alpha` | `0.3, 1, 3` | Sensitivity of the delta penalty to target-Q improvement. |
+| `improvement_clip` | `3, 10` | Bounds the Q difference before exponentiation. |
+| `aux_weight_max` | `3, 10, 30` | Caps the penalty on Q-degrading edits. |
 | `beta` | `3, 10` | Local-improvement policy weight temperature. |
 | `aux_action_scale` | `0.5, 1, 2` | Maximum componentwise raw refinement scale. |
 

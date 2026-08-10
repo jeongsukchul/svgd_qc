@@ -5,22 +5,34 @@ the published ANQ algorithm. Both remove the learned value function and final
 weighted-regression policy from ANQ. They use a learned refinement actor rather
 than iterative action-gradient ascent.
 
-For a behavior-cloned drift action `a_b = f(s, z)`, the refiner predicts a
-bounded delta in one forward pass:
+For a behavior-cloned drift action `a_b = f(s, z)`, the refiner predicts its
+delta in one forward pass. `anq_dfp` retains its L2-radius projection;
+`anq_stdfp` uses the componentwise scale below:
 
 ```text
 raw_delta = refine_actor(s, a_b)
-delta = project_to_l2_ball(refine_radius * raw_delta)
-a_refined = clip(a_b + delta, -1, 1)
+delta_dfp = project_to_l2_ball(refine_radius * raw_delta)
+delta_stdfp = aux_action_scale * raw_delta
+a_refined = clip(a_b + delta_variant, -1, 1)
 ```
 
-The refiner maximizes the frozen critic objective with a fixed neighborhood
-penalty:
+In `anq_stdfp`, `z` is sampled from the current latent actor—not from a unit
+Gaussian—before `actor_drift` creates `a_b`. Both the latent actor and drift
+decoder are frozen during this refinement update. The same target critic and
+the same `improvement_q_agg` evaluate both sides of the improvement:
 
 ```text
+target_improvement = target_Q_agg(s, a_refined)
+                   - target_Q_agg(s, a_b)
+penalty_weight = clip(exp(-alpha * target_improvement),
+                      aux_weight_min, aux_weight_max)
 L_refine = -normalized_Q_aggregate(s, a_refined)
-           + refine_lambda * ||delta||^2
+           + refine_lambda * stop_gradient(penalty_weight) * ||delta||^2
 ```
+
+The target improvement is clipped before exponentiation. Positive improvement
+relaxes the delta penalty; negative improvement tightens it. Set `alpha=0` for
+the original unweighted penalty.
 
 The critic target uses the current drift and refinement actors with stopped
 target gradients, then evaluates the action with the target critic:
@@ -70,8 +82,10 @@ MUJOCO_GL=egl python main.py \
   --agent.action_chunking=False \
   --agent.q_agg=min \
   --agent.refine_q_agg=min \
+  --agent.improvement_q_agg=min \
   --agent.critic_expectile=0.9 \
-  --agent.refine_radius=0.2 \
+  --agent.aux_action_scale=1.0 \
+  --agent.alpha=1.0 \
   --agent.refine_lambda=5.0
 ```
 
@@ -81,8 +95,12 @@ Tune the learned neighborhood before the expectile:
 
 | Parameter | First-pass values | Notes |
 |---|---:|---|
-| `refine_radius` | `0.05, 0.1, 0.2, 0.4` | Hard L2 bound in normalized action space. |
-| `refine_lambda` | `1, 5, 10` | Soft delta penalty; raise it if the refiner stays at the radius. |
+| `refine_radius` (DFP) | `0.05, 0.1, 0.2, 0.4` | Hard L2 radius for `anq_dfp`. |
+| `aux_action_scale` (STDFP) | `0.25, 0.5, 1, 2` | Componentwise scale before action clipping. |
+| `refine_lambda` | `1, 5, 10` | Soft delta penalty. |
+| `alpha` (STDFP) | `0.3, 1, 3` | Target-Q-improvement sensitivity of the STDFP delta penalty. |
+| `improvement_q_agg` (STDFP) | `min, mean` | Shared aggregation for base and refined target Q. |
+| `improvement_clip` (STDFP) | `3, 10` | Bounds target-Q differences before exponentiation. |
 | `critic_expectile` | `0.7, 0.8, 0.9` | Higher values fit positive TD residuals more strongly. |
 | `q_agg` | `min, mean` | Start with `min` for offline AntMaze targets. |
 | `refine_q_agg` | `min, mean` | Start with `min` for conservative refiner gradients. |
@@ -97,12 +115,17 @@ bash scripts/run_anq_drift_ogbench_sweep.sh
 VARIANT=anq_stdfp bash scripts/run_anq_drift_ogbench_sweep.sh
 
 # Refine the best radii over expectiles and seeds.
-VARIANT=anq_stdfp STAGE=expectile RADII="0.1 0.2" \
+VARIANT=anq_dfp STAGE=expectile RADII="0.1 0.2" \
 EXPECTILES="0.7 0.8 0.9" SEEDS="0 1 2" \
 bash scripts/run_anq_drift_ogbench_sweep.sh
 ```
 
-Monitor `actor/refine_delta_norm`, `actor/refine_penalty`, and
+For `anq_stdfp`, run the command above directly while sweeping
+`aux_action_scale`, `alpha`, and `critic_expectile`; the legacy drift sweep
+script's `RADII` grid is specific to `anq_dfp`.
+
+Monitor `actor/refine_delta_norm`, `actor/refine_penalty`,
+`actor/refine_improvement_weight`, and
 `critic/target_delta_rms` alongside success and Q magnitude. If the delta stays
-at the radius without evaluation gains, reduce the radius, increase
+large without evaluation gains, reduce `aux_action_scale`, increase
 `refine_lambda`, or use `min` aggregation.

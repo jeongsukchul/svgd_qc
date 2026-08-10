@@ -3,7 +3,12 @@ import unittest
 import jax
 import jax.numpy as jnp
 
-from agents.anq2 import ANQ2Agent, expectile_loss, get_config
+from agents.anq2 import (
+    ANQ2Agent,
+    expectile_loss,
+    get_config,
+    improvement_penalty_weight,
+)
 
 
 def make_batch(batch_size=4, horizon_length=1):
@@ -60,6 +65,35 @@ class ANQ2AgentTest(unittest.TestCase):
         losses = expectile_loss(jnp.array([-2.0, 2.0]), 0.8)
         self.assertTrue(bool(jnp.allclose(losses, jnp.array([0.8, 3.2]))))
 
+    def test_improvement_penalty_weight_is_exponential_and_stopped(self):
+        improvements = jnp.array([-2.0, 0.0, 2.0])
+
+        def weights(values):
+            return improvement_penalty_weight(
+                values,
+                alpha=1.0,
+                improvement_clip=10.0,
+                weight_min=0.01,
+                weight_max=10.0,
+            )
+
+        self.assertTrue(
+            bool(
+                jnp.allclose(
+                    weights(improvements),
+                    jnp.exp(-improvements),
+                )
+            )
+        )
+        self.assertTrue(
+            bool(
+                jnp.allclose(
+                    jax.grad(lambda x: weights(x).sum())(improvements),
+                    0.0,
+                )
+            )
+        )
+
     def test_complete_update_is_finite(self):
         for q_agg in ("min", "mean"):
             with self.subTest(q_agg=q_agg):
@@ -75,6 +109,9 @@ class ANQ2AgentTest(unittest.TestCase):
                     "critic/target_delta_rms",
                     "aux_actor/loss",
                     "aux_actor/improvement",
+                    "aux_actor/improvement_weight",
+                    "aux_actor/target_base_q",
+                    "aux_actor/target_refined_q",
                     "actor/loss",
                     "actor/improvement",
                     "grad/norm",
@@ -124,8 +161,14 @@ class ANQ2AgentTest(unittest.TestCase):
             make_agent(data_q_agg="median")
         with self.assertRaisesRegex(ValueError, "refine_q_agg"):
             make_agent(refine_q_agg="median")
+        with self.assertRaisesRegex(ValueError, "improvement_q_agg"):
+            make_agent(improvement_q_agg="median")
         with self.assertRaisesRegex(ValueError, "lam"):
             make_agent(lam=-0.1)
+        with self.assertRaisesRegex(ValueError, "alpha"):
+            make_agent(alpha=-0.1)
+        with self.assertRaisesRegex(ValueError, "auxiliary weight"):
+            make_agent(aux_weight_min=2.0, aux_weight_max=1.0)
 
 
 if __name__ == "__main__":
