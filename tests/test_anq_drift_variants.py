@@ -109,13 +109,30 @@ class ANQDriftVariantsTest(unittest.TestCase):
         )
 
     def test_stdfp_refine_base_is_latent_actor_then_drift(self):
-        agent = make_stdfp(latent_noise_scale=0.7)
+        agent = make_stdfp(
+            latent_noise_scale=0.7, refine_base_source="latent"
+        )
         observations = jax.random.normal(jax.random.PRNGKey(31), (5, 5))
         rng = jax.random.PRNGKey(32)
-        base, noises = agent._latent_base_actions(observations, rng)
+        base, noises = agent._refine_base_actions(observations, rng)
 
         dist = agent.network.select("noise_actor")(observations)
         expected_noises = dist.sample(seed=rng) * 0.7
+        expected_base = agent._safe_clip(
+            agent.network.select("actor_drift")(
+                observations, expected_noises
+            )
+        )
+        self.assertTrue(bool(jnp.allclose(noises, expected_noises)))
+        self.assertTrue(bool(jnp.allclose(base, expected_base)))
+
+    def test_stdfp_refine_base_can_skip_latent_actor(self):
+        agent = make_stdfp(refine_base_source="drift")
+        observations = jax.random.normal(jax.random.PRNGKey(41), (5, 5))
+        rng = jax.random.PRNGKey(42)
+        base, noises = agent._refine_base_actions(observations, rng)
+
+        expected_noises = jax.random.normal(rng, (5, 3))
         expected_base = agent._safe_clip(
             agent.network.select("actor_drift")(
                 observations, expected_noises
@@ -204,12 +221,13 @@ class ANQDriftVariantsTest(unittest.TestCase):
                     self.assertTrue(bool(jnp.isfinite(info[key])), key)
                 if agent.config["agent_name"] == "anq_stdfp":
                     for key in (
-                        "actor/refine_improvement",
-                        "actor/refine_improvement_weight",
-                        "actor/refine_target_base_q",
-                        "actor/refine_target_q",
-                        "actor/refine_base_action_rms",
-                        "actor/refine_latent_noise_std",
+                        "actor/improvement",
+                        "actor/improvement_weight",
+                        "actor/target_base_q",
+                        "actor/target_refined_q",
+                        "actor/base_action_rms",
+                        "actor/base_noise_std",
+                        "actor/uses_latent_base",
                     ):
                         self.assertTrue(bool(jnp.isfinite(info[key])), key)
 
@@ -263,8 +281,8 @@ class ANQDriftVariantsTest(unittest.TestCase):
             make_stdfp(improvement_q_agg="median")
         with self.assertRaisesRegex(ValueError, "alpha"):
             make_stdfp(alpha=-0.1)
-        with self.assertRaisesRegex(ValueError, "auxiliary weight"):
-            make_stdfp(aux_weight_min=2.0, aux_weight_max=1.0)
+        with self.assertRaisesRegex(ValueError, "refine_base_source"):
+            make_stdfp(refine_base_source="unknown")
 
 
 if __name__ == "__main__":

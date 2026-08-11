@@ -12,22 +12,29 @@ delta in one forward pass. `anq_dfp` retains its L2-radius projection;
 ```text
 raw_delta = refine_actor(s, a_b)
 delta_dfp = project_to_l2_ball(refine_radius * raw_delta)
-delta_stdfp = aux_action_scale * raw_delta
+delta_stdfp = refine_action_scale * raw_delta
 a_refined = clip(a_b + delta_variant, -1, 1)
 ```
 
-In `anq_stdfp`, `z` is sampled from the current latent actor—not from a unit
-Gaussian—before `actor_drift` creates `a_b`. Both the latent actor and drift
-decoder are frozen during this refinement update. The same target critic and
-the same `improvement_q_agg` evaluate both sides of the improvement:
+In `anq_stdfp`, `refine_base_source` selects how `z` is obtained before
+`actor_drift` creates `a_b`:
+
+```text
+latent: z ~ noise_actor(s) * latent_noise_scale
+drift:  z ~ Normal(0, I)
+a_b = actor_drift(s, z)
+```
+
+The selected base path is frozen during the refinement update. The same target
+critic and the same `improvement_q_agg` evaluate both sides of the improvement:
 
 ```text
 target_improvement = target_Q_agg(s, a_refined)
                    - target_Q_agg(s, a_b)
 penalty_weight = clip(exp(-alpha * target_improvement),
-                      aux_weight_min, aux_weight_max)
+                      refine_weight_min, refine_weight_max)
 L_refine = -normalized_Q_aggregate(s, a_refined)
-           + refine_lambda * stop_gradient(penalty_weight) * ||delta||^2
+           + lam * stop_gradient(penalty_weight) * ||delta||^2
 ```
 
 The target improvement is clipped before exponentiation. Positive improvement
@@ -83,10 +90,11 @@ MUJOCO_GL=egl python main.py \
   --agent.q_agg=min \
   --agent.refine_q_agg=min \
   --agent.improvement_q_agg=min \
+  --agent.refine_base_source=latent \
   --agent.critic_expectile=0.9 \
-  --agent.aux_action_scale=1.0 \
+  --agent.refine_action_scale=1.0 \
   --agent.alpha=1.0 \
-  --agent.refine_lambda=5.0
+  --agent.lam=5.0
 ```
 
 ## Tuning region
@@ -96,8 +104,9 @@ Tune the learned neighborhood before the expectile:
 | Parameter | First-pass values | Notes |
 |---|---:|---|
 | `refine_radius` (DFP) | `0.05, 0.1, 0.2, 0.4` | Hard L2 radius for `anq_dfp`. |
-| `aux_action_scale` (STDFP) | `0.25, 0.5, 1, 2` | Componentwise scale before action clipping. |
-| `refine_lambda` | `1, 5, 10` | Soft delta penalty. |
+| `refine_action_scale` (STDFP) | `0.25, 0.5, 1, 2` | Componentwise scale before action clipping. |
+| `refine_base_source` (STDFP) | `latent, drift` | Learned latent actor or direct unit-Gaussian drift input. |
+| `lam` (STDFP) | `1, 5, 10` | Soft delta penalty. |
 | `alpha` (STDFP) | `0.3, 1, 3` | Target-Q-improvement sensitivity of the STDFP delta penalty. |
 | `improvement_q_agg` (STDFP) | `min, mean` | Shared aggregation for base and refined target Q. |
 | `improvement_clip` (STDFP) | `3, 10` | Bounds target-Q differences before exponentiation. |
@@ -127,5 +136,5 @@ script's `RADII` grid is specific to `anq_dfp`.
 Monitor `actor/refine_delta_norm`, `actor/refine_penalty`,
 `actor/refine_improvement_weight`, and
 `critic/target_delta_rms` alongside success and Q magnitude. If the delta stays
-large without evaluation gains, reduce `aux_action_scale`, increase
-`refine_lambda`, or use `min` aggregation.
+large without evaluation gains, reduce `refine_action_scale`, increase `lam`,
+or use `min` aggregation.

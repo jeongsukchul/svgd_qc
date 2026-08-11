@@ -81,14 +81,17 @@ class ANQ2Agent(flax.struct.PyTreeNode):
             return qs.min(axis=0)
         if mode == "mean":
             return qs.mean(axis=0)
+        if mode == "pessimistic":
+            return qs.mean(axis=0) - self.config["rho"] * qs.std(axis=0)
         raise ValueError(f"Unsupported Q aggregation: {mode}")
+
 
     def _refine_actions(self, observations, actions, params=None):
         inputs = jnp.concatenate([observations, actions], axis=-1)
-        delta = self.network.select("aux_actor")(
+        delta = self.network.select("refine_actor")(
             inputs, params=params
         ).mode()
-        delta = self.config["aux_action_scale"] * delta
+        delta = self.config["refine_action_scale"] * delta
         refined = jnp.clip(actions + delta, -1.0, 1.0)
         return refined, refined - actions
 
@@ -131,7 +134,7 @@ class ANQ2Agent(flax.struct.PyTreeNode):
             "target_delta_rms": jnp.sqrt(jnp.mean(jnp.square(next_delta))),
         }
 
-    def auxiliary_actor_loss(self, batch, grad_params):
+    def refine_actor_loss(self, batch, grad_params):
         observations = batch["observations"]
         actions = self._batch_actions(batch)
         valid = batch.get("valid", jnp.ones_like(batch["rewards"]))[..., -1]
@@ -139,9 +142,6 @@ class ANQ2Agent(flax.struct.PyTreeNode):
 
         data_qs = self.network.select("target_critic")(
             observations, actions=actions
-        )
-        data_q = self._aggregate_qs(
-            data_qs, mode=self.config["data_q_agg"]
         )
         refined, delta = self._refine_actions(
             observations, actions, params=grad_params
@@ -166,8 +166,8 @@ class ANQ2Agent(flax.struct.PyTreeNode):
             target_improvement,
             alpha=self.config["alpha"],
             improvement_clip=self.config["improvement_clip"],
-            weight_min=self.config["aux_weight_min"],
-            weight_max=self.config["aux_weight_max"],
+            weight_min=self.config["refine_weight_min"],
+            weight_max=self.config["refine_weight_max"],
         )
         q_objective = self._masked_mean(refined_q, valid)
         unweighted_penalty = self._masked_mean(
@@ -178,9 +178,8 @@ class ANQ2Agent(flax.struct.PyTreeNode):
         )
         loss = - q_objective + self.config["lam"] * penalty
         return loss, {
-            "loss": loss,
-            "q_objective": q_objective,
-            "data_q": self._masked_mean(data_q, valid),
+            "refine_actor_loss": loss,
+            "refine_q": q_objective,
             "target_base_q": self._masked_mean(target_base_q, valid),
             "target_refined_q": self._masked_mean(
                 target_refined_q, valid
@@ -234,27 +233,27 @@ class ANQ2Agent(flax.struct.PyTreeNode):
         )
         return loss, {
             "loss": loss,
-            "weight": self._masked_mean(weight, valid),
-            "improvement": self._masked_mean(improvement, valid),
-            "target_action_rms": jnp.sqrt(
-                self._masked_mean(jnp.square(refined), action_mask)
-            ),
-            "policy_action_rms": jnp.sqrt(
-                self._masked_mean(jnp.square(policy_actions), action_mask)
-            ),
+            # "weight": self._masked_mean(weight, valid),
+            # "target_action_rms": jnp.sqrt(
+            #     self._masked_mean(jnp.square(refined), action_mask)
+            # ),
+            # "policy_action_rms": jnp.sqrt(
+            #     self._masked_mean(jnp.square(policy_actions), action_mask)
+            # ),
         }
 
     @jax.jit
     def total_loss(self, batch, grad_params, rng=None):
         del rng
         critic_loss, critic_info = self.critic_loss(batch, grad_params)
-        aux_loss, aux_info = self.auxiliary_actor_loss(batch, grad_params)
+        refine_loss, refine_info = self.refine_actor_loss(batch, grad_params)
         actor_loss, actor_info = self.actor_loss(batch, grad_params)
-        total_loss = critic_loss + aux_loss + actor_loss
+        actor_info.update(refine_info)
+        total_loss = critic_loss + refine_loss + actor_loss
         info = {"total_loss": total_loss}
         for prefix, values in (
             ("critic", critic_info),
-            ("aux_actor", aux_info),
+            # ("refine_actor", refine_info),
             ("actor", actor_info),
         ):
             info.update({f"{prefix}/{key}": value for key, value in values.items()})
@@ -326,7 +325,7 @@ class ANQ2Agent(flax.struct.PyTreeNode):
             tanh_squash=True,
             final_fc_init_scale=config["actor_fc_scale"],
         )
-        aux_actor = Actor(
+        refine_actor = Actor(
             hidden_dims=config["actor_hidden_dims"],
             action_dim=full_action_dim,
             layer_norm=config["actor_layer_norm"],
@@ -335,7 +334,7 @@ class ANQ2Agent(flax.struct.PyTreeNode):
         )
         definitions = {
             "actor": (actor, (ex_observations,)),
-            "aux_actor": (aux_actor, (aux_inputs,)),
+            "refine_actor": (refine_actor, (aux_inputs,)),
             "critic": (critic, (ex_observations, full_actions)),
             "target_critic": (
                 copy.deepcopy(critic),
@@ -365,7 +364,7 @@ class ANQ2Agent(flax.struct.PyTreeNode):
         }
         labels = {}
         for key, module_params in params.items():
-            if key in ("modules_actor", "modules_aux_actor"):
+            if key in ("modules_actor", "modules_refine_actor"):
                 label = "actor"
             elif key == "modules_critic":
                 label = "critic"
@@ -386,14 +385,6 @@ class ANQ2Agent(flax.struct.PyTreeNode):
     def _validate_config(config):
         if not 0.0 < config["critic_expectile"] < 1.0:
             raise ValueError("critic_expectile must be in (0, 1)")
-        for key in (
-            "q_agg",
-            "data_q_agg",
-            "refine_q_agg",
-            "improvement_q_agg",
-        ):
-            if config[key] not in ("min", "mean"):
-                raise ValueError(f"{key} must be 'min' or 'mean'")
         if config["num_qs"] < 1:
             raise ValueError("num_qs must be positive")
         if config["lam"] < 0.0:
@@ -406,8 +397,6 @@ class ANQ2Agent(flax.struct.PyTreeNode):
             raise ValueError("beta must be non-negative")
         if config["policy_freq"] < 1:
             raise ValueError("policy_freq must be positive")
-        if config["aux_action_scale"] <= 0.0:
-            raise ValueError("aux_action_scale must be positive")
         if config["q_eps"] <= 0.0:
             raise ValueError("q_eps must be positive")
         if config["use_actor_lr_schedule"] and config["actor_decay_steps"] < 1:
@@ -416,11 +405,6 @@ class ANQ2Agent(flax.struct.PyTreeNode):
             0.0 <= config["actor_weight_min"] <= config["actor_weight_max"]
         ):
             raise ValueError("invalid actor weight clipping range")
-        if not (
-            0.0 < config["aux_weight_min"] <= config["aux_weight_max"]
-        ):
-            raise ValueError("invalid auxiliary weight clipping range")
-
 
 def get_config():
     return ml_collections.ConfigDict(
@@ -440,10 +424,11 @@ def get_config():
             discount=0.99,
             tau=0.005,
             num_qs=2,
-            q_agg="mean",
+            q_agg="min",
+            rho=0.5,
             data_q_agg="mean",
             refine_q_agg="mean",
-            improvement_q_agg="min",
+            improvement_q_agg="mean",
             critic_expectile=0.5,
             policy_freq=1,
             use_actor_lr_schedule=False,
@@ -451,12 +436,12 @@ def get_config():
             lam=10,
             alpha=1.0,
             improvement_clip=10.0,
-            aux_weight_min=0.01,
-            aux_weight_max=10.0,
+            refine_weight_min=0.01,
+            refine_weight_max=10.0,
             beta=1.0,
             actor_weight_min=0.0,
             actor_weight_max=100.0,
-            aux_action_scale=1.0,
+            refine_action_scale=0.5,
             q_eps=1e-6,
             horizon_length=ml_collections.config_dict.placeholder(int),
             action_chunking=False,

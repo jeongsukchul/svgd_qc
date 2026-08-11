@@ -98,7 +98,7 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
         raw_delta = self.network.select("refine_actor")(
             inputs, params=params
         ).mode()
-        delta = self.config["aux_action_scale"] * raw_delta
+        delta = self.config["refine_action_scale"] * raw_delta
         refined = self._safe_clip(base_actions + delta)
         return refined, refined - base_actions
 
@@ -116,6 +116,23 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
             jax.lax.stop_gradient(self._safe_clip(base)),
             jax.lax.stop_gradient(noises),
         )
+
+    def _drift_base_actions(self, observations, rng):
+        """Decode unit-Gaussian noise without using the latent actor."""
+        noises = jax.random.normal(
+            rng,
+            observations.shape[:-1] + (self.config["full_action_dim"],),
+        )
+        base = self.network.select("actor_drift")(observations, noises)
+        return (
+            jax.lax.stop_gradient(self._safe_clip(base)),
+            jax.lax.stop_gradient(noises),
+        )
+
+    def _refine_base_actions(self, observations, rng):
+        if self.config["refine_base_source"] == "latent":
+            return self._latent_base_actions(observations, rng)
+        return self._drift_base_actions(observations, rng)
 
     def critic_loss(self, batch, grad_params, rng):
         next_observations = batch["next_observations"][..., -1, :]
@@ -148,7 +165,7 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
             "q_mean": qs.mean(),
             "q_max": qs.max(),
             "q_min": qs.min(),
-            "target_q_mean": target_q.mean(),
+            "target_q": target_q.mean(),
             "target_delta_rms": jnp.sqrt(jnp.mean(jnp.square(target_delta))),
         }
 
@@ -185,7 +202,7 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
 
     def refine_actor_loss(self, batch, grad_params, rng):
         observations = batch["observations"]
-        base, noises = self._latent_base_actions(observations, rng)
+        base, noises = self._refine_base_actions(observations, rng)
         refined, delta = self._refine(
             observations, base, params=grad_params
         )
@@ -199,7 +216,7 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
             observations, actions=refined
         )
         target_base_q = self._aggregate_q(
-            target_base_qs, mode=self.config["improvement_q_agg"]
+            target_base_qs, mode=self.config["base_q_agg"]
         )
         target_refined_q = self._aggregate_q(
             target_refined_qs, mode=self.config["improvement_q_agg"]
@@ -209,8 +226,8 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
             target_improvement,
             alpha=self.config["alpha"],
             improvement_clip=self.config["improvement_clip"],
-            weight_min=self.config["aux_weight_min"],
-            weight_max=self.config["aux_weight_max"],
+            weight_min=self.config["refine_weight_min"],
+            weight_max=self.config["refine_weight_max"],
         )
 
         valid = batch.get("valid", jnp.ones_like(batch["rewards"]))[..., -1]
@@ -220,22 +237,25 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
         unweighted_penalty = (delta_sq * valid).sum() / denom
         penalty = (improvement_weight * delta_sq * valid).sum() / denom
 
-        loss = - q_objective + self.config["refine_lambda"] * penalty
+        loss = - q_objective + self.config["lam"] * penalty
         return loss, {
             "refine_actor_loss": loss,
             "refine_q": q_objective,
-            "refine_penalty": penalty,
-            "refine_unweighted_penalty": unweighted_penalty,
-            "refine_target_base_q": (target_base_q * valid).sum() / denom,
-            "refine_target_q": (target_refined_q * valid).sum() / denom,
-            "refine_improvement": (target_improvement * valid).sum() / denom,
-            "refine_improvement_weight": (
+            "target_base_q": (target_base_q * valid).sum() / denom,
+            "target_refined_q": (target_refined_q * valid).sum() / denom,
+            "improvement": (target_improvement * valid).sum() / denom,
+            "improvement_weight": (
                 (improvement_weight * valid).sum() / denom
             ),
-            "refine_delta_rms": jnp.sqrt(jnp.mean(jnp.square(delta))),
-            "refine_delta_norm": jnp.linalg.norm(delta, axis=-1).mean(),
-            "refine_base_action_rms": jnp.sqrt(jnp.mean(jnp.square(base))),
-            "refine_latent_noise_std": noises.std(),
+            "penalty": penalty,
+            "unweighted_penalty": unweighted_penalty,
+            "delta_rms": jnp.sqrt(jnp.mean(jnp.square(delta))),
+            # "base_action_rms": jnp.sqrt(jnp.mean(jnp.square(base))),
+            # "base_noise_std": noises.std(),
+            # "uses_latent_base": jnp.asarray(
+            #     self.config["refine_base_source"] == "latent",
+            #     dtype=jnp.float32,
+            # ),
         }
 
     def latent_actor_loss(self, batch, grad_params, rng):
@@ -251,7 +271,7 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
         ] * jnp.log(scale)
         actions, _ = self._decode(observations, noises)
         qs = self.network.select("critic")(observations, actions=actions)
-        q = self._aggregate_q(qs, mode=self.config["actor_q_agg"])
+        q = self._aggregate_q(qs, mode=self.config["base_q_agg"])
 
         alpha = self.network.select("noise_alpha")()
         train_alpha = self.network.select("noise_alpha")(params=grad_params)
@@ -359,7 +379,7 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
         refined, delta = self._refine(observations, base)
         scores = self._aggregate_q(
             self.network.select(critic_name)(observations, actions=refined),
-            mode=self.config["sample_q_agg"],
+            mode=self.config["bfn_q_agg"],
         )
         return select_best(refined, scores), select_best(delta, scores)
 
@@ -466,8 +486,8 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
             "q_agg",
             "refine_q_agg",
             "improvement_q_agg",
-            "actor_q_agg",
-            "sample_q_agg",
+            "base_q_agg",
+            "bfn_q_agg",
         ):
             if config[key] not in q_modes:
                 raise ValueError(f"{key} must be one of {q_modes}")
@@ -475,6 +495,10 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
             raise ValueError("critic_expectile must be in (0, 1)")
         if config["noise_regularizer"] not in ("entropy", "kl"):
             raise ValueError("noise_regularizer must be 'entropy' or 'kl'")
+        if config["refine_base_source"] not in ("latent", "drift"):
+            raise ValueError(
+                "refine_base_source must be 'latent' or 'drift'"
+            )
         if config["num_qs"] < 1 or config["best_of_n"] < 1:
             raise ValueError("num_qs and best_of_n must be positive")
         if config["gen_per_label"] < 2:
@@ -483,22 +507,10 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
             raise ValueError("latent_noise_scale must be positive")
         if config["noise_scale"] < 0.0:
             raise ValueError("noise_scale must be non-negative")
-        if config["aux_action_scale"] <= 0.0:
-            raise ValueError("aux_action_scale must be positive")
-        if config["refine_lambda"] < 0.0:
-            raise ValueError("refine_lambda must be non-negative")
         if config["alpha"] < 0.0:
             raise ValueError("alpha must be non-negative")
         if config["improvement_clip"] <= 0.0:
             raise ValueError("improvement_clip must be positive")
-        if not (
-            0.0 < config["aux_weight_min"] <= config["aux_weight_max"]
-        ):
-            raise ValueError("invalid auxiliary weight clipping range")
-        if config["refine_q_eps"] <= 0.0:
-            raise ValueError("refinement epsilons must be positive")
-
-
 def get_config():
     return ml_collections.ConfigDict(
         dict(
@@ -520,19 +532,19 @@ def get_config():
             tau=0.005,
             num_qs=2,
             rho=0.5,
-            q_agg="mean",
+            q_agg="min",
             refine_q_agg="mean",
             improvement_q_agg="mean",
-            actor_q_agg="mean",
-            sample_q_agg="mean",
+            base_q_agg="mean",
+            bfn_q_agg="mean",
             critic_expectile=0.5,
-            aux_action_scale=2.0,
-            refine_lambda=5.0,
+            refine_action_scale=.5,
+            refine_base_source="drift",
+            lam=5.0,
             alpha=1.0,
             improvement_clip=10.0,
-            aux_weight_min=0.01,
-            aux_weight_max=10.0,
-            refine_q_eps=1e-6,
+            refine_weight_min=0.01,
+            refine_weight_max=10.0,
             horizon_length=ml_collections.config_dict.placeholder(int),
             action_chunking=False,
             best_of_n=1,
@@ -540,8 +552,8 @@ def get_config():
             drift_temps=(0.1,),
             noise_regularizer="kl",
             noise_state_dependent_std=False,
-            noise_target_entropy=None,
-            noise_target_kl=None,
+            noise_target_entropy=ml_collections.config_dict.placeholder(float),
+            noise_target_kl=ml_collections.config_dict.placeholder(float),
             target_multiplier=0.5,
             noise_init_temp=1.0,
             noise_scale=0.0,
