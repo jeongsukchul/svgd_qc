@@ -38,7 +38,7 @@ class ReBRACAgent(flax.struct.PyTreeNode):
         next_actions = jnp.clip(next_actions + noise, -1, 1)
 
         next_qs = self.network.select('target_critic')(batch['next_observations'][..., -1, :], actions=next_actions)
-        next_q = next_qs.mean(axis=0) - self.config["rho"] * next_qs.std(axis=0)
+        next_q = next_qs.min(axis=0) #- self.config["rho"] * next_qs.std(axis=0)
 
         target_q = batch['rewards'][..., -1] + \
             (self.config['discount'] ** self.config["horizon_length"]) * batch['masks'][..., -1] * next_q
@@ -64,7 +64,7 @@ class ReBRACAgent(flax.struct.PyTreeNode):
 
         # Q loss.
         qs = self.network.select('critic')(batch['observations'], actions=actions)
-        q = qs.mean(axis=0) - self.config["rho"] * qs.std(axis=0) # jnp.min(qs, axis=0)
+        q = qs.mean(axis=0) #- self.config["rho"] * qs.std(axis=0) # jnp.min(qs, axis=0)
 
         # BC loss.
         mse = jnp.square(actions - batch_actions).sum(axis=-1) * batch["valid"][..., -1]
