@@ -25,7 +25,8 @@ flags.DEFINE_integer('seed', 0, 'Random seed.')
 flags.DEFINE_string('env_name', 'cube-triple-play-singletask-task2-v0', 'Environment (dataset) name.')
 flags.DEFINE_string('save_dir', 'exp/', 'Save directory.')
 
-flags.DEFINE_integer('offline_steps', 1000000, 'Number of online steps.')
+flags.DEFINE_integer('offline_steps', 900000, 'Number of offline RL steps.')
+flags.DEFINE_integer('bc_pretrain_steps', 100000, 'Number of behavior-cloning pretraining steps before offline RL.')
 flags.DEFINE_integer('online_steps', 0, 'Number of online steps.')
 flags.DEFINE_integer('buffer_size', 2000000, 'Replay buffer size.')
 flags.DEFINE_integer('log_interval', 5000, 'Logging interval.')
@@ -42,7 +43,7 @@ flags.DEFINE_integer('eval_episodes', 40, 'Number of evaluation episodes.')
 flags.DEFINE_integer('video_episodes', 10, 'Number of video episodes for each task.')
 flags.DEFINE_integer('video_frame_skip', 3, 'Frame skip for videos.')
 
-config_flags.DEFINE_config_file('agent', 'agents/acfql.py', lock_config=False)
+config_flags.DEFINE_config_file('agent', 'agents/dfp.py', lock_config=False)
 
 flags.DEFINE_float('dataset_proportion', 1.0, "Proportion of the dataset to use")
 flags.DEFINE_integer('dataset_replace_interval', 1000, 'Dataset replace interval, used for large datasets because of memory constraints')
@@ -197,7 +198,7 @@ def main(_):
 
     with open(os.path.join(FLAGS.save_dir, 'flags.json'), 'w') as f:
         json.dump(flag_dict, f)
-    save_agent_source_snapshot(FLAGS.save_dir, "agents/acfql.py")
+    save_agent_source_snapshot(FLAGS.save_dir, "agents/dfp.py")
     
     # data loading
     if FLAGS.ogbench_dataset_dir is not None:
@@ -258,6 +259,26 @@ def main(_):
     
     train_dataset = process_train_dataset(train_dataset)
     example_batch = train_dataset.sample(())
+
+    def maybe_replace_train_dataset(step):
+        nonlocal dataset_idx, train_dataset, val_dataset
+        if (
+            FLAGS.ogbench_dataset_dir is None
+            or FLAGS.dataset_replace_interval == 0
+            or step % FLAGS.dataset_replace_interval != 0
+        ):
+            return
+
+        dataset_idx = (dataset_idx + 1) % len(dataset_paths)
+        print(f"Using new dataset: {dataset_paths[dataset_idx]}", flush=True)
+        train_dataset, val_dataset = make_ogbench_env_and_datasets(
+            FLAGS.env_name,
+            dataset_path=dataset_paths[dataset_idx],
+            compact_dataset=False,
+            dataset_only=True,
+            cur_env=env,
+        )
+        train_dataset = process_train_dataset(train_dataset)
     
     agent_class = agents[config['agent_name']]
     agent = agent_class.create(
@@ -269,6 +290,8 @@ def main(_):
 
     # Setup logging.
     prefixes = ["eval", "env"]
+    if FLAGS.bc_pretrain_steps > 0:
+        prefixes.append("bc_pretrain_agent")
     if FLAGS.offline_steps > 0:
         prefixes.append("offline_agent")
     if FLAGS.online_steps > 0:
@@ -296,26 +319,75 @@ def main(_):
 
     offline_init_time = time.time()
     agent = set_agent_online_learning(agent, False)
+
+    # Behavior-cloning pretraining for drift-policy variants.
+    if FLAGS.bc_pretrain_steps > 0:
+        if not callable(getattr(agent, "pretrain_bc_update", None)):
+            raise ValueError(
+                f"{config['agent_name']} does not support BC pretraining; "
+                "use a DFP variant with pretrain_bc_update or set "
+                "--bc_pretrain_steps=0."
+            )
+
+        bc_pbar = tqdm.tqdm(
+            range(1, FLAGS.bc_pretrain_steps + 1), desc="bc_pretrain"
+        )
+        for i in bc_pbar:
+            log_step += 1
+            maybe_replace_train_dataset(log_step)
+
+            batch = train_dataset.sample_sequence(
+                config['batch_size'],
+                sequence_length=FLAGS.horizon_length,
+                discount=discount,
+            )
+
+            agent, bc_info = agent.pretrain_bc_update(batch)
+
+            if i % FLAGS.log_interval == 0:
+                logger.log(bc_info, "bc_pretrain_agent", step=log_step)
+
+            if FLAGS.save_interval > 0 and i % FLAGS.save_interval == 0:
+                save_checkpoints(agent, FLAGS.save_dir, log_step)
+
+            if i == FLAGS.bc_pretrain_steps or \
+                (FLAGS.eval_interval != 0 and i % FLAGS.eval_interval == 0):
+                eval_info, _, renders = evaluate(
+                    agent=agent,
+                    env=eval_env,
+                    action_dim=example_batch["actions"].shape[-1],
+                    num_eval_episodes=FLAGS.eval_episodes,
+                    num_video_episodes=FLAGS.video_episodes,
+                    video_frame_skip=FLAGS.video_frame_skip,
+                )
+                eval_info = add_eval_video(eval_info, renders)
+                logger.log(eval_info, "eval", step=log_step)
+                maybe_save_best_eval(agent, eval_info, log_step)
+                eval_postfix = get_eval_success_postfix(eval_info)
+                if eval_postfix is not None:
+                    bc_pbar.set_postfix(eval_postfix, refresh=True)
+
+        save_checkpoints(agent, FLAGS.save_dir, "bc_pretrain")
+
+    if (
+        not callable(getattr(agent, "update_frozen_bc", None))
+        or not callable(getattr(agent, "batch_update_frozen_bc", None))
+    ):
+        raise ValueError(
+            f"{config['agent_name']} does not support frozen-BC offline RL; "
+            "use a DFP variant with frozen-BC update hooks."
+        )
+
     # Offline RL
     offline_pbar = tqdm.tqdm(range(1, FLAGS.offline_steps + 1), desc="offline")
     for i in offline_pbar:
         log_step += 1
 
-        if FLAGS.ogbench_dataset_dir is not None and FLAGS.dataset_replace_interval != 0 and i % FLAGS.dataset_replace_interval == 0:
-            dataset_idx = (dataset_idx + 1) % len(dataset_paths)
-            print(f"Using new dataset: {dataset_paths[dataset_idx]}", flush=True)
-            train_dataset, val_dataset = make_ogbench_env_and_datasets(
-                FLAGS.env_name,
-                dataset_path=dataset_paths[dataset_idx],
-                compact_dataset=False,
-                dataset_only=True,
-                cur_env=env,
-            )
-            train_dataset = process_train_dataset(train_dataset)
+        maybe_replace_train_dataset(log_step)
 
         batch = train_dataset.sample_sequence(config['batch_size'], sequence_length=FLAGS.horizon_length, discount=discount)
 
-        agent, offline_info = agent.update(batch)
+        agent, offline_info = agent.update_frozen_bc(batch)
 
         if i % FLAGS.log_interval == 0:
             logger.log(offline_info, "offline_agent", step=log_step)
@@ -433,7 +505,7 @@ def main(_):
             batch = jax.tree.map(lambda x: x.reshape((
                 FLAGS.utd_ratio, config["batch_size"]) + x.shape[1:]), batch)
 
-            agent, update_info["online_agent"] = agent.batch_update(batch)
+            agent, update_info["online_agent"] = agent.batch_update_frozen_bc(batch)
             
         if i % FLAGS.log_interval == 0:
             for key, info in update_info.items():

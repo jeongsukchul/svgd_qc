@@ -1,4 +1,4 @@
-for lam in 10 20 30; do
+for lam in 50 75; do
     for noise_target_kl in 8; do
         for alpha in 0 1 2; do
             MUJOCO_GL=egl python main.py   --agent=agents/anq_stdfp.py   --env_name=antmaze-giant-navigate-singletask-task5-v0 \

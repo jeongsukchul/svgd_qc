@@ -194,6 +194,62 @@ class DFPAgent(flax.struct.PyTreeNode):
         agent, infos = jax.lax.scan(self._update, self, batch)
         return agent, jax.tree_util.tree_map(lambda x: x.mean(), infos)
 
+    def pretrain_bc_loss(self, batch, grad_params, rng):
+        """Compute the behavior-cloning-only drift loss."""
+        loss, info = self.actor_loss(batch, grad_params, rng)
+        info["bc_pretrain_loss"] = loss
+        return loss, info
+
+    @staticmethod
+    def _pretrain_bc_update(agent, batch):
+        new_rng, rng = jax.random.split(agent.rng)
+
+        def loss_fn(grad_params):
+            return agent.pretrain_bc_loss(batch, grad_params, rng=rng)
+
+        new_network, info = agent.network.apply_loss_fn(loss_fn=loss_fn)
+        return agent.replace(network=new_network, rng=new_rng), info
+
+    @jax.jit
+    def pretrain_bc_update(self, batch):
+        return self._pretrain_bc_update(self, batch)
+
+    def frozen_bc_module_keys(self):
+        return tuple(
+            key
+            for key in (
+                "modules_actor_drift",
+                "modules_target_actor_drift",
+                "modules_actor_dfm",
+                "modules_target_actor_dfm",
+            )
+            if key in self.network.params
+        )
+
+    @staticmethod
+    def _update_frozen_bc(agent, batch):
+        new_rng, rng = jax.random.split(agent.rng)
+
+        def loss_fn(grad_params):
+            return agent.total_loss(batch, grad_params, rng=rng)
+
+        new_network, info = agent.network.apply_loss_fn_with_frozen_modules(
+            loss_fn=loss_fn,
+            frozen_module_keys=agent.frozen_bc_module_keys(),
+        )
+        agent.target_update(new_network, "critic")
+        info["bc_frozen"] = jnp.asarray(1.0)
+        return agent.replace(network=new_network, rng=new_rng), info
+
+    @jax.jit
+    def update_frozen_bc(self, batch):
+        return self._update_frozen_bc(self, batch)
+
+    @jax.jit
+    def batch_update_frozen_bc(self, batch):
+        agent, infos = jax.lax.scan(self._update_frozen_bc, self, batch)
+        return agent, jax.tree_util.tree_map(lambda x: x.mean(), infos)
+
     def _add_actor_output_noise(self, actions, rng):
         noise_scale = self.config.get("noise_scale", 0.0)
         if noise_scale == 0.0:

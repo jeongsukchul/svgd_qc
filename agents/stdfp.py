@@ -148,18 +148,10 @@ class STDFPAgent(flax.struct.PyTreeNode):
             "tgt_q_mean": next_q.mean(),
         }
 
-    def actor_loss(self, batch, grad_params, rng):
+    def drift_bc_loss(self, batch, grad_params, rng):
         batch_actions = self._batch_actions(batch)
         batch_size, action_dim = batch_actions.shape
-        noise_actor_type = self._noise_actor_type()
-
-        drift_rng, actor_rng = jax.random.split(rng)
-        (
-            actor_rng,
-            sigreg_rng,
-            drift_output_noise_rng,
-            decoded_output_noise_rng,
-        ) = jax.random.split(actor_rng, 4)
+        drift_rng, output_noise_rng = jax.random.split(rng)
 
         gen_per_label = self.config["gen_per_label"]
         obs_repeated = jnp.repeat(batch["observations"], gen_per_label, axis=0)
@@ -173,7 +165,7 @@ class STDFPAgent(flax.struct.PyTreeNode):
             params=grad_params,
         )
         drift_actions = self._add_actor_output_noise(
-            drift_actions, drift_output_noise_rng
+            drift_actions, output_noise_rng
         )
         # drift_actions = self._safe_clip(drift_actions)
         gen_samples = drift_actions.reshape(batch_size, gen_per_label, action_dim)
@@ -184,6 +176,35 @@ class STDFPAgent(flax.struct.PyTreeNode):
             R_list=tuple(self.config["drift_temps"]),
         )
         actor_drift_loss = drift_loss_val.mean()
+        info = {
+            "actor_drift_loss": actor_drift_loss,
+            "drift_scale": drift_info.get("scale", 0.0),
+            "generated_to_data_mse": self._masked_action_mse(
+                jnp.square(gen_samples - batch_actions[:, None, :]),
+                batch,
+            ),
+            "attraction_norm": drift_info.get("attraction_norm", 0.0),
+            "repulsion_norm": drift_info.get("repulsion_norm", 0.0),
+            "diff_from_theory": drift_info.get("diff_from_theory", 0.0),
+            "drift_norm": drift_info.get("drift_norm", 0.0),
+        }
+        for key, val in drift_info.items():
+            if key.startswith("loss_"):
+                info[f"drift_{key}"] = val
+        return actor_drift_loss, info
+
+    def actor_loss(self, batch, grad_params, rng):
+        batch_actions = self._batch_actions(batch)
+        batch_size, action_dim = batch_actions.shape
+        noise_actor_type = self._noise_actor_type()
+
+        drift_rng, actor_rng = jax.random.split(rng)
+        actor_rng, sigreg_rng, decoded_output_noise_rng = jax.random.split(
+            actor_rng, 3
+        )
+        actor_drift_loss, bc_info = self.drift_bc_loss(
+            batch, grad_params, drift_rng
+        )
 
         if noise_actor_type == "sac":
             dist = self.network.select("noise_actor")(
@@ -311,19 +332,8 @@ class STDFPAgent(flax.struct.PyTreeNode):
             "log_prob_min": log_probs.min(),
             "log_prob_finite": jnp.isfinite(log_probs).mean(),
             "decoded_action_mean": decoded_actions.mean(),
-            "drift_scale": drift_info.get("scale", 0.0),
-            "generated_to_data_mse": self._masked_action_mse(
-                jnp.square(gen_samples - batch_actions[:, None, :]),
-                batch,
-            ),
         }
-        for key, val in drift_info.items():
-            if key.startswith("loss_"):
-                info[f"drift_{key}"] = val
-        info["attraction_norm"] = drift_info.get("attraction_norm", 0.0)
-        info["repulsion_norm"] = drift_info.get("repulsion_norm", 0.0)
-        info["diff_from_theory"] = drift_info.get("diff_from_theory", 0.0)
-        info["drift_norm"] = drift_info.get("drift_norm", 0.0)
+        info.update(bc_info)
 
         return total_loss, info
 
@@ -373,6 +383,63 @@ class STDFPAgent(flax.struct.PyTreeNode):
     @jax.jit
     def batch_update(self, batch):
         agent, infos = jax.lax.scan(self._update, self, batch)
+        return agent, jax.tree_util.tree_map(lambda x: x.mean(), infos)
+
+    def pretrain_bc_loss(self, batch, grad_params, rng):
+        """Compute only the drift behavior-cloning loss."""
+        loss, info = self.drift_bc_loss(batch, grad_params, rng)
+        info["bc_pretrain_loss"] = loss
+        return loss, info
+
+    @staticmethod
+    def _pretrain_bc_update(agent, batch):
+        new_rng, rng = jax.random.split(agent.rng)
+
+        def loss_fn(grad_params):
+            return agent.pretrain_bc_loss(batch, grad_params, rng=rng)
+
+        new_network, info = agent.network.apply_loss_fn(loss_fn=loss_fn)
+        new_network.params["modules_target_actor_drift"] = new_network.params[
+            "modules_actor_drift"
+        ]
+        return agent.replace(network=new_network, rng=new_rng), info
+
+    @jax.jit
+    def pretrain_bc_update(self, batch):
+        return self._pretrain_bc_update(self, batch)
+
+    def frozen_bc_module_keys(self):
+        return tuple(
+            key
+            for key in (
+                "modules_actor_drift",
+                "modules_target_actor_drift",
+            )
+            if key in self.network.params
+        )
+
+    @staticmethod
+    def _update_frozen_bc(agent, batch):
+        new_rng, rng = jax.random.split(agent.rng)
+
+        def loss_fn(grad_params):
+            return agent.total_loss(batch, grad_params, rng=rng)
+
+        new_network, info = agent.network.apply_loss_fn_with_frozen_modules(
+            loss_fn=loss_fn,
+            frozen_module_keys=agent.frozen_bc_module_keys(),
+        )
+        agent.target_update(new_network, "critic")
+        info["bc_frozen"] = jnp.asarray(1.0)
+        return agent.replace(network=new_network, rng=new_rng), info
+
+    @jax.jit
+    def update_frozen_bc(self, batch):
+        return self._update_frozen_bc(self, batch)
+
+    @jax.jit
+    def batch_update_frozen_bc(self, batch):
+        agent, infos = jax.lax.scan(self._update_frozen_bc, self, batch)
         return agent, jax.tree_util.tree_map(lambda x: x.mean(), infos)
 
     @partial(jax.jit, static_argnames=("use_target_latent",))

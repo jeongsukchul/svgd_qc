@@ -136,16 +136,26 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
 
     def critic_loss(self, batch, grad_params, rng):
         next_observations = batch["next_observations"][..., -1, :]
-        next_actions, target_delta = self._sample_refined_actions(
-            next_observations, rng, critic_name="target_critic"
+        # next_actions, target_delta = self._sample_refined_actions(
+        #     next_observations, rng, critic_name="target_critic"
+        # )
+        next_action1, _ = self._latent_base_actions(
+            next_observations, rng
         )
-        next_qs = self.network.select("target_critic")(
-            next_observations, actions=next_actions
+        next_qs1 = self.network.select("target_critic")(
+            next_observations, actions=next_action1
         )
-        next_q = self._aggregate_q(next_qs)
+        next_action2, _ = self._drift_base_actions(
+            next_observations, rng
+        )
+        next_qs2 = self.network.select("target_critic")(
+            next_observations, actions=next_action2
+        )
+        next_q1 = self._aggregate_q(next_qs1)
+        next_q2 = self._aggregate_q(next_qs2)
         target_q = batch["rewards"][..., -1] + (
             self.config["discount"] ** self.config["horizon_length"]
-        ) * batch["masks"][..., -1] * next_q
+        ) * batch["masks"][..., -1] * (next_q1 + next_q2)/2.0
         target_q = jax.lax.stop_gradient(target_q)
 
         qs = self.network.select("critic")(
@@ -166,7 +176,6 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
             "q_max": qs.max(),
             "q_min": qs.min(),
             "target_q": target_q.mean(),
-            "target_delta_rms": jnp.sqrt(jnp.mean(jnp.square(target_delta))),
         }
 
     def drift_bc_loss(self, batch, grad_params, rng):
@@ -364,6 +373,58 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
         agent, infos = jax.lax.scan(self._update, self, batch)
         return agent, jax.tree_util.tree_map(lambda x: x.mean(), infos)
 
+    def pretrain_bc_loss(self, batch, grad_params, rng):
+        """Compute only the drift behavior-cloning loss."""
+        loss, info = self.drift_bc_loss(batch, grad_params, rng)
+        info["bc_pretrain_loss"] = loss
+        return loss, info
+
+    @staticmethod
+    def _pretrain_bc_update(agent, batch):
+        new_rng, loss_rng = jax.random.split(agent.rng)
+        new_network, info = agent.network.apply_loss_fn(
+            lambda params: agent.pretrain_bc_loss(batch, params, loss_rng)
+        )
+        return agent.replace(network=new_network, rng=new_rng), info
+
+    @jax.jit
+    def pretrain_bc_update(self, batch):
+        return self._pretrain_bc_update(self, batch)
+
+    def frozen_bc_module_keys(self):
+        return tuple(
+            key
+            for key in ("modules_actor_drift", "modules_target_actor_drift")
+            if key in self.network.params
+        )
+
+    @staticmethod
+    def _update_frozen_bc(agent, batch):
+        new_rng, loss_rng = jax.random.split(agent.rng)
+        new_network, info = agent.network.apply_loss_fn_with_frozen_modules(
+            loss_fn=lambda params: agent.total_loss(batch, params, loss_rng),
+            frozen_module_keys=agent.frozen_bc_module_keys(),
+        )
+        source = new_network.params["modules_critic"]
+        target = agent.network.params["modules_target_critic"]
+        new_network.params["modules_target_critic"] = jax.tree_util.tree_map(
+            lambda p, tp: agent.config["tau"] * p
+            + (1.0 - agent.config["tau"]) * tp,
+            source,
+            target,
+        )
+        info["bc_frozen"] = jnp.asarray(1.0)
+        return agent.replace(network=new_network, rng=new_rng), info
+
+    @jax.jit
+    def update_frozen_bc(self, batch):
+        return self._update_frozen_bc(self, batch)
+
+    @jax.jit
+    def batch_update_frozen_bc(self, batch):
+        agent, infos = jax.lax.scan(self._update_frozen_bc, self, batch)
+        return agent, jax.tree_util.tree_map(lambda x: x.mean(), infos)
+
     def _sample_refined_actions(self, observations, rng, critic_name="critic"):
         rng = jax.random.PRNGKey(0) if rng is None else rng
         latent_rng, output_rng = jax.random.split(rng)
@@ -538,18 +599,18 @@ def get_config():
             base_q_agg="mean",
             bfn_q_agg="mean",
             critic_expectile=0.5,
-            refine_action_scale=.5,
-            refine_base_source="drift",
+            refine_action_scale=2.,
+            refine_base_source="latent",
             lam=5.0,
-            alpha=1.0,
+            alpha=0.0,
             improvement_clip=10.0,
             refine_weight_min=0.01,
             refine_weight_max=10.0,
             horizon_length=ml_collections.config_dict.placeholder(int),
-            action_chunking=False,
+            action_chunking=True,
             best_of_n=1,
             gen_per_label=8,
-            drift_temps=(0.3,),
+            drift_temps=(0.1,),
             noise_regularizer="kl",
             noise_state_dependent_std=False,
             noise_target_entropy=ml_collections.config_dict.placeholder(float),
