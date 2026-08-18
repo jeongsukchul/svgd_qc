@@ -2,11 +2,6 @@
 
 Networks: latent-noise actor, drift decoder, refinement actor, critic ensemble,
 temperature, and target copies of the critic and the refinement actor.
-
-The latent actor selects a behavior mode by proposing the noise fed to the drift
-decoder.  The decoder is behavior-cloned on ``z ~ N(0, I)``, so the latent head
-is an unsquashed diagonal Gaussian over the same support and its deviation is
-controlled by an analytic KL to that prior (see ``noise_squash_tanh``).
 """
 
 import copy
@@ -27,32 +22,10 @@ from utils.networks import (
     ActorVectorField,
     LogParam,
     MLP,
-    Normal,
     TanhNormal,
     Value,
 )
 from utils.optimizers import make_optimizer
-
-
-def td_expectile_loss(td_error, expectile):
-    weight = jnp.where(td_error > 0.0, expectile, 1.0 - expectile)
-    return weight * jnp.square(td_error)
-
-
-def improvement_penalty_weight(
-    improvement,
-    alpha,
-    improvement_clip,
-    weight_min,
-    weight_max,
-):
-    """Return a stopped exponential weight for a target-Q improvement."""
-    improvement = jnp.clip(
-        improvement, -improvement_clip, improvement_clip
-    )
-    weight = jnp.exp(-alpha * improvement)
-    weight = jnp.clip(weight, weight_min, weight_max)
-    return jax.lax.stop_gradient(weight)
 
 
 def select_best(actions, scores):
@@ -64,8 +37,8 @@ def select_best(actions, scores):
     return selected.reshape(batch_shape + (actions.shape[-1],))
 
 
-class ANQSTDFPAgent(flax.struct.PyTreeNode):
-    """Independent latent actor, drift BC, refiner, and expectile critic."""
+class ANQSTDFP3Agent(flax.struct.PyTreeNode):
+    """Independent latent actor, drift BC, refiner, and TD critic."""
 
     rng: Any
     network: Any
@@ -102,13 +75,13 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
         self, observations, base_actions, params=None, actor_name="refine_actor"
     ):
         base_actions = self._safe_clip(base_actions)
-        inputs = jnp.concatenate([observations, base_actions], axis=-1)
-        raw_delta = self.network.select(actor_name)(
-            inputs, params=params
+        # inputs = jnp.concatenate([observations, base_actions], axis=-1)
+        refined = self.network.select(actor_name)(
+            observations, params=params
         ).mode()
-        delta = raw_delta
+        delta = refined - base_actions
         refined = self._safe_clip(base_actions + delta)
-        return refined, refined - base_actions
+        return refined, delta
 
     def _decode(self, observations, noises, output_rng=None):
         base = self.network.select("actor_drift")(observations, noises)
@@ -116,19 +89,9 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
         return self._refine(observations, base)
 
     def _latent_base_actions(self, observations, rng):
-        """Decode the current latent actor's action.
-
-        Under ``latent_deterministic`` the mode is used, matching what
-        ``_sample_refined_actions`` executes.  The refiner is then trained on the
-        same base it is deployed on, and the ``||delta||^2`` penalty gets a fixed
-        per-state anchor instead of one resampled every gradient step.
-        """
+        """Sample the current latent actor and decode its drift action."""
         dist = self.network.select("noise_actor")(observations)
-        if self.config["latent_deterministic"]:
-            raw_noises = dist.mode()
-        else:
-            raw_noises = dist.sample(seed=rng)
-        noises = raw_noises * self.config["latent_noise_scale"]
+        noises = dist.sample(seed=rng) * self.config["latent_noise_scale"]
         base = self.network.select("actor_drift")(observations, noises)
         return (
             jax.lax.stop_gradient(self._safe_clip(base)),
@@ -158,30 +121,24 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
         #     next_observations, rng, critic_name="target_critic"
         # )
         rng1, rng2 = jax.random.split(rng)
-        # The bootstrap must evaluate the policy that is actually executed, i.e.
-        # the refined action.  ``target_base_mix`` optionally blends in the value
-        # of the *unrefined* base action; it is zero by default.
-        mu = self.config["target_base_mix"]
+        next_action1, _ = self._latent_base_actions(
+            next_observations, rng1
+        )
+        next_qs1 = self.network.select("target_critic")(
+            next_observations, actions=next_action1
+        )
         next_action2, _ = self._sample_refined_actions(
             next_observations, rng2, actor_name="target_refine_actor"
         )
         next_qs2 = self.network.select("target_critic")(
             next_observations, actions=next_action2
         )
+        next_q1 = self._aggregate_q(next_qs1)
         next_q2 = self._aggregate_q(next_qs2)
-        if mu == 0.0:
-            next_q = next_q2
-        else:
-            next_action1, _ = self._latent_base_actions(
-                next_observations, rng1
-            )
-            next_qs1 = self.network.select("target_critic")(
-                next_observations, actions=next_action1
-            )
-            next_q = mu * self._aggregate_q(next_qs1) + (1.0 - mu) * next_q2
+        mu = 0.
         target_q = batch["rewards"][..., -1] + (
             self.config["discount"] ** self.config["horizon_length"]
-        ) * batch["masks"][..., -1] * next_q
+        ) * batch["masks"][..., -1] * (mu *next_q1 + (1-mu)* next_q2)
         target_q = jax.lax.stop_gradient(target_q)
 
         qs = self.network.select("critic")(
@@ -189,13 +146,8 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
             actions=self._batch_actions(batch),
             params=grad_params,
         )
-        losses = td_expectile_loss(
-            target_q[None, ...] - qs,
-            self.config["critic_expectile"],
-        )
         valid = batch.get("valid", jnp.ones_like(batch["rewards"]))[..., -1]
-        valid = jnp.broadcast_to(valid[None, ...], losses.shape)
-        loss = (losses * valid).sum() / jnp.maximum(valid.sum(), 1.0)
+        loss = (jnp.square(qs - target_q[None, ...]) * valid).mean()
         return loss, {
             "critic_loss": loss,
             "q_mean": qs.mean(),
@@ -240,31 +192,20 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
 
     def refine_actor_loss(self, batch, grad_params, rng):
         observations = batch["observations"]
-        base, noises = self._refine_base_actions(observations, rng)
+        base, noises = self._drift_base_actions(observations, rng)
         refined, delta = self._refine(
-            observations, base, params=grad_params
+            observations, batch["actions"].squeeze(-2), params=grad_params
         )
         qs = self.network.select("critic")(observations, actions=refined)
         q = self._aggregate_q(qs, mode=self.config["refine_q_agg"])
 
-        # What the ||.||^2 trust region is measured against.  "base" keeps the
-        # refined action near the generative sample it started from; "data"
-        # regularizes toward the dataset action instead (ReBRAC-style), which
-        # decouples the trust region from the stochastic base.
-        if self.config["refine_anchor"] == "data":
-            offset = refined - self._batch_actions(batch)
-        else:
-            offset = delta
-
         norm_q = jax.lax.stop_gradient(1 / jnp.abs(q).mean())
-        loss = - norm_q * q.mean() + self.config["lam"] * ((offset**2).sum(axis=-1) * batch["valid"][..., -1]).mean()
+        loss = - norm_q * q.mean() + self.config["lam"] * ((delta**2).sum(axis=-1) * batch["valid"][..., -1]).mean()
 
         return loss, {
             "refine_actor_loss": loss,
             "refine_q": q.mean(),
             "delta_rms": jnp.sqrt(jnp.mean(jnp.square(delta))),
-            "offset_rms": jnp.sqrt(jnp.mean(jnp.square(offset))),
-
             # "base_action_rms": jnp.sqrt(jnp.mean(jnp.square(base))),
             # "base_noise_std": noises.std(),
             # "uses_latent_base": jnp.asarray(
@@ -272,25 +213,6 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
             #     dtype=jnp.float32,
             # ),
         }
-
-    def _latent_kl(self, dist, noises, log_probs, scale):
-        """KL of the scaled latent noise distribution against ``N(0, I)``.
-
-        The unsquashed head is a diagonal Gaussian, so the KL is available in
-        closed form and is used directly.  A tanh-squashed head has no closed
-        form, and its support is bounded, so it falls back to the one-sample
-        estimator (and carries an irreducible KL floor of ``-d*log P(|z|<1)``).
-        """
-        if self.config["noise_squash_tanh"]:
-            log_prior = -0.5 * (
-                jnp.square(noises) + math.log(2.0 * math.pi)
-            ).sum(axis=-1)
-            return log_probs - log_prior
-        mean = dist.loc * scale
-        std = dist.stddev() * scale
-        return 0.5 * (
-            jnp.square(std) + jnp.square(mean) - 1.0 - 2.0 * jnp.log(std)
-        ).sum(axis=-1)
 
     def latent_actor_loss(self, batch, grad_params, rng):
         observations = batch["observations"]
@@ -321,7 +243,10 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
             ).mean()
             kl = jnp.zeros_like(log_probs)
         else:
-            kl = self._latent_kl(dist, noises, log_probs, scale)
+            log_prior = -0.5 * (
+                jnp.square(noises) + math.log(2.0 * math.pi)
+            ).sum(axis=-1)
+            kl = log_probs - log_prior
             policy_loss = (alpha * kl - q).mean()
             alpha_loss = (
                 train_alpha
@@ -487,15 +412,9 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
             observations[..., None, :], self.config["best_of_n"], axis=-2
         )
         dist = self.network.select("noise_actor")(observations)
-        # Resampling z every step injects behavior-mode noise into the executed
-        # action.  Measured on antmaze-giant that jitter is ~2.8x the refiner's
-        # Q-directed correction and is Q-neutral, so the mode is used by default
-        # and both the executed policy and the TD target stay deterministic.
-        if self.config["latent_deterministic"]:
-            raw_noises = dist.mode()
-        else:
-            raw_noises = dist.sample(seed=latent_rng)
-        noises = raw_noises * self.config["latent_noise_scale"]
+        noises = (
+            dist.sample(seed=latent_rng) * self.config["latent_noise_scale"]
+        )
         base = self.network.select("actor_drift")(observations, noises)
         base = self._add_output_noise(base, output_rng)
         refined, delta = self._refine(observations, base, actor_name=actor_name)
@@ -553,12 +472,7 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
             activate_final=True,
             layer_norm=config["actor_layer_norm"],
         )
-        # ``actor_drift`` is behavior-cloned on z ~ N(0, I).  A tanh-squashed
-        # latent head is confined to (-1, 1)^d, which for d=8 covers only ~4.7%
-        # of that prior mass and costs ~0.38*d nats of irreducible KL, so the
-        # unsquashed Gaussian head is the default.
-        noise_actor_cls = TanhNormal if config["noise_squash_tanh"] else Normal
-        noise_actor = noise_actor_cls(
+        noise_actor = TanhNormal(
             noise_actor_base,
             full_action_dim,
             state_dependent_std=config["noise_state_dependent_std"],
@@ -589,10 +503,10 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
                 (),
             ),
             "actor_drift": (actor_drift, (ex_observations, full_actions)),
-            "refine_actor": (refine_actor, (refine_inputs,)),
+            "refine_actor": (refine_actor, (ex_observations,)),
             "target_refine_actor": (
                 copy.deepcopy(refine_actor),
-                (refine_inputs,),
+                (ex_observations,),
             ),
         }
         network_def = ModuleDict({k: v[0] for k, v in definitions.items()})
@@ -623,18 +537,8 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
         ):
             if config[key] not in q_modes:
                 raise ValueError(f"{key} must be one of {q_modes}")
-        if not 0.0 < config["critic_expectile"] < 1.0:
-            raise ValueError("critic_expectile must be in (0, 1)")
         if config["noise_regularizer"] not in ("entropy", "kl"):
             raise ValueError("noise_regularizer must be 'entropy' or 'kl'")
-        if config["refine_base_source"] not in ("latent", "drift"):
-            raise ValueError(
-                "refine_base_source must be 'latent' or 'drift'"
-            )
-        if config["refine_anchor"] not in ("base", "data"):
-            raise ValueError("refine_anchor must be 'base' or 'data'")
-        if not 0.0 <= config["target_base_mix"] <= 1.0:
-            raise ValueError("target_base_mix must be in [0, 1]")
         if config["num_qs"] < 1 or config["best_of_n"] < 1:
             raise ValueError("num_qs and best_of_n must be positive")
         if config["gen_per_label"] < 2:
@@ -643,14 +547,12 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
             raise ValueError("latent_noise_scale must be positive")
         if config["noise_scale"] < 0.0:
             raise ValueError("noise_scale must be non-negative")
-        if config["alpha"] < 0.0:
-            raise ValueError("alpha must be non-negative")
         if config["improvement_clip"] <= 0.0:
             raise ValueError("improvement_clip must be positive")
 def get_config():
     return ml_collections.ConfigDict(
         dict(
-            agent_name="anq_stdfp",
+            agent_name="anq_stdfp3",
             ob_dims=ml_collections.config_dict.placeholder(list),
             action_dim=ml_collections.config_dict.placeholder(int),
             full_action_dim=ml_collections.config_dict.placeholder(int),
@@ -673,19 +575,7 @@ def get_config():
             improvement_q_agg="mean",
             base_q_agg="mean",
             bfn_q_agg="mean",
-            critic_expectile=0.5,
-            refine_base_source="latent",
-            target_base_mix=0.0,    # weight on Q(s', unrefined base) in the TD target
-            noise_squash_tanh=False,  # True restores the (-1,1)^d bounded latent head
-            latent_deterministic=True,  # False resamples z per step at action time
-            # Anchoring the trust region on the dataset action rather than on the
-            # drift sample the policy happened to draw is what makes long-horizon
-            # locomotion work: antmaze-giant-task2 goes 0.00 -> 0.68 at 500k.
-            refine_anchor="data",       # "base" restores the drift-sample anchor
-            # With refine_anchor="data" this is ReBRAC's actor BC coefficient and
-            # 0.01 is the value validated on antmaze-giant.  The old "base"
-            # anchor used much larger values (1-20); they do not carry over.
-            lam=0.01,
+            lam=5.0,
             alpha=0.0,
             improvement_clip=10.0,
             refine_weight_min=0.01,
@@ -699,10 +589,7 @@ def get_config():
             noise_state_dependent_std=False,
             noise_target_entropy=ml_collections.config_dict.placeholder(float),
             noise_target_kl=ml_collections.config_dict.placeholder(float),
-            # Nats of latent deviation per action dim.  With the unsquashed head
-            # the whole budget is usable; the old tanh head burned ~0.38/dim on
-            # its support floor, leaving 0.5-0.38 ~= 0.12 effective.
-            target_multiplier=0.125,
+            target_multiplier=0.5,
             noise_init_temp=1.0,
             noise_scale=0.0,
             latent_noise_scale=1.0,

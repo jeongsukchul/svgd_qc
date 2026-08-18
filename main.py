@@ -15,8 +15,8 @@ from agents import agents
 import numpy as np
 
 if 'CUDA_VISIBLE_DEVICES' in os.environ:
-    os.environ['EGL_DEVICE_ID'] = os.environ['CUDA_VISIBLE_DEVICES']
-    os.environ['MUJOCO_EGL_DEVICE_ID'] = os.environ['CUDA_VISIBLE_DEVICES']
+    os.environ['EGL_DEVICE_ID'] = '0'
+    os.environ['MUJOCO_EGL_DEVICE_ID'] = '0'
 
 FLAGS = flags.FLAGS
 
@@ -38,11 +38,11 @@ flags.DEFINE_integer('utd_ratio', 1, "update to data ratio")
 
 flags.DEFINE_float('discount', 0.99, 'discount factor')
 
-flags.DEFINE_integer('eval_episodes', 40, 'Number of evaluation episodes.')
-flags.DEFINE_integer('video_episodes', 10, 'Number of video episodes for each task.')
+flags.DEFINE_integer('eval_episodes', 50, 'Number of evaluation episodes.')
+flags.DEFINE_integer('video_episodes', 0, 'Number of video episodes for each task.')
 flags.DEFINE_integer('video_frame_skip', 3, 'Frame skip for videos.')
 
-config_flags.DEFINE_config_file('agent', 'agents/acfql.py', lock_config=False)
+config_flags.DEFINE_config_file('agent', 'agents/anq_stdfp.py', lock_config=False)
 
 flags.DEFINE_float('dataset_proportion', 1.0, "Proportion of the dataset to use")
 flags.DEFINE_integer('dataset_replace_interval', 1000, 'Dataset replace interval, used for large datasets because of memory constraints')
@@ -184,7 +184,7 @@ def save_agent_source_snapshot(save_dir, default_agent_path):
 
 def main(_):
     exp_name = get_exp_name(FLAGS.seed, env_name=FLAGS.env_name)
-    run = setup_wandb(project='anq-mani2', group=FLAGS.run_group, name=exp_name, entity="tjrcjf410-seoul-national-university")
+    run = setup_wandb(project='ant2', group=FLAGS.run_group, name=exp_name, entity="tjrcjf410-seoul-national-university")
     
     FLAGS.save_dir = os.path.join(FLAGS.save_dir, wandb.run.project, FLAGS.run_group, FLAGS.env_name, exp_name)
     os.makedirs(FLAGS.save_dir, exist_ok=True)

@@ -16,6 +16,8 @@ from agents.anq import ANQAgent
 from agents.anq2 import ANQ2Agent
 from agents.anq_dfp import ANQDFPAgent
 from agents.anq_stdfp import ANQSTDFPAgent
+from agents.anq_stdfp2 import ANQSTDFP2Agent
+from agents.anq_stdfp3 import ANQSTDFP3Agent
 from agents.mani_stdfp import ManiSTDFPAgent
 from agents.dual_mani_stdfp import DualManiSTDFPAgent
 
@@ -38,6 +40,8 @@ agents = dict(
     anq2=ANQ2Agent,
     anq_dfp=ANQDFPAgent,
     anq_stdfp=ANQSTDFPAgent,
+    anq_stdfp2=ANQSTDFP2Agent,
+    anq_stdfp3=ANQSTDFP3Agent,
     mani_stdfp=ManiSTDFPAgent,
     dual_mani_stdfp=DualManiSTDFPAgent,
 )

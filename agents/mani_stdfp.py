@@ -71,27 +71,6 @@ class ManiSTDFPAgent(ANQSTDFPAgent):
         qs = self.network.select("critic")(observations, actions=refined)
         q = self._aggregate_q(qs, mode=self.config["refine_q_agg"])
 
-        target_base_qs = self.network.select("target_critic")(
-            observations, actions=base
-        )
-        target_refined_qs = self.network.select("target_critic")(
-            observations, actions=refined
-        )
-        target_base_q = self._aggregate_q(
-            target_base_qs, mode=self.config["base_q_agg"]
-        )
-        target_refined_q = self._aggregate_q(
-            target_refined_qs, mode=self.config["improvement_q_agg"]
-        )
-        target_improvement = target_refined_q - target_base_q
-        improvement_weight = improvement_penalty_weight(
-            target_improvement,
-            alpha=self.config["alpha"],
-            improvement_clip=self.config["improvement_clip"],
-            weight_min=self.config["refine_weight_min"],
-            weight_max=self.config["refine_weight_max"],
-        )
-
         # Geometry is evaluated at the behavior action's own latent coordinate.
         # The drift generator is deliberately frozen for this loss: it describes
         # the neighborhood, while the refinement actor learns within it.
@@ -106,30 +85,21 @@ class ManiSTDFPAgent(ANQSTDFPAgent):
         )
 
         valid = batch.get("valid", jnp.ones_like(batch["rewards"]))[..., -1]
-        denom = jnp.maximum(valid.sum(), 1.0)
-        q_objective = (q * valid).sum() / denom
-        unweighted_penalty = (metric_delta_sq * valid).sum() / denom
+        q_objective = (q * valid).sum() 
         penalty = (
-            improvement_weight * metric_delta_sq * valid
-        ).sum() / denom
+            metric_delta_sq * valid
+        ).sum()
         euclidean_delta_sq = jnp.sum(jnp.square(delta), axis=-1)
-        euclidean_penalty = (euclidean_delta_sq * valid).sum() / denom
+        euclidean_penalty = (euclidean_delta_sq * valid).sum() 
         generator_variance = (
             jnp.sum(jnp.square(jacobians), axis=(-2, -1)) * valid
         ).sum() / (denom * jacobians.shape[-2])
 
-        loss = -q_objective + self.config["lam"] * penalty
+        norm_q = jax.lax.stop_gradient(1 / jnp.abs(q).mean())
+        loss = - norm_q * q_objective + self.config["lam"] * penalty
         return loss, {
             "refine_actor_loss": loss,
             "refine_q": q_objective,
-            "target_base_q": (target_base_q * valid).sum() / denom,
-            "target_refined_q": (target_refined_q * valid).sum() / denom,
-            "improvement": (target_improvement * valid).sum() / denom,
-            "improvement_weight": (
-                (improvement_weight * valid).sum() / denom
-            ),
-            "penalty": penalty,
-            "unweighted_penalty": unweighted_penalty,
             "manifold_penalty": penalty,
             "euclidean_penalty": euclidean_penalty,
             "delta_rms": jnp.sqrt(jnp.mean(jnp.square(delta))),

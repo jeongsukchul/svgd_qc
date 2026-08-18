@@ -173,7 +173,7 @@ class STDFPAgent(flax.struct.PyTreeNode):
         drift_loss_val, drift_info = drift_loss(
             gen=gen_samples,
             fixed_pos=batch_actions[:, None, :],
-            R_list=tuple(self.config["drift_temps"]),
+            R_list=(self.config["drift_temps"],),
         )
         actor_drift_loss = drift_loss_val.mean()
         info = {
@@ -222,7 +222,6 @@ class STDFPAgent(flax.struct.PyTreeNode):
             decoded_actions = self.sample_drift_actions(
                 batch["observations"],
                 scaled_noises,
-                self.config["use_target_latent"],
                 rng=decoded_output_noise_rng,
             )
             critic_qs = self.network.select("critic")(
@@ -276,7 +275,6 @@ class STDFPAgent(flax.struct.PyTreeNode):
             decoded_actions = self.sample_drift_actions(
                 batch["observations"],
                 noises,
-                self.config["use_target_latent"],
                 rng=decoded_output_noise_rng,
             )
             critic_qs = self.network.select("critic")(
@@ -363,7 +361,6 @@ class STDFPAgent(flax.struct.PyTreeNode):
             decoded_actions = self.sample_drift_actions(
                 batch["observations"],
                 scaled_noises,
-                self.config["use_target_latent"],
                 rng=decoded_output_noise_rng,
             )
             critic_qs = self.network.select("critic")(
@@ -417,7 +414,6 @@ class STDFPAgent(flax.struct.PyTreeNode):
             decoded_actions = self.sample_drift_actions(
                 batch["observations"],
                 noises,
-                self.config["use_target_latent"],
                 rng=decoded_output_noise_rng,
             )
             critic_qs = self.network.select("critic")(
@@ -529,7 +525,6 @@ class STDFPAgent(flax.struct.PyTreeNode):
 
         new_network, info = agent.network.apply_loss_fn(loss_fn=loss_fn)
         agent.target_update(new_network, "critic")
-        agent.target_update(new_network, "actor_drift")
 
         return agent.replace(network=new_network, rng=new_rng), info
 
@@ -556,9 +551,9 @@ class STDFPAgent(flax.struct.PyTreeNode):
             return agent.pretrain_bc_loss(batch, grad_params, rng=rng)
 
         new_network, info = agent.network.apply_loss_fn(loss_fn=loss_fn)
-        new_network.params["modules_target_actor_drift"] = new_network.params[
-            "modules_actor_drift"
-        ]
+        # new_network.params["modules_target_actor_drift"] = new_network.params[
+        #     "modules_actor_drift"
+        # ]
         return agent.replace(network=new_network, rng=new_rng), info
 
     @jax.jit
@@ -570,7 +565,6 @@ class STDFPAgent(flax.struct.PyTreeNode):
             key
             for key in (
                 "modules_actor_drift",
-                "modules_target_actor_drift",
             )
             if key in self.network.params
         )
@@ -636,7 +630,6 @@ class STDFPAgent(flax.struct.PyTreeNode):
             actions = self.sample_drift_actions(
                 observations,
                 noises + noise,
-                self.config["use_target_latent"],
                 rng=output_noise_rng,
             )
             return self._safe_clip(actions)
@@ -650,7 +643,6 @@ class STDFPAgent(flax.struct.PyTreeNode):
         actions = self.sample_drift_actions(
             observations,
             noises * latent_noise_scale,
-            self.config["use_target_latent"],
             rng=output_noise_rng,
         )
 
@@ -759,10 +751,6 @@ class STDFPAgent(flax.struct.PyTreeNode):
             target_critic=(copy.deepcopy(critic_def), (ex_observations, full_actions)),
             noise_actor=(noise_actor_def, (ex_observations, )),
             actor_drift=(actor_drift_def, (ex_observations, noises)),
-            target_actor_drift=(
-                copy.deepcopy(actor_drift_def),
-                (ex_observations, noises),
-            ),
         )
         if actor_type in ("sac", "stochastic"):
             network_info["noise_alpha"] = (
@@ -779,7 +767,6 @@ class STDFPAgent(flax.struct.PyTreeNode):
 
         params = network.params
         params["modules_target_critic"] = params["modules_critic"]
-        params["modules_target_actor_drift"] = params["modules_actor_drift"]
 
         config["ob_dims"] = ob_dims
         config["action_dim"] = action_dim
@@ -802,7 +789,7 @@ def get_config():
             horizon_length=ml_collections.config_dict.placeholder(int),
             action_chunking=True,
             num_qs=2,
-            q_agg="pessimistic",
+            q_agg="min",
             actor_q_agg="mean",
             sample_q_agg="mean",
             rho=0.5,
@@ -810,11 +797,10 @@ def get_config():
             tau=0.005,
             actor_type="sac",
             best_of_n=1,
-            drift_temps=[0.1],
+            drift_temps=0.1,
             gen_per_label=8,
             noise_regularizer="kl",
             noise_state_dependent_std=False,
-            use_target_latent=True,
             noise_target_entropy=ml_collections.config_dict.placeholder(float),
             noise_target_kl=ml_collections.config_dict.placeholder(float),
             target_multiplier=0.5,
