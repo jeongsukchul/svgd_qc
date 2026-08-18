@@ -25,8 +25,7 @@ flags.DEFINE_integer('seed', 0, 'Random seed.')
 flags.DEFINE_string('env_name', 'cube-triple-play-singletask-task2-v0', 'Environment (dataset) name.')
 flags.DEFINE_string('save_dir', 'exp/', 'Save directory.')
 
-flags.DEFINE_integer('offline_steps', 800000, 'Number of offline RL steps.')
-flags.DEFINE_integer('bc_pretrain_steps', 200000, 'Number of behavior-cloning pretraining steps before offline RL.')
+flags.DEFINE_integer('offline_steps', 1000000, 'Number of online steps.')
 flags.DEFINE_integer('online_steps', 0, 'Number of online steps.')
 flags.DEFINE_integer('buffer_size', 2000000, 'Replay buffer size.')
 flags.DEFINE_integer('log_interval', 5000, 'Logging interval.')
@@ -34,6 +33,12 @@ flags.DEFINE_integer('eval_interval', 100000, 'Evaluation interval.')
 flags.DEFINE_integer('save_interval',  -1, 'Save interval.')
 flags.DEFINE_bool('save_best_eval', False, 'Save a checkpoint whenever eval success/return improves.')
 flags.DEFINE_integer('start_training', 5000, 'when does training start')
+flags.DEFINE_integer(
+    'drift_bc_interval',
+    0,
+    'Number of frozen-BC updates to run after each trainable drift-BC '
+    'update. 0 keeps the original behavior where every update trains BC.',
+)
 
 flags.DEFINE_integer('utd_ratio', 1, "update to data ratio")
 
@@ -43,7 +48,7 @@ flags.DEFINE_integer('eval_episodes', 40, 'Number of evaluation episodes.')
 flags.DEFINE_integer('video_episodes', 10, 'Number of video episodes for each task.')
 flags.DEFINE_integer('video_frame_skip', 3, 'Frame skip for videos.')
 
-config_flags.DEFINE_config_file('agent', 'agents/dfp.py', lock_config=False)
+config_flags.DEFINE_config_file('agent', 'agents/mani_stdfp.py', lock_config=False)
 
 flags.DEFINE_float('dataset_proportion', 1.0, "Proportion of the dataset to use")
 flags.DEFINE_integer('dataset_replace_interval', 1000, 'Dataset replace interval, used for large datasets because of memory constraints')
@@ -198,7 +203,7 @@ def main(_):
 
     with open(os.path.join(FLAGS.save_dir, 'flags.json'), 'w') as f:
         json.dump(flag_dict, f)
-    save_agent_source_snapshot(FLAGS.save_dir, "agents/dfp.py")
+    save_agent_source_snapshot(FLAGS.save_dir, "agents/mani_stdfp.py")
     
     # data loading
     if FLAGS.ogbench_dataset_dir is not None:
@@ -259,26 +264,6 @@ def main(_):
     
     train_dataset = process_train_dataset(train_dataset)
     example_batch = train_dataset.sample(())
-
-    def maybe_replace_train_dataset(step):
-        nonlocal dataset_idx, train_dataset, val_dataset
-        if (
-            FLAGS.ogbench_dataset_dir is None
-            or FLAGS.dataset_replace_interval == 0
-            or step % FLAGS.dataset_replace_interval != 0
-        ):
-            return
-
-        dataset_idx = (dataset_idx + 1) % len(dataset_paths)
-        print(f"Using new dataset: {dataset_paths[dataset_idx]}", flush=True)
-        train_dataset, val_dataset = make_ogbench_env_and_datasets(
-            FLAGS.env_name,
-            dataset_path=dataset_paths[dataset_idx],
-            compact_dataset=False,
-            dataset_only=True,
-            cur_env=env,
-        )
-        train_dataset = process_train_dataset(train_dataset)
     
     agent_class = agents[config['agent_name']]
     agent = agent_class.create(
@@ -290,8 +275,6 @@ def main(_):
 
     # Setup logging.
     prefixes = ["eval", "env"]
-    if FLAGS.bc_pretrain_steps > 0:
-        prefixes.append("bc_pretrain_agent")
     if FLAGS.offline_steps > 0:
         prefixes.append("offline_agent")
     if FLAGS.online_steps > 0:
@@ -320,85 +303,181 @@ def main(_):
     offline_init_time = time.time()
     agent = set_agent_online_learning(agent, False)
 
-    # Behavior-cloning pretraining for drift-policy variants.
-    if FLAGS.bc_pretrain_steps > 0:
-        if not callable(getattr(agent, "pretrain_bc_update", None)):
+    if FLAGS.drift_bc_interval < 0:
+        raise ValueError("--drift_bc_interval must be non-negative.")
+
+    if FLAGS.drift_bc_interval > 0:
+        if (
+            not callable(getattr(agent, "update_frozen_bc", None))
+            or not callable(getattr(agent, "batch_update_frozen_bc", None))
+        ):
             raise ValueError(
-                f"{config['agent_name']} does not support BC pretraining; "
-                "use a DFP variant with pretrain_bc_update or set "
-                "--bc_pretrain_steps=0."
+                f"{config['agent_name']} does not support sparse drift-BC "
+                "updates; use a DFP variant with frozen-BC update hooks or "
+                "set --drift_bc_interval=0."
             )
 
-        bc_pbar = tqdm.tqdm(
-            range(1, FLAGS.bc_pretrain_steps + 1), desc="bc_pretrain"
+    drift_bc_block_size = FLAGS.drift_bc_interval + 1
+
+    def crossed_interval(prev_count, cur_count, interval):
+        return interval > 0 and cur_count // interval > prev_count // interval
+
+    def merge_block_infos(bc_info, frozen_info, frozen_updates):
+        total_updates = frozen_updates + 1
+        info = {}
+        for key, value in bc_info.items():
+            if key in frozen_info:
+                info[key] = (
+                    value + frozen_updates * frozen_info[key]
+                ) / total_updates
+            else:
+                info[key] = value
+        for key, value in frozen_info.items():
+            if key not in info:
+                info[key] = value
+
+        info["bc_update"] = 1.0 / total_updates
+        info["bc_update_fraction"] = 1.0 / total_updates
+        info["bc_frozen"] = frozen_updates / total_updates
+        info["bc_frozen_fraction"] = frozen_updates / total_updates
+        info["block_updates"] = float(total_updates)
+        info["frozen_updates"] = float(frozen_updates)
+        return info
+
+    def block_update(agent, batch, num_updates):
+        bc_batch = jax.tree.map(lambda x: x[0], batch)
+        agent, bc_info = agent.update(bc_batch)
+
+        frozen_updates = num_updates - 1
+        if frozen_updates == 0:
+            return agent, merge_block_infos(bc_info, {}, frozen_updates)
+
+        frozen_batches = jax.tree.map(lambda x: x[1:], batch)
+        agent, frozen_info = agent.batch_update_frozen_bc(frozen_batches)
+        return agent, merge_block_infos(
+            bc_info, frozen_info, frozen_updates
         )
-        for i in bc_pbar:
-            log_step += 1
-            maybe_replace_train_dataset(log_step)
 
-            batch = train_dataset.sample_sequence(
-                config['batch_size'],
-                sequence_length=FLAGS.horizon_length,
-                discount=discount,
-            )
+    def should_update_drift_bc(update_index):
+        return (
+            FLAGS.drift_bc_interval == 0
+            or (update_index - 1) % drift_bc_block_size == 0
+        )
 
-            agent, bc_info = agent.pretrain_bc_update(batch)
+    def average_info_dicts(infos):
+        keys = []
+        for info in infos:
+            for key in info:
+                if key not in keys:
+                    keys.append(key)
 
-            if i % FLAGS.log_interval == 0:
-                logger.log(bc_info, "bc_pretrain_agent", step=log_step)
+        averaged = {}
+        for key in keys:
+            values = [info[key] for info in infos if key in info]
+            total = values[0]
+            for value in values[1:]:
+                total = total + value
+            averaged[key] = total / len(values)
+        return averaged
 
-            if FLAGS.save_interval > 0 and i % FLAGS.save_interval == 0:
-                save_checkpoints(agent, FLAGS.save_dir, log_step)
+    def online_cadence_update(agent, batch, first_update_index):
+        if FLAGS.drift_bc_interval == 0:
+            agent, info = agent.batch_update(batch)
+            info["bc_update"] = 1.0
+            info["bc_update_fraction"] = 1.0
+            info["bc_frozen"] = 0.0
+            info["bc_frozen_fraction"] = 0.0
+            info["block_updates"] = float(FLAGS.utd_ratio)
+            info["frozen_updates"] = 0.0
+            return agent, info
 
-            if i == FLAGS.bc_pretrain_steps or \
-                (FLAGS.eval_interval != 0 and i % FLAGS.eval_interval == 0):
-                eval_info, _, renders = evaluate(
-                    agent=agent,
-                    env=eval_env,
-                    action_dim=example_batch["actions"].shape[-1],
-                    num_eval_episodes=FLAGS.eval_episodes,
-                    num_video_episodes=FLAGS.video_episodes,
-                    video_frame_skip=FLAGS.video_frame_skip,
-                )
-                eval_info = add_eval_video(eval_info, renders)
-                logger.log(eval_info, "eval", step=log_step)
-                maybe_save_best_eval(agent, eval_info, log_step)
-                eval_postfix = get_eval_success_postfix(eval_info)
-                if eval_postfix is not None:
-                    bc_pbar.set_postfix(eval_postfix, refresh=True)
+        infos = []
+        bc_updates = 0
+        for offset in range(FLAGS.utd_ratio):
+            update_index = first_update_index + offset
+            update_batch = jax.tree.map(lambda x: x[offset], batch)
+            if should_update_drift_bc(update_index):
+                agent, info = agent.update(update_batch)
+                info["bc_update"] = 1.0
+                bc_updates += 1
+            else:
+                agent, info = agent.update_frozen_bc(update_batch)
+                info["bc_update"] = 0.0
+            infos.append(info)
 
-        save_checkpoints(agent, FLAGS.save_dir, "bc_pretrain")
+        info = average_info_dicts(infos)
+        info["bc_update_fraction"] = bc_updates / FLAGS.utd_ratio
+        info["bc_frozen"] = 1.0 - info["bc_update_fraction"]
+        info["bc_frozen_fraction"] = 1.0 - info["bc_update_fraction"]
+        info["block_updates"] = float(FLAGS.utd_ratio)
+        info["frozen_updates"] = float(FLAGS.utd_ratio - bc_updates)
+        return agent, info
 
-    if (
-        not callable(getattr(agent, "update_frozen_bc", None))
-        or not callable(getattr(agent, "batch_update_frozen_bc", None))
-    ):
-        raise ValueError(
-            f"{config['agent_name']} does not support frozen-BC offline RL; "
-            "use a DFP variant with frozen-BC update hooks."
+    def sample_update_block(num_updates, dataset):
+        batch = dataset.sample_sequence(
+            config['batch_size'] * num_updates,
+            sequence_length=FLAGS.horizon_length,
+            discount=discount,
+        )
+        return jax.tree.map(
+            lambda x: x.reshape(
+                (num_updates, config["batch_size"]) + x.shape[1:]
+            ),
+            batch,
         )
 
     # Offline RL
-    offline_pbar = tqdm.tqdm(range(1, FLAGS.offline_steps + 1), desc="offline")
-    for i in offline_pbar:
-        log_step += 1
+    offline_pbar = tqdm.tqdm(total=FLAGS.offline_steps, desc="offline")
+    offline_update_step = 0
+    while offline_update_step < FLAGS.offline_steps:
+        prev_update_step = offline_update_step
+        block_updates = min(
+            drift_bc_block_size,
+            FLAGS.offline_steps - offline_update_step,
+        )
 
-        maybe_replace_train_dataset(log_step)
+        if (
+            FLAGS.ogbench_dataset_dir is not None
+            and FLAGS.dataset_replace_interval != 0
+            and crossed_interval(
+                prev_update_step,
+                prev_update_step + block_updates,
+                FLAGS.dataset_replace_interval,
+            )
+        ):
+            dataset_idx = (dataset_idx + 1) % len(dataset_paths)
+            print(f"Using new dataset: {dataset_paths[dataset_idx]}", flush=True)
+            train_dataset, val_dataset = make_ogbench_env_and_datasets(
+                FLAGS.env_name,
+                dataset_path=dataset_paths[dataset_idx],
+                compact_dataset=False,
+                dataset_only=True,
+                cur_env=env,
+            )
+            train_dataset = process_train_dataset(train_dataset)
 
-        batch = train_dataset.sample_sequence(config['batch_size'], sequence_length=FLAGS.horizon_length, discount=discount)
+        batch = sample_update_block(block_updates, train_dataset)
+        agent, offline_info = block_update(agent, batch, block_updates)
 
-        agent, offline_info = agent.update_frozen_bc(batch)
+        offline_update_step += block_updates
+        log_step += block_updates
+        offline_pbar.update(block_updates)
 
-        if i % FLAGS.log_interval == 0:
+        if crossed_interval(
+            prev_update_step, offline_update_step, FLAGS.log_interval
+        ):
             logger.log(offline_info, "offline_agent", step=log_step)
         
         # saving
-        if FLAGS.save_interval > 0 and i % FLAGS.save_interval == 0:
+        if crossed_interval(
+            prev_update_step, offline_update_step, FLAGS.save_interval
+        ):
             save_checkpoints(agent, FLAGS.save_dir, log_step)
 
         # eval
-        if i == FLAGS.offline_steps - 1 or \
-            (FLAGS.eval_interval != 0 and i % FLAGS.eval_interval == 0):
+        if offline_update_step >= FLAGS.offline_steps or crossed_interval(
+            prev_update_step, offline_update_step, FLAGS.eval_interval
+        ):
             # during eval, the action chunk is executed fully
             eval_info, _, renders = evaluate(
                 agent=agent,
@@ -414,6 +493,7 @@ def main(_):
             eval_postfix = get_eval_success_postfix(eval_info)
             if eval_postfix is not None:
                 offline_pbar.set_postfix(eval_postfix, refresh=True)
+    offline_pbar.close()
 
     if FLAGS.offline_steps > 0:
         save_checkpoints(agent, FLAGS.save_dir, "offline")
@@ -435,6 +515,7 @@ def main(_):
     from collections import defaultdict
     data = defaultdict(list)
     online_init_time = time.time()
+    online_update_step = 0
     online_pbar = tqdm.tqdm(range(1, FLAGS.online_steps + 1), desc="online")
     for i in online_pbar:
         log_step += 1
@@ -505,7 +586,10 @@ def main(_):
             batch = jax.tree.map(lambda x: x.reshape((
                 FLAGS.utd_ratio, config["batch_size"]) + x.shape[1:]), batch)
 
-            agent, update_info["online_agent"] = agent.batch_update_frozen_bc(batch)
+            agent, update_info["online_agent"] = online_cadence_update(
+                agent, batch, online_update_step + 1
+            )
+            online_update_step += FLAGS.utd_ratio
             
         if i % FLAGS.log_interval == 0:
             for key, info in update_info.items():

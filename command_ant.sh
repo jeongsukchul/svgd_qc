@@ -1,12 +1,12 @@
 for lam in 0.1 1 10; do
-        MUJOCO_GL=egl python main_pretrain_bc2.py   --agent=agents/mani_stdfp.py   --env_name=antmaze-giant-navigation-singletask-task1-v0 \
+        MUJOCO_GL=egl python main_pretrain_bc2.py   --agent=agents/mani_stdfp.py   --env_name=antmaze-giant-navigate-singletask-task1-v0 \
                 --discount=0.995 --agent.lam=$lam  --agent.refine_base_source=latent --horizon_length=1
-        MUJOCO_GL=egl python main_pretrain_bc2.py   --agent=agents/mani_stdfp.py   --env_name=antmaze-giant-navigation-singletask-task2-v0 \
+        MUJOCO_GL=egl python main_pretrain_bc2.py   --agent=agents/mani_stdfp.py   --env_name=antmaze-giant-navigate-singletask-task2-v0 \
                 --discount=0.995 --agent.lam=$lam  --agent.refine_base_source=latent --horizon_length=1
-        MUJOCO_GL=egl python main_pretrain_bc2.py   --agent=agents/mani_stdfp.py   --env_name=antmaze-giant-navigation-singletask-task3-v0 \
+        MUJOCO_GL=egl python main_pretrain_bc2.py   --agent=agents/mani_stdfp.py   --env_name=antmaze-giant-navigate-singletask-task3-v0 \
                 --discount=0.995 --agent.lam=$lam  --agent.refine_base_source=latent --horizon_length=1
-        MUJOCO_GL=egl python main_pretrain_bc2.py   --agent=agents/mani_stdfp.py   --env_name=antmaze-giant-navigation-singletask-task4-v0 \
+        MUJOCO_GL=egl python main_pretrain_bc2.py   --agent=agents/mani_stdfp.py   --env_name=antmaze-giant-navigate-singletask-task4-v0 \
                 --discount=0.995 --agent.lam=$lam  --agent.refine_base_source=latent --horizon_length=1
-        MUJOCO_GL=egl python main_pretrain_bc2.py   --agent=agents/mani_stdfp.py   --env_name=antmaze-giant-navigation-singletask-task5-v0 \
+        MUJOCO_GL=egl python main_pretrain_bc2.py   --agent=agents/mani_stdfp.py   --env_name=antmaze-giant-navigate-singletask-task5-v0 \
                 --discount=0.995 --agent.lam=$lam  --agent.refine_base_source=latent --horizon_length=1
 done

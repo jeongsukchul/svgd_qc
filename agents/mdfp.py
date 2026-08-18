@@ -260,6 +260,16 @@ class MDFPAgent(flax.struct.PyTreeNode):
         loss = critic_loss + actor_loss
         return loss, info
 
+    @jax.jit
+    def total_loss_frozen_bc(self, batch, grad_params, rng=None):
+        """Compute offline RL loss without updating or evaluating BC loss."""
+        rng = rng if rng is not None else self.rng
+        critic_loss, critic_info = self.critic_loss(batch, grad_params, rng)
+        info = {"total_loss": critic_loss}
+        for k, v in critic_info.items():
+            info[f'critic/{k}'] = v
+        return critic_loss, info
+
     def target_update(self, network, module_name):
         """Update the target network."""
         new_target_params = jax.tree_util.tree_map(
@@ -330,7 +340,7 @@ class MDFPAgent(flax.struct.PyTreeNode):
         new_rng, rng = jax.random.split(agent.rng)
 
         def loss_fn(grad_params):
-            return agent.total_loss(batch, grad_params, rng=rng)
+            return agent.total_loss_frozen_bc(batch, grad_params, rng=rng)
 
         new_network, info = agent.network.apply_loss_fn_with_frozen_modules(
             loss_fn=loss_fn,

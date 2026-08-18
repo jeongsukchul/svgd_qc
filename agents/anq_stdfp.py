@@ -153,9 +153,10 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
         )
         next_q1 = self._aggregate_q(next_qs1)
         next_q2 = self._aggregate_q(next_qs2)
+        mu = 1.
         target_q = batch["rewards"][..., -1] + (
             self.config["discount"] ** self.config["horizon_length"]
-        ) * batch["masks"][..., -1] * (next_q1 + next_q2)/2.0
+        ) * batch["masks"][..., -1] * (mu *next_q1 + (1-mu)* next_q2)
         target_q = jax.lax.stop_gradient(target_q)
 
         qs = self.network.select("critic")(
@@ -184,6 +185,9 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
         observations = jnp.repeat(
             batch["observations"], self.config["gen_per_label"], axis=0
         )
+        # actions = jnp.repeat(
+        #     actions, self.config["gen_per_label"], axis=0
+        # ).reshape(batch_size, self.config["gen_per_label"], action_dim)
         noises = jax.random.normal(
             rng,
             (batch_size * self.config["gen_per_label"], action_dim),
@@ -193,15 +197,15 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
         ).reshape(batch_size, self.config["gen_per_label"], action_dim)
         losses, drift_info = drift_loss(
             gen=generated,
-            fixed_pos=actions[:, None, :],
-            R_list=tuple(self.config["drift_temps"]),
+            fixed_pos=actions[..., None, :],
+            R_list=(self.config["drift_temps"],),
         )
         loss = losses.mean()
         info = {
             "actor_drift_loss": loss,
             "drift_scale": drift_info.get("scale", 0.0),
             "generated_to_data_mse": jnp.mean(
-                jnp.square(generated - actions[:, None, :])
+                jnp.square(generated - actions[..., None, :])
             ),
         }
         for key, value in drift_info.items():
@@ -335,6 +339,21 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
         info["total_loss"] = loss
         return loss, info
 
+    def actor_loss_frozen_bc(self, batch, grad_params, rng):
+        refine_rng, latent_rng = jax.random.split(rng)
+        refine_loss, refine_info = self.refine_actor_loss(
+            batch, grad_params, refine_rng
+        )
+        latent_loss, latent_info = self.latent_actor_loss(
+            batch, grad_params, latent_rng
+        )
+        loss = refine_loss + latent_loss
+        info = {}
+        info.update(refine_info)
+        info.update(latent_info)
+        info["total_loss"] = loss
+        return loss, info
+
     @jax.jit
     def total_loss(self, batch, grad_params, rng=None):
         rng = self.rng if rng is None else rng
@@ -343,6 +362,21 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
             batch, grad_params, critic_rng
         )
         actor_loss, actor_info = self.actor_loss(batch, grad_params, actor_rng)
+        info = {"total_loss": critic_loss + actor_loss}
+        info.update({f"critic/{k}": v for k, v in critic_info.items()})
+        info.update({f"actor/{k}": v for k, v in actor_info.items()})
+        return critic_loss + actor_loss, info
+
+    @jax.jit
+    def total_loss_frozen_bc(self, batch, grad_params, rng=None):
+        rng = self.rng if rng is None else rng
+        actor_rng, critic_rng = jax.random.split(rng)
+        critic_loss, critic_info = self.critic_loss(
+            batch, grad_params, critic_rng
+        )
+        actor_loss, actor_info = self.actor_loss_frozen_bc(
+            batch, grad_params, actor_rng
+        )
         info = {"total_loss": critic_loss + actor_loss}
         info.update({f"critic/{k}": v for k, v in critic_info.items()})
         info.update({f"actor/{k}": v for k, v in actor_info.items()})
@@ -402,7 +436,9 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
     def _update_frozen_bc(agent, batch):
         new_rng, loss_rng = jax.random.split(agent.rng)
         new_network, info = agent.network.apply_loss_fn_with_frozen_modules(
-            loss_fn=lambda params: agent.total_loss(batch, params, loss_rng),
+            loss_fn=lambda params: agent.total_loss_frozen_bc(
+                batch, params, loss_rng
+            ),
             frozen_module_keys=agent.frozen_bc_module_keys(),
         )
         source = new_network.params["modules_critic"]
@@ -593,7 +629,7 @@ def get_config():
             tau=0.005,
             num_qs=2,
             rho=0.5,
-            q_agg="min",
+            q_agg="mean",
             refine_q_agg="mean",
             improvement_q_agg="mean",
             base_q_agg="mean",
@@ -610,7 +646,7 @@ def get_config():
             action_chunking=True,
             best_of_n=1,
             gen_per_label=8,
-            drift_temps=(0.1,),
+            drift_temps=0.1,
             noise_regularizer="kl",
             noise_state_dependent_std=False,
             noise_target_entropy=ml_collections.config_dict.placeholder(float),

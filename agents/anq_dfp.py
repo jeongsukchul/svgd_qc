@@ -218,6 +218,11 @@ class ANQDFPAgent(flax.struct.PyTreeNode):
         info["actor_loss"] = loss
         return loss, info
 
+    def actor_loss_frozen_bc(self, batch, grad_params, rng):
+        loss, info = self.refine_actor_loss(batch, grad_params, rng)
+        info["actor_loss"] = loss
+        return loss, info
+
     @jax.jit
     def total_loss(self, batch, grad_params, rng=None):
         rng = self.rng if rng is None else rng
@@ -226,6 +231,21 @@ class ANQDFPAgent(flax.struct.PyTreeNode):
             batch, grad_params, critic_rng
         )
         actor_loss, actor_info = self.actor_loss(batch, grad_params, actor_rng)
+        info = {"total_loss": critic_loss + actor_loss}
+        info.update({f"critic/{k}": v for k, v in critic_info.items()})
+        info.update({f"actor/{k}": v for k, v in actor_info.items()})
+        return critic_loss + actor_loss, info
+
+    @jax.jit
+    def total_loss_frozen_bc(self, batch, grad_params, rng=None):
+        rng = self.rng if rng is None else rng
+        actor_rng, critic_rng = jax.random.split(rng)
+        critic_loss, critic_info = self.critic_loss(
+            batch, grad_params, critic_rng
+        )
+        actor_loss, actor_info = self.actor_loss_frozen_bc(
+            batch, grad_params, actor_rng
+        )
         info = {"total_loss": critic_loss + actor_loss}
         info.update({f"critic/{k}": v for k, v in critic_info.items()})
         info.update({f"actor/{k}": v for k, v in actor_info.items()})
@@ -285,7 +305,9 @@ class ANQDFPAgent(flax.struct.PyTreeNode):
     def _update_frozen_bc(agent, batch):
         new_rng, loss_rng = jax.random.split(agent.rng)
         new_network, info = agent.network.apply_loss_fn_with_frozen_modules(
-            loss_fn=lambda params: agent.total_loss(batch, params, loss_rng),
+            loss_fn=lambda params: agent.total_loss_frozen_bc(
+                batch, params, loss_rng
+            ),
             frozen_module_keys=agent.frozen_bc_module_keys(),
         )
         source = new_network.params["modules_critic"]

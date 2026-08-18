@@ -337,6 +337,142 @@ class STDFPAgent(flax.struct.PyTreeNode):
 
         return total_loss, info
 
+    def actor_loss_frozen_bc(self, batch, grad_params, rng):
+        """Compute the trainable actor terms after freezing drift BC."""
+        batch_actions = self._batch_actions(batch)
+        batch_size, action_dim = batch_actions.shape
+        noise_actor_type = self._noise_actor_type()
+
+        actor_rng, sigreg_rng, decoded_output_noise_rng = jax.random.split(
+            rng, 3
+        )
+
+        if noise_actor_type == "sac":
+            dist = self.network.select("noise_actor")(
+                batch["observations"],
+                params=grad_params,
+            )
+
+            noises = dist.sample(seed=actor_rng)
+            latent_noise_scale = self.config.get("latent_noise_scale", 1.0)
+            log_probs = (
+                dist.log_prob(noises)
+                - action_dim * jnp.log(latent_noise_scale)
+            )
+            scaled_noises = noises * latent_noise_scale
+            decoded_actions = self.sample_drift_actions(
+                batch["observations"],
+                scaled_noises,
+                self.config["use_target_latent"],
+                rng=decoded_output_noise_rng,
+            )
+            critic_qs = self.network.select("critic")(
+                batch["observations"],
+                decoded_actions,
+            )
+            actor_q = self._aggregate_q(critic_qs, mode=self.config["actor_q_agg"])
+
+            alpha = self.network.select("noise_alpha")()
+            alpha_train = self.network.select("noise_alpha")(params=grad_params)
+            entropy = -log_probs
+            log_prior = self._unit_normal_log_prob(scaled_noises)
+            kl = log_probs - log_prior
+
+            if self.config["noise_regularizer"] == "entropy":
+                reg = log_probs
+                policy_loss = (alpha * reg - actor_q).mean()
+                alpha_loss = (
+                    alpha_train
+                    * (
+                        jax.lax.stop_gradient(entropy)
+                        - self.config["noise_target_entropy"]
+                    )
+                ).mean()
+                target_entropy = self.config["noise_target_entropy"]
+                target_kl = jnp.zeros(())
+            elif self.config["noise_regularizer"] == "kl":
+                reg = kl
+                policy_loss = (alpha * reg - actor_q).mean()
+                alpha_loss = (
+                    alpha_train
+                    * (
+                        self.config["noise_target_kl"]
+                        - jax.lax.stop_gradient(kl)
+                    )
+                ).mean()
+                target_entropy = jnp.zeros(())
+                target_kl = self.config["noise_target_kl"]
+            else:
+                raise ValueError(
+                    f"Unsupported noise_regularizer: {self.config['noise_regularizer']}"
+                )
+            alpha = alpha_train
+            sigreg_loss = jnp.zeros(())
+        else:
+            noises = self.network.select("noise_actor")(
+                batch["observations"],
+                params=grad_params,
+            )
+            log_probs = jnp.zeros((batch_size,))
+            decoded_actions = self.sample_drift_actions(
+                batch["observations"],
+                noises,
+                self.config["use_target_latent"],
+                rng=decoded_output_noise_rng,
+            )
+            critic_qs = self.network.select("critic")(
+                batch["observations"],
+                decoded_actions,
+            )
+            actor_q = self._aggregate_q(critic_qs, mode=self.config["actor_q_agg"])
+            sigreg_loss = self._sigreg_strong_loss(
+                sigreg_rng,
+                noises,
+                sketch_dim=self.config["ddpg_sigreg_sketch_dim"],
+                num_t=self.config["ddpg_sigreg_num_t"],
+                t_min=self.config["ddpg_sigreg_t_min"],
+                t_max=self.config["ddpg_sigreg_t_max"],
+            )
+
+            alpha = jnp.zeros(())
+            entropy = jnp.zeros((batch_size,))
+            kl = jnp.zeros((batch_size,))
+            alpha_loss = jnp.zeros(())
+            policy_loss = (
+                -actor_q.mean()
+                + self.config["ddpg_sigreg_coeff"] * sigreg_loss
+            )
+            target_entropy = jnp.zeros(())
+            target_kl = jnp.zeros(())
+
+        total_loss = policy_loss + alpha_loss
+        return total_loss, {
+            "total_loss": total_loss,
+            "policy_loss": policy_loss,
+            "alpha_loss": alpha_loss,
+            "alpha": alpha,
+            "entropy": entropy.mean(),
+            "target_entropy": target_entropy,
+            "kl": kl.mean(),
+            "target_kl": target_kl,
+            "sigreg_loss": sigreg_loss,
+            "sigreg_coeff": (
+                jnp.zeros(())
+                if noise_actor_type == "sac"
+                else self.config["ddpg_sigreg_coeff"]
+            ),
+            "q": actor_q.mean(),
+            "noise_abs_mean": jnp.abs(noises).mean(),
+            "noise_std": noises.std(),
+            "noise_max": noises.max(),
+            "noise_min": noises.min(),
+            "log_prob_mean": log_probs.mean(),
+            "log_prob_max": log_probs.max(),
+            "log_prob_min": log_probs.min(),
+            "log_prob_finite": jnp.isfinite(log_probs).mean(),
+            "decoded_action_mean": decoded_actions.mean(),
+        }
+
     @jax.jit
     def total_loss(self, batch, grad_params, rng=None):
         info = {}
@@ -353,6 +489,27 @@ class STDFPAgent(flax.struct.PyTreeNode):
             info[f"actor/{k}"] = v
 
         loss = critic_loss + actor_loss
+        return loss, info
+
+    @jax.jit
+    def total_loss_frozen_bc(self, batch, grad_params, rng=None):
+        info = {}
+        rng = rng if rng is not None else self.rng
+
+        rng, actor_rng, critic_rng = jax.random.split(rng, 3)
+
+        critic_loss, critic_info = self.critic_loss(batch, grad_params, critic_rng)
+        for k, v in critic_info.items():
+            info[f"critic/{k}"] = v
+
+        actor_loss, actor_info = self.actor_loss_frozen_bc(
+            batch, grad_params, actor_rng
+        )
+        for k, v in actor_info.items():
+            info[f"actor/{k}"] = v
+
+        loss = critic_loss + actor_loss
+        info["total_loss"] = loss
         return loss, info
 
     def target_update(self, network, module_name):
@@ -423,7 +580,7 @@ class STDFPAgent(flax.struct.PyTreeNode):
         new_rng, rng = jax.random.split(agent.rng)
 
         def loss_fn(grad_params):
-            return agent.total_loss(batch, grad_params, rng=rng)
+            return agent.total_loss_frozen_bc(batch, grad_params, rng=rng)
 
         new_network, info = agent.network.apply_loss_fn_with_frozen_modules(
             loss_fn=loss_fn,
