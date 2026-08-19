@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+cd /home/sukchul/qc
+SP=/tmp/claude-1000/-home-sukchul-qc/682f546f-7056-4a11-8268-2787858681d7/scratchpad
+PY=/home/sukchul/miniconda3/envs/fql/bin/python
+while pgrep -f "N1_pretanh_t1_s1" > /dev/null; do sleep 60; done
+XLA_PYTHON_CLIENT_MEM_FRACTION=0.12 MUJOCO_GL=egl $PY main.py --agent=agents/anq_stdfp.py \
+  --env_name=antmaze-giant-navigate-singletask-task1-v0 --discount=0.995 \
+  --offline_steps=1000000 --eval_interval=100000 --eval_episodes=50 --save_interval=-1 --seed=1 \
+  --save_dir=exp/beat --agent.drift_temps=3.0 --agent.lam=0.01 --agent.refine_anchor=data \
+  --agent.refine_residual_space=pretanh --agent.base_scale=0.0 \
+  --run_group=T1_bs00_t1_s1 > $SP/T1_bs00_t1_s1.log 2>&1

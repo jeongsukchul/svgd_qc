@@ -101,12 +101,7 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
     def _refine(
         self, observations, base_actions, params=None, actor_name="refine_actor"
     ):
-        # ``base_scale`` interpolates this agent to ReBRAC without changing any
-        # other component.  At 0 the refiner sees a constant base, adds nothing
-        # to it, and therefore emits the action directly from the observation --
-        # exactly ReBRAC's actor, but with this agent's critic, anchor and
-        # optimizer held fixed.  At 1 it is the full residual-on-drift policy.
-        base_actions = self._safe_clip(base_actions) * self.config["base_scale"]
+        base_actions = self._safe_clip(base_actions)
         inputs = jnp.concatenate([observations, base_actions], axis=-1)
         raw_delta = self.network.select(actor_name)(
             inputs, params=params
@@ -651,8 +646,6 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
             )
         if config["refine_anchor"] not in ("base", "data"):
             raise ValueError("refine_anchor must be 'base' or 'data'")
-        if not 0.0 <= config["base_scale"] <= 1.0:
-            raise ValueError("base_scale must be in [0, 1]")
         if config["refine_residual_space"] not in ("action", "pretanh"):
             raise ValueError(
                 "refine_residual_space must be 'action' or 'pretanh'"
@@ -712,8 +705,6 @@ def get_config():
             # "pretanh": refined = tanh(atanh(base) + delta)  -- same fixed
             #   point at delta = 0, but differentiable everywhere.
             refine_residual_space="action",
-            # 1.0 = full residual-on-drift policy, 0.0 = ReBRAC's actor.
-            base_scale=1.0,
             # With refine_anchor="data" this is ReBRAC's actor BC coefficient and
             # 0.01 is the value validated on antmaze-giant.  The old "base"
             # anchor used much larger values (1-20); they do not carry over.

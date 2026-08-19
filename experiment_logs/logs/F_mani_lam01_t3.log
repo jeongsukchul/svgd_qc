@@ -1,0 +1,22 @@
+wandb: Using wandb-core as the SDK backend.  Please refer to https://wandb.me/wandb-core for more information.
+wandb: Currently logged in as: tjrcjf410 (sjun0803-seoul-national-university) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.19.9
+wandb: Run data is saved locally in /tmp/tmpakz1fxp8/wandb/run-20260819_084545-vlo510dg
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run antmaze-giant-navigate-singletask-task3-v0_sd000_mani_stdfp_chunk-h1_20260819_084545
+wandb: ⭐️ View project at https://wandb.ai/tjrcjf410-seoul-national-university/ant2
+wandb: 🚀 View run at https://wandb.ai/tjrcjf410-seoul-national-university/ant2/runs/vlo510dg
+wandb: WARNING Symlinked 8 files into the W&B run directory, call wandb.save again to sync new files.
+I0819 08:45:46.972738 123880237578048 acceleratesupport.py:24] No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+offline:   0%|          | 1/1000000 [01:38<27457:14:14, 98.85s/it]
+offline:   0%|          | 2/1000000 [02:02<15166:17:40, 54.60s/it]
+offline:   0%|          | 3/1000000 [02:24<11028:25:22, 39.70s/it]
+offline:   0%|          | 16/1000000 [02:24<1165:18:54,  4.20s/it]
+offline:   0%|          | 29/1000000 [02:24<514:23:18,  1.85s/it] 
+offline:   0%|          | 38/1000000 [02:24<332:18:13,  1.20s/it]
+  2%|▏         | 1/50 [00:09<07:24,  9.07s/it][A
+  4%|▍         | 2/50 [00:17<06:57,  8.69s/it][A
+--- last progress lines ---
+offline:  10%|▉         | 99994/1000000 [23:41<3:37:39, 68.91it/s]
+  0%|          | 0/50 [00:00<?, ?it/s][A
+offline:  10%|▉         | 99994/1000000 [24:00<3:37:39, 68.91it/s]

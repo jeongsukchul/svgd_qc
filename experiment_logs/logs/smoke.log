@@ -1,0 +1,73 @@
+wandb: Using wandb-core as the SDK backend.  Please refer to https://wandb.me/wandb-core for more information.
+wandb: Tracking run with wandb version 0.19.9
+wandb: Run data is saved locally in /tmp/tmp5q0kuo22/wandb/run-20260819_074458-qsrs8oaz
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run antmaze-giant-navigate-singletask-task2-v0_sd000_anq_stdfp_chunk-h1_20260819_074458
+wandb: ⭐️ View project at https://wandb.ai/tjrcjf410-seoul-national-university/ant2
+wandb: 🚀 View run at https://wandb.ai/tjrcjf410-seoul-national-university/ant2/runs/qsrs8oaz
+wandb: WARNING Symlinked 8 files into the W&B run directory, call wandb.save again to sync new files.
+I0819 07:44:59.692880 125282969413440 acceleratesupport.py:24] No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+offline:   0%|          | 1/20000 [00:36<205:00:09, 36.90s/it]
+offline:   0%|          | 2/20000 [00:56<149:21:37, 26.89s/it]
+offline:   0%|          | 3/20000 [01:16<131:12:05, 23.62s/it]
+offline:   0%|          | 22/20000 [01:16<9:48:48,  1.77s/it] 
+  2%|▏         | 1/50 [00:02<01:57,  2.39s/it][A
+  4%|▍         | 2/50 [00:04<01:35,  1.99s/it][A
+  6%|▌         | 3/50 [00:06<01:33,  1.99s/it][A
+  8%|▊         | 4/50 [00:07<01:27,  1.90s/it][A
+ 10%|█         | 5/50 [00:09<01:23,  1.86s/it][A
+ 12%|█▏        | 6/50 [00:11<01:19,  1.80s/it][A
+ 14%|█▍        | 7/50 [00:13<01:18,  1.82s/it][A
+ 16%|█▌        | 8/50 [00:15<01:18,  1.87s/it][A
+ 18%|█▊        | 9/50 [00:17<01:16,  1.87s/it][A
+ 20%|██        | 10/50 [00:18<01:13,  1.83s/it][A
+ 22%|██▏       | 11/50 [00:20<01:05,  1.69s/it][A
+ 24%|██▍       | 12/50 [00:21<01:05,  1.73s/it][A
+ 26%|██▌       | 13/50 [00:23<01:01,  1.67s/it][A
+ 28%|██▊       | 14/50 [00:24<00:56,  1.58s/it][A
+ 30%|███       | 15/50 [00:26<00:54,  1.57s/it][A
+ 32%|███▏      | 16/50 [00:27<00:51,  1.52s/it][A
+ 34%|███▍      | 17/50 [00:29<00:49,  1.51s/it][A
+ 36%|███▌      | 18/50 [00:31<00:51,  1.60s/it][A
+ 38%|███▊      | 19/50 [00:32<00:51,  1.66s/it][A
+ 40%|████      | 20/50 [00:34<00:47,  1.57s/it][A
+ 42%|████▏     | 21/50 [00:35<00:46,  1.59s/it][A
+ 44%|████▍     | 22/50 [00:37<00:47,  1.68s/it][A
+ 46%|████▌     | 23/50 [00:39<00:46,  1.73s/it][A
+ 48%|████▊     | 24/50 [00:41<00:46,  1.78s/it][A
+ 50%|█████     | 25/50 [00:43<00:44,  1.79s/it][A
+ 52%|█████▏    | 26/50 [00:45<00:43,  1.80s/it][A
+ 54%|█████▍    | 27/50 [00:46<00:40,  1.76s/it][A
+ 56%|█████▌    | 28/50 [00:48<00:37,  1.73s/it][A
+ 58%|█████▊    | 29/50 [00:50<00:37,  1.77s/it][A
+ 60%|██████    | 30/50 [00:52<00:36,  1.81s/it][A
+ 62%|██████▏   | 31/50 [00:54<00:34,  1.81s/it][A
+ 64%|██████▍   | 32/50 [00:55<00:30,  1.68s/it][A
+ 66%|██████▌   | 33/50 [00:56<00:26,  1.59s/it][A
+ 68%|██████▊   | 34/50 [00:58<00:25,  1.62s/it][A
+ 70%|███████   | 35/50 [00:59<00:23,  1.56s/it][A
+ 72%|███████▏  | 36/50 [01:01<00:22,  1.59s/it][A
+ 74%|███████▍  | 37/50 [01:03<00:21,  1.65s/it][A
+ 76%|███████▌  | 38/50 [01:05<00:20,  1.67s/it][A
+ 78%|███████▊  | 39/50 [01:06<00:18,  1.64s/it][A
+ 80%|████████  | 40/50 [01:08<00:16,  1.68s/it][A
+ 82%|████████▏ | 41/50 [01:10<00:15,  1.67s/it][A
+ 84%|████████▍ | 42/50 [01:11<00:13,  1.70s/it][A
+ 86%|████████▌ | 43/50 [01:13<00:11,  1.68s/it][A
+ 88%|████████▊ | 44/50 [01:14<00:09,  1.62s/it][A
+ 90%|█████████ | 45/50 [01:16<00:08,  1.62s/it][A
+ 92%|█████████▏| 46/50 [01:18<00:06,  1.66s/it][A
+ 94%|█████████▍| 47/50 [01:20<00:05,  1.68s/it][A
+ 96%|█████████▌| 48/50 [01:21<00:03,  1.62s/it][A
+ 98%|█████████▊| 49/50 [01:23<00:01,  1.64s/it][A
+100%|██████████| 50/50 [01:25<00:00,  1.70s/it][A
+100%|██████████| 50/50 [01:25<00:00,  1.70s/it]
+Saved to /tmp/claude-1000/-home-sukchul-qc/682f546f-7056-4a11-8268-2787858681d7/scratchpad/smoke/ant2/smoke/antmaze-giant-navigate-singletask-task2-v0/antmaze-giant-navigate-singletask-task2-v0_sd000_anq_stdfp_chunk-h1_20260819_074458/params_offline.pkl
+Saved modules ('critic', 'target_critic') to /tmp/claude-1000/-home-sukchul-qc/682f546f-7056-4a11-8268-2787858681d7/scratchpad/smoke/ant2/smoke/antmaze-giant-navigate-singletask-task2-v0/antmaze-giant-navigate-singletask-task2-v0_sd000_anq_stdfp_chunk-h1_20260819_074458/critic_offline.pkl
+[1;34mwandb[0m: 
+[1;34mwandb[0m: 🚀 View run [33mantmaze-giant-navigate-singletask-task2-v0_sd000_anq_stdfp_chunk-h1_20260819_074458[0m at: [34mhttps://wandb.ai/tjrcjf410-seoul-national-university/ant2/runs/qsrs8oaz[0m
+[1;34mwandb[0m: Find logs at: [1;35m../../../tmp/tmp5q0kuo22/wandb/run-20260819_074458-qsrs8oaz/logs[0m
+--- last progress lines ---
+offline: 100%|██████████| 20000/20000 [03:57<00:00, 84.31it/s, eval_success=0.000]
+online: 0it [00:00, ?it/s]
+online: 0it [00:00, ?it/s]

@@ -28,7 +28,7 @@ def generator_covariance(jacobians):
     return jnp.einsum("...ik,...jk->...ij", jacobians, jacobians)
 
 
-def manifold_quadratic(delta, jacobians, ridge, normalize=False):
+def manifold_quadratic(delta, jacobians, ridge):
     """Compute ``delta^T (J J^T + ridge I)^-1 delta``.
 
     Args:
@@ -36,23 +36,13 @@ def manifold_quadratic(delta, jacobians, ridge, normalize=False):
         jacobians: Generator Jacobian with shape
             ``(..., action_dim, latent_dim)``.
         ridge: Positive scalar metric regularizer.
-        normalize: Rescale the metric to unit mean eigenvalue.  ``J J^T`` grows
-            as the decoder sharpens -- measured 33x -> 12.7x over 65k steps --
-            so without this the trust region silently loosens during training
-            and ``lam`` has no stable meaning.  Normalising leaves the metric
-            encoding only *which* directions are cheap, and makes the penalty
-            reduce exactly to ``||delta||^2`` for any isotropic metric, so
-            ``lam`` carries the same meaning as in anq_stdfp.
     """
     covariance = generator_covariance(jacobians)
     identity = jnp.eye(covariance.shape[-1], dtype=covariance.dtype)
-    metric = covariance + ridge * identity
-    metric_inverse_rhs = jnp.linalg.solve(metric, delta[..., None])[..., 0]
+    metric_inverse_rhs = jnp.linalg.solve(
+        covariance + ridge * identity, delta[..., None]
+    )[..., 0]
     quadratic = jnp.sum(delta * metric_inverse_rhs, axis=-1)
-    if normalize:
-        dim = covariance.shape[-1]
-        mean_eig = jnp.trace(metric, axis1=-2, axis2=-1) / dim
-        quadratic = quadratic * mean_eig
     return jnp.maximum(quadratic, 0.0)
 
 
@@ -90,33 +80,20 @@ class ManiSTDFPAgent(ANQSTDFPAgent):
         jacobians = jnp.nan_to_num(
             jacobians, nan=0.0, posinf=0.0, neginf=0.0
         )
-        # Which displacement the metric trust region is measured on.  Anchoring
-        # on ``delta`` (the drift sample) makes the penalty pure shrinkage toward
-        # the decoder's own output: with M^-1 eigenvalues of 6-100 it dominates
-        # the Q gradient ~7x and collapses delta to ~5e-4, i.e. plain BC.
-        # Anchoring on the dataset action instead gives ReBRAC's BC penalty under
-        # an anisotropic metric -- deviate where the behavior varies, not where
-        # it never moves -- and reduces to anq_stdfp exactly when M = I.
-        if self.config["refine_anchor"] == "data":
-            offset = refined - self._batch_actions(batch)
-        else:
-            offset = delta
-        metric_offset_sq = manifold_quadratic(
-            offset, jacobians, self.config["manifold_ridge"],
-            normalize=self.config["metric_normalize"],
+        metric_delta_sq = manifold_quadratic(
+            delta, jacobians, self.config["manifold_ridge"]
         )
 
         valid = batch.get("valid", jnp.ones_like(batch["rewards"]))[..., -1]
-        # Means, not sums, so ``lam`` and the logged penalties are directly
-        # comparable with anq_stdfp's.
-        q_objective = (q * valid).mean()
-        penalty = (metric_offset_sq * valid).mean()
-        euclidean_penalty = (
-            jnp.sum(jnp.square(offset), axis=-1) * valid
-        ).mean()
+        q_objective = (q * valid).sum() 
+        penalty = (
+            metric_delta_sq * valid
+        ).sum()
+        euclidean_delta_sq = jnp.sum(jnp.square(delta), axis=-1)
+        euclidean_penalty = (euclidean_delta_sq * valid).sum() 
         generator_variance = (
             jnp.sum(jnp.square(jacobians), axis=(-2, -1)) * valid
-        ).mean()
+        ).sum()
 
         norm_q = jax.lax.stop_gradient(1 / jnp.abs(q).mean())
         loss = - norm_q * q_objective + self.config["lam"] * penalty
@@ -126,7 +103,6 @@ class ManiSTDFPAgent(ANQSTDFPAgent):
             "manifold_penalty": penalty,
             "euclidean_penalty": euclidean_penalty,
             "delta_rms": jnp.sqrt(jnp.mean(jnp.square(delta))),
-            "offset_rms": jnp.sqrt(jnp.mean(jnp.square(offset))),
             "generator_variance": generator_variance,
         }
 
@@ -142,6 +118,4 @@ def get_config():
     config = get_anq_stdfp_config()
     config.agent_name = "mani_stdfp"
     config.manifold_ridge = 1e-2
-    # Scale-free metric: shape only, with ``lam`` alone setting the strength.
-    config.metric_normalize = False
     return config

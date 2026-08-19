@@ -1,0 +1,2 @@
+avg_gripper_contact_length,num_gripper_contacts,xy,prev_qpos,prev_qvel,qpos,qvel,success,total.timesteps,episode.final_reward,episode.return,episode.length,episode.duration,step
+0.0,0.0,19.096369643438994,2.589967001018508,0.018927378496796297,2.5913718385855304,-0.03887589432434393,0.0,25500.0,-1.0,-1000.0,1000.0,9.989959254264832,100000

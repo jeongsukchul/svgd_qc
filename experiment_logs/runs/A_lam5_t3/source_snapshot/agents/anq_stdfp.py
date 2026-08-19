@@ -101,27 +101,11 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
     def _refine(
         self, observations, base_actions, params=None, actor_name="refine_actor"
     ):
-        # ``base_scale`` interpolates this agent to ReBRAC without changing any
-        # other component.  At 0 the refiner sees a constant base, adds nothing
-        # to it, and therefore emits the action directly from the observation --
-        # exactly ReBRAC's actor, but with this agent's critic, anchor and
-        # optimizer held fixed.  At 1 it is the full residual-on-drift policy.
-        base_actions = self._safe_clip(base_actions) * self.config["base_scale"]
+        base_actions = self._safe_clip(base_actions)
         inputs = jnp.concatenate([observations, base_actions], axis=-1)
         raw_delta = self.network.select(actor_name)(
             inputs, params=params
         ).mode()
-        if self.config["refine_residual_space"] == "pretanh":
-            # ``clip(base + delta)`` has exactly zero gradient wherever the sum
-            # leaves [-1, 1], and the drift decoder saturates often here: 26% of
-            # antmaze-giant dataset action components exceed 0.9 and the decoder
-            # output is unbounded before ``_safe_clip``.  Applying the residual
-            # in pre-tanh space keeps the action in (-1, 1) with a live gradient
-            # in every dim, and delta = 0 still reproduces the base exactly.
-            bound = 1.0 - 1e-4
-            pre_base = jnp.arctanh(jnp.clip(base_actions, -bound, bound))
-            refined = self._safe_clip(jnp.tanh(pre_base + raw_delta))
-            return refined, refined - base_actions
         delta = raw_delta
         refined = self._safe_clip(base_actions + delta)
         return refined, refined - base_actions
@@ -590,9 +574,7 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
             hidden_dims=config["refine_hidden_dims"],
             action_dim=full_action_dim,
             layer_norm=config["refine_layer_norm"],
-            # In "pretanh" space the squash is applied after the residual add,
-            # so the head itself must be unbounded.
-            tanh_squash=config["refine_residual_space"] == "action",
+            tanh_squash=True,
             final_fc_init_scale=config["refine_fc_scale"],
         )
         definitions = {
@@ -651,12 +633,6 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
             )
         if config["refine_anchor"] not in ("base", "data"):
             raise ValueError("refine_anchor must be 'base' or 'data'")
-        if not 0.0 <= config["base_scale"] <= 1.0:
-            raise ValueError("base_scale must be in [0, 1]")
-        if config["refine_residual_space"] not in ("action", "pretanh"):
-            raise ValueError(
-                "refine_residual_space must be 'action' or 'pretanh'"
-            )
         if not 0.0 <= config["target_base_mix"] <= 1.0:
             raise ValueError("target_base_mix must be in [0, 1]")
         if config["num_qs"] < 1 or config["best_of_n"] < 1:
@@ -706,14 +682,6 @@ def get_config():
             # drift sample the policy happened to draw is what makes long-horizon
             # locomotion work: antmaze-giant-task2 goes 0.00 -> 0.68 at 500k.
             refine_anchor="data",       # "base" restores the drift-sample anchor
-            # How the refiner's output is combined with the drift base.
-            # "action": refined = clip(base + delta)  -- loses the gradient in
-            #   every dim where the sum leaves the action box.
-            # "pretanh": refined = tanh(atanh(base) + delta)  -- same fixed
-            #   point at delta = 0, but differentiable everywhere.
-            refine_residual_space="action",
-            # 1.0 = full residual-on-drift policy, 0.0 = ReBRAC's actor.
-            base_scale=1.0,
             # With refine_anchor="data" this is ReBRAC's actor BC coefficient and
             # 0.01 is the value validated on antmaze-giant.  The old "base"
             # anchor used much larger values (1-20); they do not carry over.
