@@ -36,6 +36,10 @@ flags.DEFINE_integer('start_training', 5000, 'when does training start')
 
 flags.DEFINE_integer('utd_ratio', 1, "update to data ratio")
 
+flags.DEFINE_bool('prune_batch_keys', False, 'Drop batch keys the agent never reads (full_observations/terminals/next_actions) before the host->device copy.')
+
+flags.DEFINE_integer('offline_scan_chunk', 1, 'Fuse this many offline updates into one lax.scan dispatch (1 = per-step, as before). Mathematically identical; purely a host-dispatch optimization.')
+
 flags.DEFINE_float('discount', 0.99, 'discount factor')
 
 flags.DEFINE_integer('eval_episodes', 50, 'Number of evaluation episodes.')
@@ -297,9 +301,26 @@ def main(_):
     offline_init_time = time.time()
     agent = set_agent_online_learning(agent, False)
     # Offline RL
-    offline_pbar = tqdm.tqdm(range(1, FLAGS.offline_steps + 1), desc="offline")
-    for i in offline_pbar:
-        log_step += 1
+    scan_chunk = max(1, FLAGS.offline_scan_chunk)
+    if scan_chunk > 1:
+        for _name, _iv in (("eval_interval", FLAGS.eval_interval), ("log_interval", FLAGS.log_interval),
+                           ("offline_steps", FLAGS.offline_steps)):
+            if _iv and _iv % scan_chunk != 0:
+                raise ValueError(f"offline_scan_chunk={scan_chunk} must divide {_name}={_iv}")
+    _DROPPABLE = ('full_observations', 'terminals', 'next_actions')
+    _prune = ((lambda b: {k: v for k, v in b.items() if k not in _DROPPABLE})
+              if FLAGS.prune_batch_keys else (lambda b: b))
+    import inspect as _inspect
+    _scan_takes_full_update = 'full_update' in _inspect.signature(
+        type(agent).batch_update.__wrapped__ if hasattr(type(agent).batch_update, '__wrapped__')
+        else type(agent).batch_update).parameters
+    offline_pbar = tqdm.tqdm(total=FLAGS.offline_steps, desc="offline")
+    i = 0
+    while i < FLAGS.offline_steps:
+        n_sub = min(scan_chunk, FLAGS.offline_steps - i)
+        i += n_sub
+        log_step += n_sub
+        offline_pbar.update(n_sub)
 
         if FLAGS.ogbench_dataset_dir is not None and FLAGS.dataset_replace_interval != 0 and i % FLAGS.dataset_replace_interval == 0:
             dataset_idx = (dataset_idx + 1) % len(dataset_paths)
@@ -313,9 +334,21 @@ def main(_):
             )
             train_dataset = process_train_dataset(train_dataset)
 
-        batch = train_dataset.sample_sequence(config['batch_size'], sequence_length=FLAGS.horizon_length, discount=discount)
-
-        agent, offline_info = agent.update(batch)
+        if n_sub == 1:
+            batch = train_dataset.sample_sequence(config['batch_size'], sequence_length=FLAGS.horizon_length, discount=discount)
+            batch = _prune(batch)
+            agent, offline_info = agent.update(batch)
+        else:
+            _bs = [_prune(train_dataset.sample_sequence(config['batch_size'], sequence_length=FLAGS.horizon_length, discount=discount))
+                   for _ in range(n_sub)]
+            batch = jax.tree_util.tree_map(lambda *xs: np.stack(xs, axis=0), *_bs)
+            # Some agents (e.g. rebrac) default batch_update to full_update=False,
+            # which skips the actor and target updates.  Force the full update so the
+            # scanned path is identical to the per-step path for every agent.
+            if _scan_takes_full_update:
+                agent, offline_info = agent.batch_update(batch, full_update=True)
+            else:
+                agent, offline_info = agent.batch_update(batch)
 
         if i % FLAGS.log_interval == 0:
             logger.log(offline_info, "offline_agent", step=log_step)
@@ -325,7 +358,7 @@ def main(_):
             save_checkpoints(agent, FLAGS.save_dir, log_step)
 
         # eval
-        if i == FLAGS.offline_steps - 1 or \
+        if (i == FLAGS.offline_steps if scan_chunk > 1 else i == FLAGS.offline_steps - 1) or \
             (FLAGS.eval_interval != 0 and i % FLAGS.eval_interval == 0):
             # during eval, the action chunk is executed fully
             eval_info, _, renders = evaluate(
@@ -479,7 +512,7 @@ def main(_):
         np.savez(os.path.join(FLAGS.save_dir, "data.npz"), **c_data)
 
     with open(os.path.join(FLAGS.save_dir, 'token.tk'), 'w') as f:
-        f.write(run.url)
+        f.write(run.url or '')
 
 if __name__ == '__main__':
     app.run(main)

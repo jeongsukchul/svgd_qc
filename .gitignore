@@ -9,3 +9,7 @@ dist/
 .ruff_cache/
 exp/
 *.npz
+exp_logs/
+hf_upload/
+runner/*.log
+runner/queue.txt

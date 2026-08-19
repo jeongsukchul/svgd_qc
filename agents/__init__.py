@@ -15,6 +15,7 @@ from agents.rql import RQLAgent
 from agents.anq import ANQAgent
 from agents.anq2 import ANQ2Agent
 from agents.anq_dfp import ANQDFPAgent
+from agents.anq_rfs import ANQRFSAgent
 from agents.anq_stdfp import ANQSTDFPAgent
 from agents.anq_stdfp2 import ANQSTDFP2Agent
 from agents.anq_stdfp3 import ANQSTDFP3Agent
@@ -38,6 +39,7 @@ agents = dict(
     rebrac=ReBRACAgent,
     anq=ANQAgent,
     anq2=ANQ2Agent,
+    anq_rfs=ANQRFSAgent,
     anq_dfp=ANQDFPAgent,
     anq_stdfp=ANQSTDFPAgent,
     anq_stdfp2=ANQSTDFP2Agent,
