@@ -123,3 +123,79 @@ RUNNING | S02b_sac_both_t3 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_m
 RUNNING | S04b_kl_stoch_t3 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.latent_reg=kl --agent.residual_stochastic=True
 RUNNING | S05b_sac_H05_t3  | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.latent_reg=entropy --agent.residual_stochastic=True --agent.entropy_scale=0.5
 RUNNING | S06b_sac_H20_t3  | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.latent_reg=entropy --agent.residual_stochastic=True --agent.entropy_scale=2.0
+
+# ============================================================================
+# PHASE 5: target_multiplier sweep (latent KL budget = target_multiplier * 8).
+# It sat at the inherited anq_stdfp default 0.125 and was never tuned; the only
+# alternative tried was 0.5 (R15b) which scored 0.292 vs 0.478 on t3 seed 0.
+# Baseline for comparison: winner at 0.125 already has n=8 on t3 (0.378).
+# 3 seeds per value.  Also seeding R17b (live base), flagged earlier as the
+# best single ablation (0.496 at n=1) but never replicated.
+# ============================================================================
+RUNNING | TM03_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01 --agent.target_multiplier=0.03
+RUNNING | TM03_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01 --agent.target_multiplier=0.03
+RUNNING | TM03_t3_s2 | agents/anq_rfs.py | 3 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01 --agent.target_multiplier=0.03
+RUNNING | TM06_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01 --agent.target_multiplier=0.06
+RUNNING | TM06_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01 --agent.target_multiplier=0.06
+RUNNING | TM06_t3_s2 | agents/anq_rfs.py | 3 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01 --agent.target_multiplier=0.06
+RUNNING | TM25_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01 --agent.target_multiplier=0.25
+RUNNING | TM25_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01 --agent.target_multiplier=0.25
+RUNNING | TM25_t3_s2 | agents/anq_rfs.py | 3 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01 --agent.target_multiplier=0.25
+RUNNING | LB_livebase_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01 --agent.residual_sees_stopped_base=False
+RUNNING | LB_livebase_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01 --agent.residual_sees_stopped_base=False
+RUNNING | LB_livebase_t3_s2 | agents/anq_rfs.py | 3 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01 --agent.residual_sees_stopped_base=False
+
+# ============================================================================
+# PHASE 6: seed the two best single-seed arms.
+#   SE = S01b: SAC entropy on the LATENT only, deterministic residual.
+#        Scored 0.516 at n=1 -- the highest t3 result in the project.
+#        (entropy + STOCHASTIC residual collapsed to 0.000 at every scale.)
+#   Also entropy_scale sweep around it, since it was never tuned either.
+# ============================================================================
+RUNNING | SE_ent_lat_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=entropy
+RUNNING | SE_ent_lat_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=entropy
+RUNNING | SE_ent_lat_t3_s2 | agents/anq_rfs.py | 3 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=entropy
+RUNNING | SEes05_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=entropy --agent.entropy_scale=0.5
+RUNNING | SEes05_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=entropy --agent.entropy_scale=0.5
+RUNNING | SEes20_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=entropy --agent.entropy_scale=2.0
+RUNNING | SEes20_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=entropy --agent.entropy_scale=2.0
+
+# ============================================================================
+# PHASE 7: DDPG-style deterministic latent actor.
+# Every arm so far samples z in the actor loss (train_latent_stochastic=True),
+# including latent_reg=none.  This sets train_latent_stochastic=False so z is
+# the mean, std receives no gradient at all, and there is no latent penalty:
+# a purely deterministic latent head, DDPG-style.
+# DET  = deterministic latent, no regulariser  (the clean DDPG ablation)
+# DETK = deterministic latent, KL kept         (isolates sampling from the KL)
+# ============================================================================
+RUNNING | DET_detlat_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=none --agent.train_latent_stochastic=False
+RUNNING | DET_detlat_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=none --agent.train_latent_stochastic=False
+RUNNING | DET_detlat_t3_s2 | agents/anq_rfs.py | 3 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=none --agent.train_latent_stochastic=False
+RUNNING | DETK_detlat_kl_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=kl --agent.train_latent_stochastic=False
+RUNNING | DETK_detlat_kl_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=kl --agent.train_latent_stochastic=False
+RUNNING | DETK_detlat_kl_t3_s2 | agents/anq_rfs.py | 3 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=kl --agent.train_latent_stochastic=False
+RUNNING | NOR_stoch_noreg_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=none
+RUNNING | NOR_stoch_noreg_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=none
+RUNNING | NOR_stoch_noreg_t3_s2 | agents/anq_rfs.py | 3 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=none
+
+# ============================================================================
+# PHASE 8: sigreg -- the DDPG-compatible latent regulariser from stdfp.py.
+# A deterministic latent head has no per-sample distribution, so KL/entropy
+# degenerate.  sigreg instead matches the BATCH MARGINAL of z to N(0,I) by
+# empirical-characteristic-function regression, which is well defined for a
+# deterministic head.  Sanity-checked: 1.22 on true N(0,I), 245.8 when shifted.
+# SIG  = deterministic latent + sigreg   (the pairing this is designed for)
+# SIGS = stochastic latent + sigreg      (does it help even when sampling?)
+# coeff sweep on the deterministic variant since sigreg_coeff is untuned (1.0).
+# ============================================================================
+RUNNING | SIG_det_sigreg_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.train_latent_stochastic=False --agent.latent_reg=sigreg
+RUNNING | SIG_det_sigreg_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.train_latent_stochastic=False --agent.latent_reg=sigreg
+RUNNING | SIG_det_sigreg_t3_s2 | agents/anq_rfs.py | 3 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.train_latent_stochastic=False --agent.latent_reg=sigreg
+RUNNING | SIGS_stoch_sigreg_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=sigreg
+RUNNING | SIGS_stoch_sigreg_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=sigreg
+RUNNING | SIGS_stoch_sigreg_t3_s2 | agents/anq_rfs.py | 3 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=sigreg
+RUNNING | SIGc01_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.train_latent_stochastic=False --agent.latent_reg=sigreg --agent.sigreg_coeff=0.1
+RUNNING | SIGc01_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.train_latent_stochastic=False --agent.latent_reg=sigreg --agent.sigreg_coeff=0.1
+RUNNING | SIGc10_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.train_latent_stochastic=False --agent.latent_reg=sigreg --agent.sigreg_coeff=10.0
+RUNNING | SIGc10_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.train_latent_stochastic=False --agent.latent_reg=sigreg --agent.sigreg_coeff=10.0

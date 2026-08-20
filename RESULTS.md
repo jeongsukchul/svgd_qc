@@ -202,3 +202,87 @@ POOLED over all tasks/seeds: anq_rfs wins 18/23 pairs   sign-test p=0.0106
   (wilcoxon on pooled deltas p=0.0043 -- scale-mixed, sign test is the cleaner read)
 ==============================================================================
 ```
+
+
+## Latent-actor ablations (t3, 3 seeds each unless noted)
+
+The winner's latent head is a stochastic Gaussian with a KL-to-prior penalty and
+a learned dual.  The 2x2 below separates the two factors -- does `z` need to be
+*sampled*, and does it need to be *regularised*?
+
+| latent head | no regulariser | KL to prior |
+|---|---|---|
+| deterministic | 0.267 +- 0.046 | **0.340 +- 0.055** |
+| stochastic | 0.197 +- 0.035 | **0.378 +- 0.024** (n=8) |
+
+**The KL is load-bearing; the sampling is not.**  Removing the regulariser costs
+0.07 (deterministic) to 0.18 (stochastic).  Making the latent deterministic
+costs ~0.04, which is inside the noise floor.  A DDPG-style deterministic latent
+head with a KL penalty is therefore a valid simplification: it drops the
+reparameterised sampling, the entropy/KL dual and `train_latent_stochastic`
+with no meaningful loss.
+
+`target_multiplier` (the KL budget, `budget = target_multiplier * action_dim`)
+is **not** a sensitive knob over 0.03-0.25: 0.441 / 0.377 / 0.404 against the
+default's 0.378, non-monotone, all within noise.  Only the extreme 0.5 looked
+bad (0.292, n=1).  It was never tuned and does not need to be.
+
+### sigreg does not work in this architecture
+
+`agents/stdfp.py` regularises its DDPG latent branch with `_sigreg_strong_loss`,
+an empirical-characteristic-function match of the *batch marginal* of `z` to
+N(0, I).  That is the natural choice for a deterministic head, where a
+per-sample KL degenerates.  Ported here as `latent_reg="sigreg"`, it fails
+completely: **11 runs, 4 configurations, every eval 0.00, `best` never above
+0.00.**  Coefficient 0.1 / 1.0 / 10 make no difference, and it fails with a
+stochastic latent too, so it is neither a scale problem nor a
+deterministic-pairing problem.
+
+The training trace shows why -- `SIG_det_sigreg_t3_s0`:
+
+```
+step      actor_q    bc_offset   delta_rms   latent_mean_abs
+170000     -201.8      0.654       0.112        0.800
+500000     -282.2      0.626       0.121        0.800
+830000     -591.7      8.658       1.408      136,600
+995000     -281.6     10.720       0.996    4,819,000
+```
+
+`z` is stable at ~0.8 until ~700k and then diverges to 4.8e6, dragging
+`bc_offset` from 0.63 to 10.7.  The ECF objective is **periodic in `z`**
+(`exp(i * proj * t)`), so once projections alias past the `t in [-5, 5]` grid
+there is no restoring force at any coefficient.  A per-sample KL has an
+unbounded `||mean||^2` term that always pulls inward; the ECF objective does
+not, and nothing else in `anq_rfs` bounds `||z||`.  Using it here would require
+an explicit magnitude bound (tanh-squashed latent head, or a small `||z||^2`
+term alongside it).
+
+### Full ablation ranking
+
+```
+arm                                           n    mean    sem   seeds
+live base (no stop-grad on base input)        3   0.465  0.099   0.61 0.51 0.28
+target_multiplier 0.03                        3   0.441  0.046   0.53 0.42 0.37
+target_multiplier 0.25                        3   0.404  0.034   0.47 0.37 0.37
+winner: action + data + KL, stochastic z      8   0.378  0.024   0.48 0.43 0.42 0.40 0.37 0.33 0.31 0.28
+target_multiplier 0.06                        3   0.377  0.071   0.50 0.38 0.25
+DETERMINISTIC z + KL                          3   0.340  0.055   0.45 0.30 0.27
+DETERMINISTIC z, no reg                       3   0.267  0.046   0.35 0.25 0.20
+stochastic z, no reg                          3   0.197  0.035   0.23 0.23 0.13
+SAC entropy on latent                         3   0.069  0.030   0.12 0.07 0.02
+sigreg coeff 0.1 (det z)                      2   0.000  0.000   0.00 0.00
+sigreg coeff 1.0 (det z)                      2   0.000  0.000   0.00 0.00
+sigreg coeff 10  (det z)                      2   0.000  0.000   0.00 0.00
+sigreg (stochastic z)                         2   0.000  0.000   0.00 0.00
+```
+
+Two caveats on this table:
+
+* `live base` tops it at 0.465 but with n=3 and a 0.33 seed spread (0.61 / 0.51
+  / 0.28) it is not separable from the winner's 0.378 at n=8.  It is a genuine
+  candidate, not a confirmed improvement.
+* Arms were **selected into this table by being the top of an earlier n=1
+  screen**, so regression to the mean is expected.  `SAC entropy on latent`
+  demonstrates it: it screened at 0.516, the best single-seed result in the
+  project, and replicated at **0.069** over three seeds.  Single-seed rankings
+  on this benchmark are close to worthless.

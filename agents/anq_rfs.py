@@ -320,6 +320,34 @@ class ANQRFSAgent(flax.struct.PyTreeNode):
         }
         return loss, info
 
+    def _sigreg_loss(self, key, x):
+        """Match the *batch marginal* of ``z`` to N(0, I) by ECF regression.
+
+        Ported from ``agents/stdfp.py::_sigreg_strong_loss``, where it plays the
+        same role: in the DDPG (deterministic) branch there is no per-sample
+        latent distribution to take a KL against, so the constraint is applied
+        to the empirical distribution of ``z`` across the batch instead.  Random
+        spherical projections are compared against the unit-Gaussian
+        characteristic function exp(-t^2/2) on a grid, integrated by trapezoid.
+        """
+        eps = 1e-6
+        _, c = x.shape
+        a = jax.random.normal(key, (c, self.config["sigreg_sketch_dim"]))
+        a = a / (jnp.linalg.norm(a, axis=0, keepdims=True) + eps)
+        t = jnp.linspace(
+            self.config["sigreg_t_min"],
+            self.config["sigreg_t_max"],
+            self.config["sigreg_num_t"],
+        )
+        target_cf = jnp.exp(-0.5 * jnp.square(t))
+        proj = x @ a
+        args = proj[:, :, None] * t[None, None, :]
+        empirical_cf = jnp.mean(jnp.exp(1j * args), axis=0)
+        err = (jnp.abs(empirical_cf - target_cf[None, :]) ** 2) * target_cf[None, :]
+        dt = t[1:] - t[:-1]
+        trap = 0.5 * (err[:, 1:] + err[:, :-1]) * dt[None, :]
+        return jnp.mean(jnp.sum(trap, axis=1) * x.shape[0])
+
     def _latent_kl(self, mean, std):
         """Closed-form KL( N(mean, std) || N(0, I) ), summed over dims."""
         return 0.5 * (
@@ -379,6 +407,13 @@ class ANQRFSAgent(flax.struct.PyTreeNode):
                     + self.config["noise_target_entropy"]
                 )
             )
+        elif reg == "sigreg":
+            # Population-level constraint, no dual: works with a deterministic
+            # latent head, unlike the per-sample KL / entropy terms.
+            sig_rng = jax.random.fold_in(rng, 7)
+            reg_term = self.config["sigreg_coeff"] * self._sigreg_loss(sig_rng, noises)
+            alpha_loss = 0.0
+            train_alpha = jnp.asarray(0.0)
         else:
             reg_term = 0.0
             alpha_loss = 0.0
@@ -562,8 +597,10 @@ class ANQRFSAgent(flax.struct.PyTreeNode):
             )
         if config["bc_anchor"] not in ("data", "residual", "none"):
             raise ValueError("bc_anchor must be 'data', 'residual' or 'none'")
-        if config["latent_reg"] not in ("kl", "entropy", "none"):
-            raise ValueError("latent_reg must be 'kl', 'entropy' or 'none'")
+        if config["latent_reg"] not in ("kl", "entropy", "sigreg", "none"):
+            raise ValueError(
+                "latent_reg must be 'kl', 'entropy', 'sigreg' or 'none'"
+            )
         if config["latent_reg"] == "entropy" and not config["train_latent_stochastic"]:
             raise ValueError(
                 "latent_reg='entropy' needs train_latent_stochastic=True: a "
@@ -626,7 +663,15 @@ def get_config():
             # "kl":      alpha * KL(z || N(0,I)), dual on noise_target_kl
             # "entropy": SAC -- alpha * log pi, dual on noise_target_entropy
             # "none":    unregularised
+            # "sigreg": ECF match of the batch marginal of z to N(0,I) --
+            #   the DDPG-compatible regulariser from agents/stdfp.py, usable
+            #   with train_latent_stochastic=False where KL/entropy degenerate.
             latent_reg="kl",
+            sigreg_coeff=1.0,
+            sigreg_sketch_dim=64,
+            sigreg_num_t=17,
+            sigreg_t_min=-5.0,
+            sigreg_t_max=5.0,
             # SAC-style stochastic residual head (mean, log_std) on top of the
             # stochastic latent, so the entropy bonus covers the whole policy.
             residual_stochastic=False,
