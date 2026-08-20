@@ -199,3 +199,143 @@ RUNNING | SIGc01_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=
 RUNNING | SIGc01_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.train_latent_stochastic=False --agent.latent_reg=sigreg --agent.sigreg_coeff=0.1
 RUNNING | SIGc10_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.train_latent_stochastic=False --agent.latent_reg=sigreg --agent.sigreg_coeff=10.0
 RUNNING | SIGc10_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.train_latent_stochastic=False --agent.latent_reg=sigreg --agent.sigreg_coeff=10.0
+
+# ============================================================================
+# PHASE 9: cube-double manipulation (CD_ prefix -> h=5, chunking on, disc 0.99).
+# DSRL reports strong results here with a TanhNormal latent at
+# target_multiplier=0.5.  anq_rfs uses an UNSQUASHED latent, so this tests
+# whether that choice costs us on manipulation.
+# NOTE full_action_dim = 5 act-dim x 5 horizon = 25, so a tanh latent carries
+# an irreducible KL floor of ~11.4 nats (measured at init); target_kl=12.5
+# leaves only ~1.1 nats of usable budget.
+# DSRL's own default is regularizer=entropy w/ target_entropy_multiplier=0.5,
+# so both readings of 'target_multiplier=0.5' are run.
+# ============================================================================
+RUNNING | CD_rfs_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=kl
+RUNNING | CD_tanhkl_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=kl --agent.latent_squash_tanh=True --agent.target_multiplier=0.5
+RUNNING | CD_tanhent_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.entropy_scale=0.5
+RUNNING | CD_dsrl_t2_s0 | agents/dsrl.py | 2 | 0 | --agent.target_entropy_multiplier=0.5
+RUNNING | CD_reb_t2_s0 | agents/rebrac.py | 2 | 0 | --agent.action_chunking=True
+RUNNING | CD_rfs_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=kl
+RUNNING | CD_tanhkl_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=kl --agent.latent_squash_tanh=True --agent.target_multiplier=0.5
+RUNNING | CD_tanhent_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.entropy_scale=0.5
+RUNNING | CD_dsrl_t2_s1 | agents/dsrl.py | 2 | 1 | --agent.target_entropy_multiplier=0.5
+RUNNING | CD_reb_t2_s1 | agents/rebrac.py | 2 | 1 | --agent.action_chunking=True
+RUNNING | CD_rfs_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=kl
+RUNNING | CD_tanhkl_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=kl --agent.latent_squash_tanh=True --agent.target_multiplier=0.5
+RUNNING | CD_tanhent_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.entropy_scale=0.5
+RUNNING | CD_dsrl_t2_s2 | agents/dsrl.py | 2 | 2 | --agent.target_entropy_multiplier=0.5
+RUNNING | CD_reb_t2_s2 | agents/rebrac.py | 2 | 2 | --agent.action_chunking=True
+
+# ============================================================================
+# PHASE 10: cube-double lam sweep + latent-only.
+# lam=0.01 on cube-double was an UNTUNED carry-over from antmaze.  The penalty
+# is lam * sum_dims (a-a_data)^2 with 25 dims here vs 8 on antmaze, and the
+# measured equilibrium bc_offset is 2.85 (cube) vs 0.36 (antmaze) -- i.e. the
+# anchor is not holding and the policy leaves the manifold the decoder learned
+# (which fits fine here: generated_to_data_mse 0.018 vs 0.071 on antmaze).
+# latent_only removes the residual entirely so the action can ONLY come from
+# the decoder -- the DSRL structure, which reaches 0.81 here.
+# ============================================================================
+RUNNING | CD_lam01_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.latent_reg=kl --agent.lam=0.1
+RUNNING | CD_lam01_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.latent_reg=kl --agent.lam=0.1
+RUNNING | CD_lam1_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.latent_reg=kl --agent.lam=1.0
+RUNNING | CD_lam1_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.latent_reg=kl --agent.lam=1.0
+RUNNING | CD_lam10_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.latent_reg=kl --agent.lam=10.0
+RUNNING | CD_lam10_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.latent_reg=kl --agent.lam=10.0
+RUNNING | CD_latonly_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=latent_only --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=kl
+RUNNING | CD_latonly_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=latent_only --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=kl
+RUNNING | CD_latonly_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=latent_only --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=kl
+RUNNING | CD_latent_ent_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=latent_only --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=entropy --agent.entropy_scale=0.5 --agent.latent_squash_tanh=True
+RUNNING | CD_latent_ent_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=latent_only --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.lam=0.01 --agent.latent_reg=entropy --agent.entropy_scale=0.5 --agent.latent_squash_tanh=True
+
+# ---- higher lam on cube-double -------------------------------------------
+# Q term is norm_q-scaled to O(1); bc_offset equilibrates at 2.85, so lam must
+# reach ~0.35 merely to be comparable, and the fixed point moves as lam rises.
+# lam=100 is effectively pure BC of the dataset action -- a useful reference
+# point in its own right.
+RUNNING | CD_lam30_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.latent_reg=kl --agent.lam=30.0
+RUNNING | CD_lam30_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.latent_reg=kl --agent.lam=30.0
+RUNNING | CD_lam100_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.latent_reg=kl --agent.lam=100.0
+RUNNING | CD_lam100_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.drift_temps=3.0 --agent.latent_reg=kl --agent.lam=100.0
+
+# ============================================================================
+# PHASE 11: cube-double with SHARP drift BC (drift_temps 0.1-0.25) x moderate lam.
+# drift_temps=3.0 was, like lam=0.01, an antmaze carry-over.  R is the kernel
+# radius in drift_loss: large R -> near-uniform affinities -> weak, blurred
+# forces.  stdfp.py scores well on this domain and its config default is 0.1.
+# ============================================================================
+RUNNING | CDs01l003_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=0.1 --agent.lam=0.03
+RUNNING | CDs01l003_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=0.1 --agent.lam=0.03
+RUNNING | CDs01l01_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=0.1 --agent.lam=0.1
+RUNNING | CDs01l01_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=0.1 --agent.lam=0.1
+RUNNING | CDs01l03_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=0.1 --agent.lam=0.3
+RUNNING | CDs01l03_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=0.1 --agent.lam=0.3
+RUNNING | CDs025l003_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=0.25 --agent.lam=0.03
+RUNNING | CDs025l003_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=0.25 --agent.lam=0.03
+RUNNING | CDs025l01_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=0.25 --agent.lam=0.1
+RUNNING | CDs025l01_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=0.25 --agent.lam=0.1
+RUNNING | CDs025l03_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=0.25 --agent.lam=0.3
+RUNNING | CDs025l03_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=0.25 --agent.lam=0.3
+
+# ============================================================================
+# PHASE 12: latent_only x SHARP drift BC -- the two changes that each helped,
+# never yet combined.  latent_only alone: 0.115 (peaks 0.36 @100-200k then
+# decays 65%).  drift_temps=0.1 gives a 6x looser decoder fit (mse 0.117 vs
+# 0.0195), which is the diversity the decayed runs were losing.
+# ============================================================================
+RUNNING | CDL01_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=latent_only --agent.bc_anchor=data --agent.lam=0.01 --agent.drift_temps=0.1 --agent.latent_reg=kl
+RUNNING | CDL01_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=latent_only --agent.bc_anchor=data --agent.lam=0.01 --agent.drift_temps=0.1 --agent.latent_reg=kl
+RUNNING | CDL01_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=latent_only --agent.bc_anchor=data --agent.lam=0.01 --agent.drift_temps=0.1 --agent.latent_reg=kl
+RUNNING | CDL025_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=latent_only --agent.bc_anchor=data --agent.lam=0.01 --agent.drift_temps=0.25 --agent.latent_reg=kl
+RUNNING | CDL025_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=latent_only --agent.bc_anchor=data --agent.lam=0.01 --agent.drift_temps=0.25 --agent.latent_reg=kl
+RUNNING | CDL025_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=latent_only --agent.bc_anchor=data --agent.lam=0.01 --agent.drift_temps=0.25 --agent.latent_reg=kl
+RUNNING | CDL01e_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=latent_only --agent.bc_anchor=data --agent.lam=0.01 --agent.drift_temps=0.1 --agent.latent_reg=entropy --agent.entropy_scale=0.5 --agent.latent_squash_tanh=True
+RUNNING | CDL01e_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=latent_only --agent.bc_anchor=data --agent.lam=0.01 --agent.drift_temps=0.1 --agent.latent_reg=entropy --agent.entropy_scale=0.5 --agent.latent_squash_tanh=True
+
+# ============================================================================
+# PHASE 13: match stdfp.py's actor objective (no structural change to anq_rfs).
+# stdfp's actor loss is (alpha*KL - Q) with NO anchor on the executed action;
+# behaviour is constrained only by the BC'd decoder + the latent KL.  My earlier
+# latent_only runs still carried lam*||base - a_data||^2 (bc_anchor=data), which
+# back-props through the decoder into z and fights the Q steering.  bc_anchor
+# =none removes it.  stdfp also defaults to target_multiplier=0.5, not 0.125.
+# NOTE this also re-tests drift_temps: the earlier 0.1-vs-3.0 comparison was
+# confounded by that anchor term, so 0.1 has not had a fair test.
+# ============================================================================
+RUNNING | CDN30_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=latent_only --agent.latent_reg=kl --agent.bc_anchor=none --agent.target_multiplier=0.5 --agent.drift_temps=3.0
+RUNNING | CDN30_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=latent_only --agent.latent_reg=kl --agent.bc_anchor=none --agent.target_multiplier=0.5 --agent.drift_temps=3.0
+RUNNING | CDN01_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=latent_only --agent.latent_reg=kl --agent.bc_anchor=none --agent.target_multiplier=0.5 --agent.drift_temps=0.1
+RUNNING | CDN01_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=latent_only --agent.latent_reg=kl --agent.bc_anchor=none --agent.target_multiplier=0.5 --agent.drift_temps=0.1
+RUNNING | CDN025_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=latent_only --agent.latent_reg=kl --agent.bc_anchor=none --agent.target_multiplier=0.5 --agent.drift_temps=0.25
+RUNNING | CDN025_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=latent_only --agent.latent_reg=kl --agent.bc_anchor=none --agent.target_multiplier=0.5 --agent.drift_temps=0.25
+RUNNING | CDNtm0125_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=latent_only --agent.latent_reg=kl --agent.bc_anchor=none --agent.target_multiplier=0.125 --agent.drift_temps=0.1
+RUNNING | CDNtm0125_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=latent_only --agent.latent_reg=kl --agent.bc_anchor=none --agent.target_multiplier=0.125 --agent.drift_temps=0.1
+RUNNING | CDR1_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.lam=1.0
+RUNNING | CDR1_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.lam=1.0
+RUNNING | CDR10_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.lam=10.0
+RUNNING | CDR10_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.lam=10.0
+
+# ============================================================================
+# PHASE 14: q_agg=mean on cube.  q_agg gates the TD target (line 291,
+# next_q = aggregate(next_qs)); 'min' over the 2-critic ensemble is a pessimism
+# knob inherited from antmaze and can be far too conservative on manipulation.
+# Paired against the CDN* arms which are identical except q_agg=min.
+# ============================================================================
+RUNNING | CDNm30_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=latent_only --agent.latent_reg=kl --agent.bc_anchor=none --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.q_agg=mean
+RUNNING | CDNm30_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=latent_only --agent.latent_reg=kl --agent.bc_anchor=none --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.q_agg=mean
+OFF | CDNm01_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=latent_only --agent.latent_reg=kl --agent.bc_anchor=none --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.q_agg=mean   # drift_temps 0.1/0.25 fail independently (CDN01=0.000)
+OFF | CDNm01_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=latent_only --agent.latent_reg=kl --agent.bc_anchor=none --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.q_agg=mean   # drift_temps 0.1/0.25 fail independently (CDN01=0.000)
+OFF | CDNm025_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=latent_only --agent.latent_reg=kl --agent.bc_anchor=none --agent.target_multiplier=0.5 --agent.drift_temps=0.25 --agent.q_agg=mean   # drift_temps 0.1/0.25 fail independently (CDN01=0.000)
+OFF | CDNm025_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=latent_only --agent.latent_reg=kl --agent.bc_anchor=none --agent.target_multiplier=0.5 --agent.drift_temps=0.25 --agent.q_agg=mean   # drift_temps 0.1/0.25 fail independently (CDN01=0.000)
+OFF | CDsm01l003_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=0.1 --agent.lam=0.03 --agent.q_agg=mean   # drift_temps 0.1/0.25 fail independently (CDN01=0.000)
+OFF | CDsm01l003_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=0.1 --agent.lam=0.03 --agent.q_agg=mean   # drift_temps 0.1/0.25 fail independently (CDN01=0.000)
+
+# ---- redo residual-anchor high-lam at drift_temps=3.0 --------------------
+# CDR1/CDR10 were built on drift_temps=0.1, which independently fails on cube
+# (CDN01 = 0.000).  Rebuilt on 3.0, the value that works, so the test isolates
+# the residual anchor: high lam should drive delta->0 and match CDN30.
+RUNNING | CDR1b_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=1.0
+RUNNING | CDR1b_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=1.0
+RUNNING | CDR10b_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=10.0
+RUNNING | CDR10b_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=10.0

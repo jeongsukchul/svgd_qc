@@ -12,7 +12,18 @@ MF=${MF:-0.10}
 echo "$(date) run_plan start (max=$MAXJOBS)" >> "$LOG"
 while true; do
   row=$(grep -nE '^ON[[:space:]]*\|' "$PLAN" | head -1)
-  [ -z "$row" ] && { echo "$(date) no ON rows left" >> "$LOG"; break; }
+  if [ -z "$row" ]; then
+    # Don't exit the instant the queue drains -- rows are often appended while
+    # runs are still going, and exiting here races those additions.  Idle-wait
+    # up to IDLE_EXIT seconds (default 2h) for new ON rows before giving up.
+    waited=0
+    while [ -z "$row" ] && [ "$waited" -lt "${IDLE_EXIT:-7200}" ]; do
+      sleep 60; waited=$((waited+60))
+      row=$(grep -nE '^ON[[:space:]]*\|' "$PLAN" | head -1)
+    done
+    [ -z "$row" ] && { echo "$(date) queue idle ${waited}s, exiting" >> "$LOG"; break; }
+    echo "$(date) new rows appeared after ${waited}s idle" >> "$LOG"
+  fi
   ln=${row%%:*}
   body=${row#*:}
   IFS='|' read -r _ grp agent task seed flags <<< "$body"
@@ -34,8 +45,16 @@ while true; do
     *)       EV=50  ;;
   esac
 
+  # Domain is selected by group prefix.  CD_ = cube-double manipulation:
+  # horizon_length=5 with action chunking, discount 0.99 (per DSRL's own
+  # command_dsrl.sh).  Everything else stays antmaze-giant at h=1 / 0.995.
+  case "$grp" in
+    CD_*) DOM="ENV_PREFIX=cube-double-play DISCOUNT=0.99 HORIZON=5" ;;
+    *)    DOM="" ;;
+  esac
+
   echo "$(date) gpu$best ev=$EV <- $grp" >> "$LOG"
-  eval "EVAL_EPISODES=$EV /workspace/svgd_qc/runner/launch.sh $best $MF $grp $agent $task $seed $flags" >> "$LOG" 2>&1
+  eval "$DOM EVAL_EPISODES=$EV /workspace/svgd_qc/runner/launch.sh $best $MF $grp $agent $task $seed $flags" >> "$LOG" 2>&1
   sed -i "${ln}s/^ON /RUNNING /" "$PLAN"
   sleep 25
 done

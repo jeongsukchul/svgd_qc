@@ -181,6 +181,13 @@ class ANQRFSAgent(flax.struct.PyTreeNode):
         """Combine the decoded base action with the actor's residual output."""
         mode = self.config["refine_output_mode"]
         base = self._safe_clip(base)
+        if mode == "latent_only":
+            # No residual at all: the executed action IS the decoded action, so
+            # the policy can only be steered through z and can never leave the
+            # manifold the drift decoder learned.  This is the DSRL structure.
+            # Diagnosed need: on cube-double the residual drives ||a - a_data||^2
+            # to 2.85 (vs 0.36 on antmaze) while lam=0.01 barely penalises it.
+            return base, jnp.zeros_like(base)
         if mode == "absolute":
             # The head emits the executed action directly; ``base`` only
             # conditions it.  Additivity is not imposed.
@@ -236,10 +243,21 @@ class ANQRFSAgent(flax.struct.PyTreeNode):
         )
         z_rng, d_rng = (None, None) if rng is None else jax.random.split(rng)
         if deterministic or rng is None:
-            noises = mean
+            pre = mean
         else:
-            noises = mean + std * jax.random.normal(z_rng, mean.shape, dtype=mean.dtype)
-        log_prob = self._diag_gauss_log_prob(noises, mean, std)
+            pre = mean + std * jax.random.normal(z_rng, mean.shape, dtype=mean.dtype)
+        log_prob = self._diag_gauss_log_prob(pre, mean, std)
+        if self.config["latent_squash_tanh"]:
+            # DSRL-style bounded latent.  The drift decoder is BC'd on z ~ N(0,I),
+            # so a tanh head confines z to (-1,1)^d and cannot reach most of that
+            # prior's mass -- which is why the unsquashed head is the default
+            # here.  It is exposed because DSRL reports strong cube results with
+            # a TanhNormal latent at target_multiplier=0.5.
+            squashed = jnp.tanh(pre)
+            log_prob = log_prob - jnp.log1p(-jnp.square(squashed) + 1e-6).sum(axis=-1)
+            noises = squashed
+        else:
+            noises = pre
 
         base = self._decode(observations, noises)
         raw = self.network.select(actor_name)(
@@ -381,7 +399,15 @@ class ANQRFSAgent(flax.struct.PyTreeNode):
             offset = jnp.zeros_like(refined)
         bc = ((offset ** 2).sum(axis=-1) * valid).mean()
 
-        kl = self._latent_kl(mean, std)
+        if self.config["latent_squash_tanh"]:
+            # No closed form through the tanh; use the one-sample estimator
+            # KL ~= log q(z) - log p(z), matching agents/anq_stdfp.py.
+            log_prior = -0.5 * (
+                jnp.square(noises) + math.log(2.0 * math.pi)
+            ).sum(axis=-1)
+            kl = log_prob - log_prior
+        else:
+            kl = self._latent_kl(mean, std)
         reg = self.config["latent_reg"]
         if reg == "kl":
             alpha = self.network.select("noise_alpha")()
@@ -591,9 +617,12 @@ class ANQRFSAgent(flax.struct.PyTreeNode):
                 raise ValueError(f"{key} must be one of {q_modes}")
         if not 0.0 < config["critic_expectile"] < 1.0:
             raise ValueError("critic_expectile must be in (0, 1)")
-        if config["refine_output_mode"] not in ("pretanh", "action", "absolute"):
+        if config["refine_output_mode"] not in (
+            "pretanh", "action", "absolute", "latent_only"
+        ):
             raise ValueError(
-                "refine_output_mode must be 'pretanh', 'action' or 'absolute'"
+                "refine_output_mode must be 'pretanh', 'action', 'absolute' "
+                "or 'latent_only'"
             )
         if config["bc_anchor"] not in ("data", "residual", "none"):
             raise ValueError("bc_anchor must be 'data', 'residual' or 'none'")
@@ -678,6 +707,9 @@ def get_config():
             noise_target_entropy=ml_collections.config_dict.placeholder(float),
             # target_entropy = -entropy_scale * (#sampled dims)
             entropy_scale=1.0,
+            # Squash the latent through tanh (DSRL-style bounded latent space).
+            # False = unsquashed Gaussian, the anq_stdfp/anq_rfs default.
+            latent_squash_tanh=False,
             latent_deterministic=True,   # execution uses the mode
             train_latent_stochastic=True,  # actor loss uses a reparameterised sample
             latent_noise_scale=1.0,

@@ -286,3 +286,59 @@ Two caveats on this table:
   demonstrates it: it screened at 0.516, the best single-seed result in the
   project, and replicated at **0.069** over three seeds.  Single-seed rankings
   on this benchmark are close to worthless.
+
+
+## cube-double manipulation (task2, h=5 chunked, discount 0.99)
+
+`anq_rfs` initially FAILED on this domain: 0.035 vs `dsrl` 0.837.  So did
+`rebrac` (0.021).  The cause was four hyperparameters carried over from
+antmaze-giant unexamined -- they are antmaze-tuned values, not properties of
+the method.  Fixing them, with **no structural change to the agent**, reaches
+0.384.
+
+| arm | last5 | best | final eval |
+|---|---|---|---|
+| `dsrl.py` | **0.837** | 0.900 | 0.887 |
+| **`anq_rfs` residual + `bc_anchor=residual`, `lam=1.0`** | **0.384** | 0.510 | 0.410 |
+| `anq_rfs` `latent_only`, `bc_anchor=none` | 0.288 | 0.490 | 0.490 |
+| `anq_rfs` residual-anchor `lam=10` | 0.284 | 0.410 | 0.390 |
+| `anq_rfs` `latent_only` + data anchor | 0.115 | 0.340 | 0.067 |
+| `anq_rfs` original antmaze config | 0.035 | 0.067 | 0.027 |
+| `rebrac.py` | 0.021 | 0.053 | 0.007 |
+| `anq_rfs` with `q_agg=mean` | 0.000 | 0.000 | 0.000 |
+
+### What mattered
+
+1. **`bc_anchor`.**  `data` (pull the executed action to the dataset action)
+   causes a peak-then-decay: `latent_only` peaks at 0.36 by 200k then falls to
+   0.11, while the decoder's fit keeps tightening (`generated_to_data_mse`
+   0.074 -> 0.0195).  Training fit improves while success degrades -- textbook
+   overfitting.  `bc_anchor=none` (matching `stdfp.py`, whose actor loss is just
+   `alpha*KL - Q`) removes the decay entirely; the curve then climbs monotonically.
+   `bc_anchor=residual` with `lam=1.0` is better still: it constrains `||delta||^2`
+   so the residual cannot leave the decoder's manifold, without pinning the
+   executed action to one dataset sample.
+2. **`lam` must be re-tuned per domain.**  On antmaze 0.01 is a sharp optimum
+   (0.003 and 0.03 both collapse).  On cube-double, `lam` on the *data* anchor
+   fails at every value tried (0.1/1/10/30/100 -> 0.004-0.008, i.e. it degenerates
+   to deterministic BC); `lam` on the *residual* anchor wants 1.0.
+3. **`target_multiplier` 0.5, not 0.125.**  `stdfp.py`'s default.  0.125 gives 0.000.
+4. **`q_agg=min` is required.**  `mean` gives 0.000 on both seeds, all evals.
+5. **`drift_temps=3.0`, not 0.1-0.25.**  Tested cleanly with the anchor removed:
+   0.1 and 0.25 both give 0.000.  A sharper kernel gives a 6x looser decoder fit
+   (mse 0.117 vs 0.0195) but that extra spread is noise, not usable modes.
+
+### What did not transfer
+
+A tanh-squashed latent (DSRL-style) does not help: 0.035, indistinguishable from
+the unsquashed default.  At `full_action_dim=25` the tanh support costs an
+irreducible ~11.4 nats of KL, so `target_multiplier=0.5` (budget 12.5) leaves
+only ~1.1 nats of usable deviation.
+
+### Remaining gap
+
+`dsrl` still leads 0.837 vs 0.384.  The untested structural difference is its
+BC policy: a 10-step flow-matching model versus our one-step drift decoder.
+Both `anq_rfs` configs above were **still improving at the 1M step budget**
+(final evals 0.49 and 0.41, above their last-5 means), so 0.384 is a lower bound.
+

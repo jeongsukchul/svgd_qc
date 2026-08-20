@@ -14,8 +14,8 @@ export WANDB_SILENT=true
 export JAX_PLATFORMS=cuda
 nohup /venv/main/bin/python main.py \
   --agent="$AGENT" \
-  --env_name=antmaze-giant-navigate-singletask-task${TASK}-v0 \
-  --discount=0.995 \
+  --env_name=${ENV_PREFIX:-antmaze-giant-navigate}-singletask-task${TASK}-v0 \
+  --discount=${DISCOUNT:-0.995} \
   --offline_steps=1000000 \
   --eval_interval=100000 \
   --eval_episodes=${EVAL_EPISODES:-50} \
@@ -24,5 +24,7 @@ nohup /venv/main/bin/python main.py \
   --save_dir=exp/beat \
   --run_group="$GROUP" \
   --offline_scan_chunk=25 \
+  --horizon_length=${HORIZON:-1} \
+  --sparse=${SPARSE:-False} \
   "$@" > "$LOGDIR/${GROUP}.log" 2>&1 &
 echo "launched $GROUP pid=$! gpu=$GPU"
