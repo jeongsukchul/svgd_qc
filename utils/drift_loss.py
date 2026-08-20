@@ -12,7 +12,7 @@ def cdist(x, y, eps=1e-8):
     return jnp.clip(sq_dist, a_min=eps)
 
 
-@partial(jax.jit, static_argnames=("R_list", "plus_only", "use_neg_only"))
+@partial(jax.jit, static_argnames=("R_list", "plus_only", "use_neg_only", "force_norm"))
 def drift_loss(
     gen,
     fixed_pos,
