@@ -361,6 +361,13 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
     def actor_loss(self, batch, grad_params, rng):
         drift_rng, refine_rng, latent_rng = jax.random.split(rng, 3)
         bc_loss, info = self.drift_bc_loss(batch, grad_params, drift_rng)
+        # Drift-BC early stop (see stdfp.py): decoder is trained only by this
+        # loss, so zeroing it after bc_stop_step freezes the decoder before the
+        # BC fit overfits.
+        bc_stop = self.config["bc_stop_step"] if "bc_stop_step" in self.config else 0
+        if bc_stop:
+            bc_on = (self.network.step < bc_stop).astype(bc_loss.dtype)
+            bc_loss = bc_loss * bc_on
         refine_loss, refine_info = self.refine_actor_loss(
             batch, grad_params, refine_rng
         )
@@ -627,7 +634,10 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
         network = TrainState.create(
             network_def,
             params,
-            tx=make_optimizer(config["optimizer"], config["lr"]),
+            tx=make_optimizer(
+                config["optimizer"], config["lr"],
+                eps=config["adam_eps"] if "adam_eps" in config else 1e-8,
+            ),
         )
         config["ob_dims"] = ex_observations.shape
         config["action_dim"] = action_dim
@@ -732,6 +742,8 @@ def get_config():
             best_of_n=1,
             gen_per_label=8,
             drift_temps=0.1,
+            bc_stop_step=0,
+            adam_eps=1e-8,
             noise_regularizer="kl",
             noise_state_dependent_std=False,
             noise_target_entropy=ml_collections.config_dict.placeholder(float),

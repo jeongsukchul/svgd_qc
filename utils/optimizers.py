@@ -3,11 +3,11 @@
 import optax
 
 
-def make_optimizer(name, learning_rate):
+def make_optimizer(name, learning_rate, eps=1e-8):
     """Build one of the optimizers exposed by agent config files."""
     name = name.lower()
     if name == "adam":
-        return optax.adam(learning_rate=learning_rate)
+        return optax.adam(learning_rate=learning_rate, eps=eps)
     if name == "kron":
         # JAX/Optax implementation of the PSGD Kron optimizer used by
         # https://github.com/roger-creus/stable-deep-rl-at-scale.

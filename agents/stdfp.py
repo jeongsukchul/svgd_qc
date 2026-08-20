@@ -205,6 +205,15 @@ class STDFPAgent(flax.struct.PyTreeNode):
         actor_drift_loss, bc_info = self.drift_bc_loss(
             batch, grad_params, drift_rng
         )
+        # Drift-BC early stop: the decoder is trained ONLY by this loss, so
+        # zeroing it after ``bc_stop_step`` freezes the decoder at a fit that
+        # has converged but not yet overfit.  The measured failure mode on
+        # cube-double is exactly BC overfitting: generated_to_data_mse keeps
+        # shrinking while eval success decays from its ~200-400k peak.
+        bc_stop = self.config["bc_stop_step"] if "bc_stop_step" in self.config else 0
+        if bc_stop:
+            bc_on = (self.network.step < bc_stop).astype(actor_drift_loss.dtype)
+            actor_drift_loss = actor_drift_loss * bc_on
 
         if noise_actor_type == "sac":
             dist = self.network.select("noise_actor")(
@@ -761,7 +770,10 @@ class STDFPAgent(flax.struct.PyTreeNode):
         network_args = {k: v[1] for k, v in network_info.items()}
 
         network_def = ModuleDict(networks)
-        network_tx = make_optimizer(config["optimizer"], config["lr"])
+        network_tx = make_optimizer(
+            config["optimizer"], config["lr"],
+            eps=config["adam_eps"] if "adam_eps" in config else 1e-8,
+        )
         network_params = network_def.init(init_rng, **network_args)["params"]
         network = TrainState.create(network_def, network_params, tx=network_tx)
 
@@ -798,6 +810,8 @@ def get_config():
             actor_type="sac",
             best_of_n=1,
             drift_temps=0.1,
+            bc_stop_step=0,   # 0 = never stop (previous behaviour)
+            adam_eps=1e-8,    # larger (1e-4-ish) damps updates where 2nd moment is tiny
             gen_per_label=8,
             noise_regularizer="kl",
             noise_state_dependent_std=False,
