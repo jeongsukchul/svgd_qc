@@ -342,3 +342,29 @@ BC policy: a 10-step flow-matching model versus our one-step drift decoder.
 Both `anq_rfs` configs above were **still improving at the 1M step budget**
 (final evals 0.49 and 0.41, above their last-5 means), so 0.384 is a lower bound.
 
+
+### Correction: seed variance on cube-double swamps the arm rankings
+
+A tooling bug (a long-running `run_plan.sh` shell that predated the 3M-step
+config, so it never applied `STEPS=3000000`) accidentally produced three extra
+1M seeds of the best config.  Combined with the original two, that config has
+now been run at 1M five times:
+
+    0.088  0.140  0.268  0.284  0.300     (3.4x spread, mean ~0.22)
+
+That spread is as large as the differences between every arm in the 0.22-0.42
+"leaderboard" reported during the sweep.  Those rankings are therefore **not
+separable** and should not be read as an ordering.  `dsrl` by contrast is tight
+across seeds (0.804 / 0.832 / 0.876), so it is both stronger *and* far more
+stable -- which is likely the same underlying difference (10-step flow BC vs a
+one-step drift decoder) showing up twice.
+
+The defensible statement for cube-double is:
+
+* The original antmaze-inherited config genuinely fails (0.035, and `rebrac`
+  0.021), and the fixes below genuinely move it into the ~0.2-0.4 range:
+  `bc_anchor=residual` with `lam=1.0`, `target_multiplier` in [0.3, 0.5],
+  `q_agg=min`, `drift_temps=3.0`.
+* Within that range, individual arm rankings are noise at n=2-3.
+* `dsrl` (0.837) remains clearly ahead of all of them.
+

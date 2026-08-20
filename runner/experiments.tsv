@@ -339,3 +339,52 @@ RUNNING | CDR1b_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=a
 RUNNING | CDR1b_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=1.0
 RUNNING | CDR10b_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=10.0
 RUNNING | CDR10b_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=10.0
+
+# ============================================================================
+# PHASE 15: close the gap to dsrl (0.837).  Best so far 0.384 (CDR1b) and BOTH
+# best configs were still climbing at the 1M cutoff, so budget is binding.
+#   CDX_  -> 3M steps (the direct test of 'just train longer')
+#   rest  -> 1M brackets around the winning config
+# ============================================================================
+RUNNING | CDX_win_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0
+RUNNING | CDX_win_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0
+RUNNING | CDX_win_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0
+RUNNING | CDb_lam03_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=0.3
+RUNNING | CDb_lam03_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=0.3
+RUNNING | CDb_lam3_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=3.0
+RUNNING | CDb_lam3_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=3.0
+RUNNING | CDb_tm03_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.target_multiplier=0.3
+RUNNING | CDb_tm03_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.target_multiplier=0.3
+RUNNING | CDb_tm10_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.target_multiplier=1.0
+RUNNING | CDb_tm10_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.target_multiplier=1.0
+RUNNING | CDb_gen16_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.gen_per_label=16
+RUNNING | CDb_gen16_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.gen_per_label=16
+RUNNING | CDb_nq4_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.num_qs=4
+RUNNING | CDb_nq4_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.num_qs=4
+
+# ---- extend the new leader (tm=0.3, 0.416) to 3M + fill the tm band -------
+# tm band is narrow: 0.125 -> 0.000, 0.3 -> 0.416, 0.5 -> 0.384, 1.0 -> 0.000.
+RUNNING | CDX_tm03_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.target_multiplier=0.3
+RUNNING | CDX_tm03_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.target_multiplier=0.3
+RUNNING | CDX_tm03_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.target_multiplier=0.3
+RUNNING | CDb_tm02_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.target_multiplier=0.2
+RUNNING | CDb_tm02_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.target_multiplier=0.2
+RUNNING | CDb_tm04_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.target_multiplier=0.4
+RUNNING | CDb_tm04_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.target_multiplier=0.4
+
+# ============================================================================
+# PHASE 16: COMBINE the individually-good settings (never tested together).
+# Each was swept in isolation vs the same base:
+#   target_multiplier 0.3  (0.416 best single seed; 0.125 and 1.0 both 0.000)
+#   num_qs 4               (0.46/0.46 on its last evals before the run ended)
+#   gen_per_label 16       (0.34/0.44 on its last evals)
+# combo at 1M for a fast read, and at 3M since every good arm was still
+# climbing at the 1M cutoff.
+# ============================================================================
+RUNNING | CDb_combo_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=4 --agent.gen_per_label=16
+RUNNING | CDb_combo_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=4 --agent.gen_per_label=16
+RUNNING | CDX_combo_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=4 --agent.gen_per_label=16
+RUNNING | CDX_combo_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=4 --agent.gen_per_label=16
+ON | CDX_combo_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=4 --agent.gen_per_label=16
+ON | CDb_tm03nq4_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=4
+ON | CDb_tm03nq4_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=4

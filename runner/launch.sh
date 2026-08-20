@@ -16,7 +16,7 @@ nohup /venv/main/bin/python main.py \
   --agent="$AGENT" \
   --env_name=${ENV_PREFIX:-antmaze-giant-navigate}-singletask-task${TASK}-v0 \
   --discount=${DISCOUNT:-0.995} \
-  --offline_steps=1000000 \
+  --offline_steps=${STEPS:-1000000} \
   --eval_interval=100000 \
   --eval_episodes=${EVAL_EPISODES:-50} \
   --save_interval=-1 \

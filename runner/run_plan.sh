@@ -49,7 +49,8 @@ while true; do
   # horizon_length=5 with action chunking, discount 0.99 (per DSRL's own
   # command_dsrl.sh).  Everything else stays antmaze-giant at h=1 / 0.995.
   case "$grp" in
-    CD_*) DOM="ENV_PREFIX=cube-double-play DISCOUNT=0.99 HORIZON=5" ;;
+    CDX_*) DOM="ENV_PREFIX=cube-double-play DISCOUNT=0.99 HORIZON=5 STEPS=3000000" ;;
+    CD*)   DOM="ENV_PREFIX=cube-double-play DISCOUNT=0.99 HORIZON=5" ;;
     *)    DOM="" ;;
   esac
 
