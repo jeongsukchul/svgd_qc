@@ -52,33 +52,74 @@ RUNNING | W_reb_t3_s0 | agents/rebrac.py | 3 | 0 |
 RUNNING | W_reb_t3_s1 | agents/rebrac.py | 3 | 1 |
 RUNNING | W_reb_t3_s2 | agents/rebrac.py | 3 | 2 |
 RUNNING | W_reb_t1_s0 | agents/rebrac.py | 1 | 0 |
-ON | W_reb_t1_s1 | agents/rebrac.py | 1 | 1 |
-ON | W_reb_t1_s2 | agents/rebrac.py | 1 | 2 |
-ON | W_reb_t2_s0 | agents/rebrac.py | 2 | 0 |
-ON | W_reb_t2_s1 | agents/rebrac.py | 2 | 1 |
-ON | W_reb_t2_s2 | agents/rebrac.py | 2 | 2 |
+RUNNING | W_reb_t1_s1 | agents/rebrac.py | 1 | 1 |
+RUNNING | W_reb_t1_s2 | agents/rebrac.py | 1 | 2 |
+RUNNING | W_reb_t2_s0 | agents/rebrac.py | 2 | 0 |
+RUNNING | W_reb_t2_s1 | agents/rebrac.py | 2 | 1 |
+RUNNING | W_reb_t2_s2 | agents/rebrac.py | 2 | 2 |
 # runner-up (R05) on all three tasks, seed 0 only, as a cheap cross-check
-ON | V_abs_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=absolute --agent.bc_anchor=data --agent.latent_reg=none --agent.drift_temps=3.0 --agent.lam=0.01
-ON | V_abs_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=absolute --agent.bc_anchor=data --agent.latent_reg=none --agent.drift_temps=3.0 --agent.lam=0.01
-ON | V_abs_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=absolute --agent.bc_anchor=data --agent.latent_reg=none --agent.drift_temps=3.0 --agent.lam=0.01
+RUNNING | V_abs_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=absolute --agent.bc_anchor=data --agent.latent_reg=none --agent.drift_temps=3.0 --agent.lam=0.01
+RUNNING | V_abs_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=absolute --agent.bc_anchor=data --agent.latent_reg=none --agent.drift_temps=3.0 --agent.lam=0.01
+RUNNING | V_abs_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=absolute --agent.bc_anchor=data --agent.latent_reg=none --agent.drift_temps=3.0 --agent.lam=0.01
+
+
+# ============================================================================
+# PHASE 3b: EXTRA SEEDS for statistical power.  Run-to-run std on t3 is ~0.12
+# and the effect size is ~0.10, so n=3 cannot resolve it (delta = +0.085 +- 0.104).
+# These take t3 to n=8 and t1 to n=6 per arm.  Inserted AHEAD of the ablations.
+# ============================================================================
+RUNNING | W_rfs_t3_s3 | agents/anq_rfs.py | 3 | 3 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01
+RUNNING | W_reb_t3_s3 | agents/rebrac.py | 3 | 3 |
+RUNNING | W_rfs_t3_s4 | agents/anq_rfs.py | 3 | 4 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01
+RUNNING | W_reb_t3_s4 | agents/rebrac.py | 3 | 4 |
+RUNNING | W_rfs_t3_s5 | agents/anq_rfs.py | 3 | 5 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01
+RUNNING | W_reb_t3_s5 | agents/rebrac.py | 3 | 5 |
+RUNNING | W_rfs_t3_s6 | agents/anq_rfs.py | 3 | 6 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01
+RUNNING | W_reb_t3_s6 | agents/rebrac.py | 3 | 6 |
+RUNNING | W_rfs_t3_s7 | agents/anq_rfs.py | 3 | 7 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01
+RUNNING | W_reb_t3_s7 | agents/rebrac.py | 3 | 7 |
+RUNNING | W_rfs_t1_s3 | agents/anq_rfs.py | 1 | 3 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01
+RUNNING | W_reb_t1_s3 | agents/rebrac.py | 1 | 3 |
+RUNNING | W_rfs_t1_s4 | agents/anq_rfs.py | 1 | 4 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01
+RUNNING | W_reb_t1_s4 | agents/rebrac.py | 1 | 4 |
+RUNNING | W_rfs_t1_s5 | agents/anq_rfs.py | 1 | 5 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01
+RUNNING | W_reb_t1_s5 | agents/rebrac.py | 1 | 5 |
+
+
+# ============================================================================
+# PHASE 4: tasks 4 and 5 (never run before -- no archive baseline exists).
+# Paired anq_rfs vs rebrac, 3 seeds each, eval_episodes=100.
+# ============================================================================
+RUNNING | W_rfs_t4_s0 | agents/anq_rfs.py | 4 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01
+RUNNING | W_reb_t4_s0 | agents/rebrac.py | 4 | 0 |
+RUNNING | W_rfs_t4_s1 | agents/anq_rfs.py | 4 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01
+RUNNING | W_reb_t4_s1 | agents/rebrac.py | 4 | 1 |
+RUNNING | W_rfs_t4_s2 | agents/anq_rfs.py | 4 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01
+RUNNING | W_reb_t4_s2 | agents/rebrac.py | 4 | 2 |
+RUNNING | W_rfs_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01
+RUNNING | W_reb_t5_s0 | agents/rebrac.py | 5 | 0 |
+RUNNING | W_rfs_t5_s1 | agents/anq_rfs.py | 5 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01
+RUNNING | W_reb_t5_s1 | agents/rebrac.py | 5 | 1 |
+RUNNING | W_rfs_t5_s2 | agents/anq_rfs.py | 5 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01
+RUNNING | W_reb_t5_s2 | agents/rebrac.py | 5 | 2 |
 
 # ============================================================================
 # PHASE 2b: ablations, re-pointed onto the winning "action" composition
 # (was pretanh; pretanh placed 7th/8th so it is not worth more GPU time).
 # bc_anchor=residual is dropped entirely - it scored 0.028 / 0.004.
 # ============================================================================
-ON | R09b_nobasecond_t3  | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.condition_residual_on_base=False
-ON | R11b_deephead_t3    | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.residual_head_hidden_dims=\(512,512\)
-ON | R12b_sharpbc_t3     | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.drift_temps=0.3
-ON | R13b_lam003_t3      | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.lam=0.003
-ON | R14b_lam03_t3       | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.lam=0.03
-ON | R15b_looselatent_t3 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.target_multiplier=0.5
-ON | R16b_nq4_t3         | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.num_qs=4
-ON | R17b_livebase_t3    | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.residual_sees_stopped_base=False
+RUNNING | R09b_nobasecond_t3  | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.condition_residual_on_base=False
+RUNNING | R11b_deephead_t3    | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.residual_head_hidden_dims=\(512,512\)
+RUNNING | R12b_sharpbc_t3     | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.drift_temps=0.3
+RUNNING | R13b_lam003_t3      | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.lam=0.003
+RUNNING | R14b_lam03_t3       | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.lam=0.03
+RUNNING | R15b_looselatent_t3 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.target_multiplier=0.5
+RUNNING | R16b_nq4_t3         | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.num_qs=4
+RUNNING | R17b_livebase_t3    | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.residual_sees_stopped_base=False
 
 # ---- SAC-style variants, on the winning "action" composition --------------
-ON | S01b_sac_lat_t3  | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.latent_reg=entropy
-ON | S02b_sac_both_t3 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.latent_reg=entropy --agent.residual_stochastic=True
-ON | S04b_kl_stoch_t3 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.latent_reg=kl --agent.residual_stochastic=True
-ON | S05b_sac_H05_t3  | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.latent_reg=entropy --agent.residual_stochastic=True --agent.entropy_scale=0.5
-ON | S06b_sac_H20_t3  | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.latent_reg=entropy --agent.residual_stochastic=True --agent.entropy_scale=2.0
+RUNNING | S01b_sac_lat_t3  | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.latent_reg=entropy
+RUNNING | S02b_sac_both_t3 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.latent_reg=entropy --agent.residual_stochastic=True
+RUNNING | S04b_kl_stoch_t3 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.latent_reg=kl --agent.residual_stochastic=True
+RUNNING | S05b_sac_H05_t3  | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.latent_reg=entropy --agent.residual_stochastic=True --agent.entropy_scale=0.5
+RUNNING | S06b_sac_H20_t3  | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.latent_reg=entropy --agent.residual_stochastic=True --agent.entropy_scale=2.0

@@ -507,7 +507,12 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
         # action.  Measured on antmaze-giant that jitter is ~2.8x the refiner's
         # Q-directed correction and is Q-neutral, so the mode is used by default
         # and both the executed policy and the TD target stay deterministic.
-        if self.config["latent_deterministic"]:
+        # ``best_of_n`` was previously a no-op: the observation is tiled n times
+        # above, but ``dist.mode()`` is a deterministic function of it, so all n
+        # candidates were byte-identical and ``select_best`` ranked n copies of
+        # one action.  Sampling is therefore forced whenever n > 1, which is the
+        # only way the tiling produces distinct candidates to rank.
+        if self.config["latent_deterministic"] and self.config["best_of_n"] == 1:
             raw_noises = dist.mode()
         else:
             raw_noises = dist.sample(seed=latent_rng)
