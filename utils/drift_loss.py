@@ -21,6 +21,7 @@ def drift_loss(
     weight_pos=None,
     weight_neg=None,
     R_list=(0.02, 0.05, 0.2),
+    force_norm="unit",
     plus_only=False,
     use_neg_only=False,
     score=None,
@@ -133,7 +134,17 @@ def drift_loss(
             total_force_R = total_force_R - total_coeffs[..., None] * old_gen_scaled 
 
             f_norm_val = (total_force_R ** 2).mean()
-            force_scale = jnp.sqrt(jnp.clip(f_norm_val, a_min=1e-8))  # normalize force of each temperature
+            # "unit" (default): divide the force by its own RMS.  This makes the
+            # regression target ALWAYS one unit-RMS step away, so the BC loss is
+            # exactly 1.0 at every training step and its gradient magnitude is
+            # invariant to fit quality -- the decoder never converges and keeps
+            # chasing re-inflated noise late in training (the measured
+            # overfitting on cube-double).  "raw" keeps the force at its actual
+            # magnitude so the BC push anneals as the fit improves.
+            if force_norm == "raw":
+                force_scale = jnp.ones(())
+            else:
+                force_scale = jnp.sqrt(jnp.clip(f_norm_val, a_min=1e-8))  # normalize force of each temperature
             
             attraction_term = (r_coeff_pos[..., None] * (targets_scaled[:, None, split_idx:, :] - old_gen_scaled[:, :, None, :])).sum(axis=-2)
             repulsion_term = (r_coeff_neg[..., None] * (old_gen_scaled[:, None, :, :] - old_gen_scaled[:, :, None, :])).sum(axis=-2)

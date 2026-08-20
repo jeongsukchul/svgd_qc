@@ -174,6 +174,7 @@ class STDFPAgent(flax.struct.PyTreeNode):
             gen=gen_samples,
             fixed_pos=batch_actions[:, None, :],
             R_list=(self.config["drift_temps"],),
+            force_norm=self.config["drift_force_norm"] if "drift_force_norm" in self.config else "unit",
         )
         actor_drift_loss = drift_loss_val.mean()
         info = {
@@ -811,7 +812,8 @@ def get_config():
             best_of_n=1,
             drift_temps=0.1,
             bc_stop_step=0,   # 0 = never stop (previous behaviour)
-            adam_eps=1e-8,    # larger (1e-4-ish) damps updates where 2nd moment is tiny
+            adam_eps=1e-8,
+            drift_force_norm="unit",  # "raw" = un-normalised force, BC anneals naturally    # larger (1e-4-ish) damps updates where 2nd moment is tiny
             gen_per_label=8,
             noise_regularizer="kl",
             noise_state_dependent_std=False,

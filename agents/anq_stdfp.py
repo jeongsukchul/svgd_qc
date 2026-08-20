@@ -240,6 +240,7 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
             gen=generated,
             fixed_pos=actions[..., None, :],
             R_list=(self.config["drift_temps"],),
+            force_norm=self.config["drift_force_norm"] if "drift_force_norm" in self.config else "unit",
         )
         loss = losses.mean()
         info = {
@@ -744,6 +745,7 @@ def get_config():
             drift_temps=0.1,
             bc_stop_step=0,
             adam_eps=1e-8,
+            drift_force_norm="unit",  # "raw" = un-normalised force, BC anneals naturally
             noise_regularizer="kl",
             noise_state_dependent_std=False,
             noise_target_entropy=ml_collections.config_dict.placeholder(float),

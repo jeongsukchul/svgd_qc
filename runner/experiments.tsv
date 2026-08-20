@@ -401,10 +401,113 @@ RUNNING | CDb_tm03nq4_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_
 #         test was PURE mean; the dsrl form was never tested.)
 # ============================================================================
 RUNNING | CDD_samp_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=2 --agent.best_of_n=1 --agent.latent_deterministic=False
-ON | CDD_samp_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=2 --agent.best_of_n=1 --agent.latent_deterministic=False
-ON | CDD_tgt_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=2 --agent.best_of_n=1 --agent.use_target_latent=True
-ON | CDD_tgt_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=2 --agent.best_of_n=1 --agent.use_target_latent=True
-ON | CDD_pess_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=2 --agent.best_of_n=1 --agent.q_agg=pessimistic --agent.rho=0.5
-ON | CDD_pess_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=2 --agent.best_of_n=1 --agent.q_agg=pessimistic --agent.rho=0.5
-ON | CDD_all_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=2 --agent.best_of_n=1 --agent.latent_deterministic=False --agent.use_target_latent=True --agent.q_agg=pessimistic --agent.rho=0.5
-ON | CDD_all_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=2 --agent.best_of_n=1 --agent.latent_deterministic=False --agent.use_target_latent=True --agent.q_agg=pessimistic --agent.rho=0.5
+RUNNING | CDD_samp_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=2 --agent.best_of_n=1 --agent.latent_deterministic=False
+RUNNING | CDD_tgt_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=2 --agent.best_of_n=1 --agent.use_target_latent=True
+RUNNING | CDD_tgt_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=2 --agent.best_of_n=1 --agent.use_target_latent=True
+RUNNING | CDD_pess_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=2 --agent.best_of_n=1 --agent.q_agg=pessimistic --agent.rho=0.5
+RUNNING | CDD_pess_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=2 --agent.best_of_n=1 --agent.q_agg=pessimistic --agent.rho=0.5
+RUNNING | CDD_all_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=2 --agent.best_of_n=1 --agent.latent_deterministic=False --agent.use_target_latent=True --agent.q_agg=pessimistic --agent.rho=0.5
+RUNNING | CDD_all_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=2 --agent.best_of_n=1 --agent.latent_deterministic=False --agent.use_target_latent=True --agent.q_agg=pessimistic --agent.rho=0.5
+
+# ============================================================================
+# PHASE 18 (user direction): stdfp.py IS the working base on manipulation; its
+# disease is drift-BC overfitting.  anq_stdfp = stdfp + refine actor, and with
+# high lam on the RESIDUAL anchor (refine_anchor=base -> ||delta||^2) it should
+# recover stdfp.  Fix = bc_stop_step: decoder is trained only by drift BC, so
+# zeroing that loss after N steps freezes it before it overfits (verified:
+# decoder grad exactly 0 past the stop; Adam momentum dies in ~200 steps).
+# stdfp defaults kept: sac latent, kl reg, tm=0.5, drift_temps=0.1, num_qs=2,
+# best_of_n=1.  CDF_* -> cube-double h=5 disc 0.99 via the CD* domain case.
+# ============================================================================
+RUNNING | CDF_sf_t2_s0 | agents/stdfp.py | 2 | 0 |
+RUNNING | CDF_sfstop3_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.bc_stop_step=300000
+RUNNING | CDF_sfstop6_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.bc_stop_step=600000
+RUNNING | CDF_as_hilam_t2_s0 | agents/anq_stdfp.py | 2 | 0 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5
+RUNNING | CDF_as_hilamstop_t2_s0 | agents/anq_stdfp.py | 2 | 0 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.bc_stop_step=300000
+RUNNING | CDF_sf_t2_s1 | agents/stdfp.py | 2 | 1 |
+RUNNING | CDF_sfstop3_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.bc_stop_step=300000
+RUNNING | CDF_sfstop6_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.bc_stop_step=600000
+RUNNING | CDF_as_hilam_t2_s1 | agents/anq_stdfp.py | 2 | 1 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5
+RUNNING | CDF_as_hilamstop_t2_s1 | agents/anq_stdfp.py | 2 | 1 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.bc_stop_step=300000
+
+# ---- phase 18b: 3rd seeds for the winners + earlier stop -------------------
+# sfstop3 works (0.40-0.47), sfstop6 too late; bracket from the other side.
+RUNNING | CDF_sfstop2_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.bc_stop_step=200000
+RUNNING | CDF_sfstop2_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.bc_stop_step=200000
+RUNNING | CDF_sfstop3_t2_s2 | agents/stdfp.py | 2 | 2 | --agent.bc_stop_step=300000
+RUNNING | CDF_as_hilam_t2_s2 | agents/anq_stdfp.py | 2 | 2 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5
+RUNNING | CDF_as_hilamstop_t2_s2 | agents/anq_stdfp.py | 2 | 2 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.bc_stop_step=300000
+RUNNING | CDF_as_lam30_t2_s0 | agents/anq_stdfp.py | 2 | 0 | --agent.refine_anchor=base --agent.lam=30.0 --agent.target_multiplier=0.5
+
+# ---- phase 18c: stop-time is monotone toward earlier (200k>300k>>600k>never)
+# push the bracket down and give the refine version the better stop point.
+RUNNING | CDF_sfstop1_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.bc_stop_step=100000
+RUNNING | CDF_sfstop1_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.bc_stop_step=100000
+RUNNING | CDF_sfstop15_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.bc_stop_step=150000
+RUNNING | CDF_sfstop15_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.bc_stop_step=150000
+RUNNING | CDF_sfstop2_t2_s2 | agents/stdfp.py | 2 | 2 | --agent.bc_stop_step=200000
+RUNNING | CDF_as_hilamstop2_t2_s0 | agents/anq_stdfp.py | 2 | 0 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.bc_stop_step=200000
+RUNNING | CDF_as_hilamstop2_t2_s1 | agents/anq_stdfp.py | 2 | 1 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.bc_stop_step=200000
+RUNNING | CDF_as_hilamstop2_t2_s2 | agents/anq_stdfp.py | 2 | 2 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.bc_stop_step=200000
+
+# ---- phase 18d: finish -----------------------------------------------------
+# stop-time still improving at 150k/100k; bracket 50k.  refine version gets the
+# best stop (150k) and a lam=30 variant to shrink its 0.12 gap vs matched stdfp.
+RUNNING | CDF_sfstop15_t2_s2 | agents/stdfp.py | 2 | 2 | --agent.bc_stop_step=150000
+RUNNING | CDF_sfstop1_t2_s2 | agents/stdfp.py | 2 | 2 | --agent.bc_stop_step=100000
+RUNNING | CDF_sfstop05_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.bc_stop_step=50000
+RUNNING | CDF_sfstop05_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.bc_stop_step=50000
+RUNNING | CDF_as_hls15_t2_s0 | agents/anq_stdfp.py | 2 | 0 | --agent.refine_anchor=base --agent.target_multiplier=0.5 --agent.bc_stop_step=150000 --agent.lam=10.0
+RUNNING | CDF_as_hls15_t2_s1 | agents/anq_stdfp.py | 2 | 1 | --agent.refine_anchor=base --agent.target_multiplier=0.5 --agent.bc_stop_step=150000 --agent.lam=10.0
+RUNNING | CDF_as_hls15_t2_s2 | agents/anq_stdfp.py | 2 | 2 | --agent.refine_anchor=base --agent.target_multiplier=0.5 --agent.bc_stop_step=150000 --agent.lam=10.0
+RUNNING | CDF_as_l30s15_t2_s0 | agents/anq_stdfp.py | 2 | 0 | --agent.refine_anchor=base --agent.target_multiplier=0.5 --agent.bc_stop_step=150000 --agent.lam=30.0
+RUNNING | CDF_as_l30s15_t2_s1 | agents/anq_stdfp.py | 2 | 1 | --agent.refine_anchor=base --agent.target_multiplier=0.5 --agent.bc_stop_step=150000 --agent.lam=30.0
+
+# ---- lam=100 rung: lam=30 (0.542) > lam=10 (0.483) at matched stop, so the
+# 'sufficiently high lam' trend is confirmed and one more rung should converge
+# on stdfp's 0.651.
+RUNNING | CDF_as_l100s15_t2_s0 | agents/anq_stdfp.py | 2 | 0 | --agent.refine_anchor=base --agent.target_multiplier=0.5 --agent.bc_stop_step=150000 --agent.lam=100.0
+RUNNING | CDF_as_l100s15_t2_s1 | agents/anq_stdfp.py | 2 | 1 | --agent.refine_anchor=base --agent.target_multiplier=0.5 --agent.bc_stop_step=150000 --agent.lam=100.0
+RUNNING | CDF_as_l100s15_t2_s2 | agents/anq_stdfp.py | 2 | 2 | --agent.refine_anchor=base --agent.target_multiplier=0.5 --agent.bc_stop_step=150000 --agent.lam=100.0
+RUNNING | CDF_as_l30s15_t2_s2 | agents/anq_stdfp.py | 2 | 2 | --agent.refine_anchor=base --agent.target_multiplier=0.5 --agent.bc_stop_step=150000 --agent.lam=30.0
+
+# ---- phase 18e: Adam epsilon (user suggestion) -----------------------------
+# Larger eps damps per-param normalisation where the 2nd moment is tiny (the
+# latent actor once Q stabilises).  Tested on the two best configs.
+RUNNING | CDF_sf15e4_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.bc_stop_step=150000 --agent.adam_eps=1e-4
+RUNNING | CDF_sf15e4_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.bc_stop_step=150000 --agent.adam_eps=1e-4
+RUNNING | CDF_sf15e3_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.bc_stop_step=150000 --agent.adam_eps=1e-3
+RUNNING | CDF_sf15e3_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.bc_stop_step=150000 --agent.adam_eps=1e-3
+RUNNING | CDF_as30s15e4_t2_s0 | agents/anq_stdfp.py | 2 | 0 | --agent.refine_anchor=base --agent.lam=30.0 --agent.target_multiplier=0.5 --agent.bc_stop_step=150000 --agent.adam_eps=1e-4
+RUNNING | CDF_as30s15e4_t2_s1 | agents/anq_stdfp.py | 2 | 1 | --agent.refine_anchor=base --agent.lam=30.0 --agent.target_multiplier=0.5 --agent.bc_stop_step=150000 --agent.adam_eps=1e-4
+
+# ---- eps as ALTERNATIVE to bc_stop (user clarification): stock stdfp, no stop.
+# Hypothesis: large eps damps the drift-BC updates once its gradients shrink,
+# preventing the late overfitting without a hard cutoff.
+RUNNING | CDF_sfe4_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.adam_eps=1e-4
+RUNNING | CDF_sfe4_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.adam_eps=1e-4
+RUNNING | CDF_sfe3_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.adam_eps=1e-3
+RUNNING | CDF_sfe3_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.adam_eps=1e-3
+
+# ---- eps=1e-3 BREAKTHROUGH: stock stdfp 0.740/0.740, no decay, evals to 0.86.
+# Extend: 3rd seed, eps=3e-3 probe, and eps=1e-3 on the refine version (no stop).
+RUNNING | CDF_sfe3_t2_s2 | agents/stdfp.py | 2 | 2 | --agent.adam_eps=1e-3
+RUNNING | CDF_sfe33_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.adam_eps=3e-3
+RUNNING | CDF_sfe33_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.adam_eps=3e-3
+RUNNING | CDF_as30e3_t2_s0 | agents/anq_stdfp.py | 2 | 0 | --agent.refine_anchor=base --agent.target_multiplier=0.5 --agent.adam_eps=1e-3 --agent.lam=30.0
+RUNNING | CDF_as30e3_t2_s1 | agents/anq_stdfp.py | 2 | 1 | --agent.refine_anchor=base --agent.target_multiplier=0.5 --agent.adam_eps=1e-3 --agent.lam=30.0
+RUNNING | CDF_as30e3_t2_s2 | agents/anq_stdfp.py | 2 | 2 | --agent.refine_anchor=base --agent.target_multiplier=0.5 --agent.adam_eps=1e-3 --agent.lam=30.0
+RUNNING | CDF_as10e3_t2_s0 | agents/anq_stdfp.py | 2 | 0 | --agent.refine_anchor=base --agent.target_multiplier=0.5 --agent.adam_eps=1e-3 --agent.lam=10.0
+RUNNING | CDF_as10e3_t2_s1 | agents/anq_stdfp.py | 2 | 1 | --agent.refine_anchor=base --agent.target_multiplier=0.5 --agent.adam_eps=1e-3 --agent.lam=10.0
+
+# ---- phase 18f: drift-loss normalization is the ROOT CAUSE (user's pointer).
+# Measured: actor_drift_loss = 1.000 at every step of every run -- the unit-RMS
+# force normalization makes the BC gradient invariant to fit quality, so the
+# decoder chases re-inflated noise forever.  eps=1e-3 was the optimizer-side
+# damp; force_norm=raw is the loss-level fix (BC push anneals with actual force).
+# Test raw at DEFAULT eps (1e-8): if it alone prevents the collapse, mechanism
+# confirmed at the loss level.
+ON | CDF_sfraw_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.drift_force_norm=raw
+ON | CDF_sfraw_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.drift_force_norm=raw
+ON | CDF_sfrawe3_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.drift_force_norm=raw --agent.adam_eps=1e-3
+ON | CDF_sfrawe3_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.drift_force_norm=raw --agent.adam_eps=1e-3
