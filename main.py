@@ -161,7 +161,9 @@ def set_agent_online_learning(agent, online_learning):
 
 def save_checkpoints(agent, save_dir, epoch):
     save_agent(agent, save_dir, epoch)
-    save_critic(agent, save_dir, epoch)
+    # save_critic disabled: the standalone critic pkl (~13MB/run) is never
+    # consumed anywhere and the critic params are already inside the agent pkl.
+    # (2.7GB reclaimed across 213 runs when this was turned off.)
 
 
 def _resolve_agent_config_path(argv, default_path):
