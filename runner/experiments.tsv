@@ -385,6 +385,26 @@ RUNNING | CDb_combo_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mo
 RUNNING | CDb_combo_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=4 --agent.gen_per_label=16
 RUNNING | CDX_combo_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=4 --agent.gen_per_label=16
 RUNNING | CDX_combo_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=4 --agent.gen_per_label=16
-ON | CDX_combo_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=4 --agent.gen_per_label=16
-ON | CDb_tm03nq4_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=4
-ON | CDb_tm03nq4_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=4
+RUNNING | CDX_combo_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=4 --agent.gen_per_label=16
+RUNNING | CDb_tm03nq4_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=4
+RUNNING | CDb_tm03nq4_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.q_agg=min --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=4
+
+# ============================================================================
+# PHASE 17: DSRL behavioural diff, one factor at a time (best_of_n=1, num_qs=2
+# pinned).  Base = current best cube config.  The three non-structural deltas:
+#   samp: dsrl samples the latent at execution AND in the TD target
+#         (dist.sample); ours used the mode (latent_deterministic=True).
+#   tgt:  dsrl decodes through the EMA'd flow (use_target_latent) -- a
+#         stationary latent space; ours chased a live decoder (likely the
+#         seed-instability cause: dsrl seeds 0.80-0.88, ours 0.09-0.30).
+#   pess: dsrl's backup is mean - 0.5*std, NOT min.  (my earlier 'mean fails'
+#         test was PURE mean; the dsrl form was never tested.)
+# ============================================================================
+RUNNING | CDD_samp_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=2 --agent.best_of_n=1 --agent.latent_deterministic=False
+ON | CDD_samp_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=2 --agent.best_of_n=1 --agent.latent_deterministic=False
+ON | CDD_tgt_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=2 --agent.best_of_n=1 --agent.use_target_latent=True
+ON | CDD_tgt_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=2 --agent.best_of_n=1 --agent.use_target_latent=True
+ON | CDD_pess_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=2 --agent.best_of_n=1 --agent.q_agg=pessimistic --agent.rho=0.5
+ON | CDD_pess_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=2 --agent.best_of_n=1 --agent.q_agg=pessimistic --agent.rho=0.5
+ON | CDD_all_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=2 --agent.best_of_n=1 --agent.latent_deterministic=False --agent.use_target_latent=True --agent.q_agg=pessimistic --agent.rho=0.5
+ON | CDD_all_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=1.0 --agent.target_multiplier=0.3 --agent.num_qs=2 --agent.best_of_n=1 --agent.latent_deterministic=False --agent.use_target_latent=True --agent.q_agg=pessimistic --agent.rho=0.5

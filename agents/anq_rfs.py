@@ -217,8 +217,18 @@ class ANQRFSAgent(flax.struct.PyTreeNode):
         frozen with respect to every actor objective (RFS keeps its pretrained
         flow policy fixed), but the gradient still reaches ``z`` through the
         decoder's *input*.
+
+        With ``use_target_latent`` the EMA copy decodes instead (DSRL's
+        ``use_target_latent=True``; ``stdfp.py`` has the same option).  The
+        latent policy then optimises against a slowly-moving latent space
+        rather than chasing a decoder that shifts every gradient step.
         """
-        return self.network.select("actor_drift")(observations, noises)
+        name = (
+            "target_actor_drift"
+            if self.config["use_target_latent"]
+            else "actor_drift"
+        )
+        return self.network.select(name)(observations, noises)
 
     @staticmethod
     def _diag_gauss_log_prob(x, mean, std):
@@ -497,6 +507,8 @@ class ANQRFSAgent(flax.struct.PyTreeNode):
         )
         agent._target_update(new_network, "critic")
         agent._target_update(new_network, "rfs_actor")
+        if agent.config["use_target_latent"]:
+            agent._target_update(new_network, "actor_drift")
         return agent.replace(network=new_network, rng=new_rng), info
 
     @jax.jit
@@ -591,6 +603,10 @@ class ANQRFSAgent(flax.struct.PyTreeNode):
             "critic": (critic, (ex_observations, full_actions)),
             "target_critic": (copy.deepcopy(critic), (ex_observations, full_actions)),
             "actor_drift": (actor_drift, (ex_observations, full_actions)),
+            "target_actor_drift": (
+                copy.deepcopy(actor_drift),
+                (ex_observations, full_actions),
+            ),
             "rfs_actor": (rfs_actor, actor_init),
             "target_rfs_actor": (copy.deepcopy(rfs_actor), actor_init),
             "noise_alpha": (LogParam(init_value=config["noise_init_temp"]), ()),
@@ -601,6 +617,7 @@ class ANQRFSAgent(flax.struct.PyTreeNode):
         )["params"]
         params["modules_target_critic"] = params["modules_critic"]
         params["modules_target_rfs_actor"] = params["modules_rfs_actor"]
+        params["modules_target_actor_drift"] = params["modules_actor_drift"]
         network = TrainState.create(
             network_def, params, tx=make_optimizer(config["optimizer"], config["lr"])
         )
@@ -710,6 +727,9 @@ def get_config():
             # Squash the latent through tanh (DSRL-style bounded latent space).
             # False = unsquashed Gaussian, the anq_stdfp/anq_rfs default.
             latent_squash_tanh=False,
+            # Decode z through the EMA'd drift decoder (DSRL use_target_latent):
+            # a slowly-moving latent space instead of one that shifts every step.
+            use_target_latent=False,
             latent_deterministic=True,   # execution uses the mode
             train_latent_stochastic=True,  # actor loss uses a reparameterised sample
             latent_noise_scale=1.0,

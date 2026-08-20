@@ -368,3 +368,46 @@ The defensible statement for cube-double is:
 * Within that range, individual arm rankings are noise at n=2-3.
 * `dsrl` (0.837) remains clearly ahead of all of them.
 
+
+## MAJOR CORRECTION: most "cube-double" results above were antmaze runs
+
+An orchestration bug invalidated 57 of the 97 runs reported for cube-double.
+The queue runner selects the domain by group-name prefix; a long-running runner
+process predated the pattern that matched sub-variant prefixes (`CDN*`, `CDR*`,
+`CDs*`, `CDb*`, `CDL*`, `CDNm*`, `CDX*` -- everything except the literal `CD_`
+prefix), so those groups launched with the DEFAULT domain: **antmaze-giant
+task2, h=1, discount 0.995**, while being analysed as cube-double.
+
+**Invalidated as cube results** (they are valid antmaze-t2 runs of cube-tuned
+configs, quarantined under `_mislaunched_antmaze/`):
+the "bc_anchor=none fixes the decay" finding (CDN30), the "0.384 best config"
+(CDR1b), the tm=0.3 leader (CDb_tm03 "0.416"), the q_agg=mean 0.000 result
+(CDNm30), the anchor-free drift_temps and target_multiplier cliffs, and the
+5-seed variance pooling.  Every "cube leaderboard" containing those groups was
+wrong, as were the conclusions drawn from them.
+
+**The verified cube-double table** (every run's env_name checked):
+
+| arm | n | last5 | best | note |
+|---|---|---|---|---|
+| `dsrl.py` | 3 | **0.837** | 0.900 | |
+| `CDX_tm03` (resid-anchor lam=1, tm=0.3, 3M) | 3 | 0.189* | **0.447** | @700k of 3M, peak-then-decay |
+| `CDX_win` (same, tm=0.5, 3M) | 3 | 0.161* | 0.327 | same shape |
+| `latent_only` + data anchor | 3 | 0.115 | 0.340 | peak @200k, decays |
+| tanh + entropy | 3 | 0.043 | 0.093 | |
+| original antmaze config | 3 | 0.035 | 0.067 | |
+| `rebrac.py` | 3 | 0.021 | 0.053 | |
+| lam ladder on data anchor (0.1-100) | 8 | ~0.005 | 0.03 | fails at every value |
+
+What survives on genuine cube data: the residual-anchor config lifts the PEAK
+from 0.067 to ~0.45 -- a real 6-7x improvement -- but every configuration still
+shows the peak-then-decay overfitting signature, and last-5 scores collapse
+accordingly.  The decay, not the peak, is the cube-double problem.  The
+DSRL-behaviour ablation now queued (stochastic latent at execution/TD, EMA'd
+decoder as the latent space, mean-std backup) targets exactly that mechanism.
+
+Root cause and fix for the orchestration bug: domain selection now matches
+`CD*` (all cube prefixes) with `CDX_*` for 3M steps; every future run's
+`env_name` is verified from its flags.json before being aggregated, and the
+summary tooling asserts the env matches the domain the group claims.
+
