@@ -638,3 +638,44 @@ RUNNING | CDF_sfe53_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.adam_eps=5e-3 --ag
 # 'drift anchor fine everywhere at proper lam; DATA anchor is the domain knob'.
 RUNNING | AR_resid10_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
 RUNNING | AR_resid10_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
+
+# ============================================================================
+# PHASE 20: >=0.9 with anq_rfs.  Key find: stdfp (0.845) EXECUTES STOCHASTICALLY
+# (dist.sample at eval + stochastic TD target); every rfs arm so far used the
+# mode.  P1/P2 = stdfp's exact winning form inside anq_rfs: latent_only (residual
+# removed; with bc_anchor=residual the BC term vanishes since delta=0, so the
+# objective is alpha*KL - Q, identical to stdfp's sac branch), stochastic
+# execution, mean TD, eps=3e-3.  tm 0.5 (stdfp's value) vs 0.125 (rfs winner).
+# P3 = existing rfs leader (residual head, lam=10) + stochastic execution only.
+# P4 = P1 + EMA latent (the sigma=0.005 stabiliser).
+RUNNING | CDP_lo50s_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=latent_only --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.latent_deterministic=False --agent.target_multiplier=0.5
+RUNNING | CDP_lo50s_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=latent_only --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.latent_deterministic=False --agent.target_multiplier=0.5
+RUNNING | CDP_lo50s_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=latent_only --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.latent_deterministic=False --agent.target_multiplier=0.5
+RUNNING | CDP_lo125s_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=latent_only --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.latent_deterministic=False --agent.target_multiplier=0.125
+RUNNING | CDP_lo125s_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=latent_only --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.latent_deterministic=False --agent.target_multiplier=0.125
+RUNNING | CDP_ldstoch_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.125 --agent.latent_deterministic=False
+RUNNING | CDP_ldstoch_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.125 --agent.latent_deterministic=False
+RUNNING | CDP_lo50stgt_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=latent_only --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.latent_deterministic=False --agent.target_multiplier=0.5 --agent.use_target_latent=True
+RUNNING | CDP_lo50stgt_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=latent_only --agent.bc_anchor=residual --agent.latent_reg=kl --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.latent_deterministic=False --agent.target_multiplier=0.5 --agent.use_target_latent=True
+
+# ============================================================================
+# PHASE 21 (STANDING MANDATE): two-component structure ONLY (latent actor +
+# refine actor + drift BC; num_qs=2, best_of_n=1 fixed).  Autonomous tuning
+# toward: antmaze > rebrac (done), cube-double > dsrl (table: t1 90, t2 87,
+# t3 85, t4 32, t5 76).  latent_only arms killed except 2 ceiling diagnostics.
+# High-value untested cells:
+#   - tm0125 winner ran ONLY eps=3e-3; at tm=0.5 eps=1e-3 BEAT 3e-3 (0.726 vs
+#     0.623) -> tm0125 x eps=1e-3 is the missing best-guess cell
+#   - stochastic execution x lam {1,3}: out-support component with real freedom
+#   - leader config scouted on cube t1/t3 for the SOTA table
+# ============================================================================
+ON | CDQ_tm0125e3_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.latent_deterministic=False --agent.lam=10.0 --agent.adam_eps=1e-3 --agent.latent_deterministic=True
+ON | CDQ_tm0125e3_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.latent_deterministic=False --agent.lam=10.0 --agent.adam_eps=1e-3 --agent.latent_deterministic=True
+ON | CDQ_l1s_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.latent_deterministic=False --agent.lam=1.0 --agent.adam_eps=3e-3
+ON | CDQ_l1s_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.latent_deterministic=False --agent.lam=1.0 --agent.adam_eps=3e-3
+ON | CDQ_l3s_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.latent_deterministic=False --agent.lam=3.0 --agent.adam_eps=3e-3
+ON | CDQ_l3s_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.latent_deterministic=False --agent.lam=3.0 --agent.adam_eps=3e-3
+ON | CDQ_tgts_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.latent_deterministic=False --agent.lam=10.0 --agent.adam_eps=3e-3 --agent.use_target_latent=True
+ON | CDQ_tgts_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.latent_deterministic=False --agent.lam=10.0 --agent.adam_eps=3e-3 --agent.use_target_latent=True
+ON | CDQ_lead_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.latent_deterministic=False --agent.lam=10.0 --agent.adam_eps=3e-3 --agent.latent_deterministic=True
+ON | CDQ_lead_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.latent_deterministic=False --agent.lam=10.0 --agent.adam_eps=3e-3 --agent.latent_deterministic=True
