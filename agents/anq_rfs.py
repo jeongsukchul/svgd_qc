@@ -55,7 +55,7 @@ from utils.networks import (
     Value,
     default_init,
 )
-from utils.optimizers import make_optimizer
+from utils.optimizers import make_optimizer, make_module_optimizer
 
 
 def td_expectile_loss(td_error, expectile):
@@ -337,6 +337,8 @@ class ANQRFSAgent(flax.struct.PyTreeNode):
             gen=generated,
             fixed_pos=actions[..., None, :],
             R_list=(self.config["drift_temps"],),
+            force_norm=self.config["drift_force_norm"] if "drift_force_norm" in self.config else "unit",
+            force_scale_const=self.config["drift_force_scale"] if "drift_force_scale" in self.config else 0.0,
         )
         loss = losses.mean()
         info = {
@@ -619,7 +621,17 @@ class ANQRFSAgent(flax.struct.PyTreeNode):
         params["modules_target_rfs_actor"] = params["modules_rfs_actor"]
         params["modules_target_actor_drift"] = params["modules_actor_drift"]
         network = TrainState.create(
-            network_def, params, tx=make_optimizer(config["optimizer"], config["lr"])
+            network_def,
+            params,
+            tx=make_module_optimizer(
+                config["optimizer"], config["lr"],
+                eps=config["adam_eps"] if "adam_eps" in config else 1e-8,
+                module_eps=(
+                    {"actor_drift": config["drift_adam_eps"]}
+                    if "drift_adam_eps" in config and config["drift_adam_eps"]
+                    else None
+                ),
+            ),
         )
         config["ob_dims"] = ex_observations.shape
         config["action_dim"] = action_dim
@@ -742,6 +754,10 @@ def get_config():
             best_of_n=1,
             gen_per_label=8,
             drift_temps=0.1,
+            adam_eps=1e-8,
+            drift_adam_eps=ml_collections.config_dict.placeholder(float),
+            drift_force_norm="unit",
+            drift_force_scale=0.0,
             encoder=ml_collections.config_dict.placeholder(str),
         )
     )

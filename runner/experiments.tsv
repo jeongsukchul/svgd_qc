@@ -550,3 +550,25 @@ RUNNING | CDF_sfconst_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.drift_force_norm
 # force decays below the floor -- raw's annealing with unit-norm's early speed.
 RUNNING | CDF_sfrawde4_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4
 RUNNING | CDF_sfrawde4_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4
+
+# ============================================================================
+# PHASE 19: TARGET >= 0.90 on cube-double t2 (dsrl 0.837).
+# Evidence it is reachable: sfe33 s0 ENDED at 0.94; several curves still rising
+# at the 1M cutoff now that the eps fix cures the decay.
+# A: anq_rfs finally gets the winning recipe (residual anchor, lam=10, tm=0.5,
+#    drift_temps=0.1, q_agg=min) + eps -- it never had these fixes.
+# B: 3M-step runs (CDX_ prefix) of the two best known configs.
+# C: eps fine grid around the 3e-3 optimum.
+# ============================================================================
+RUNNING | CDG_rfs33_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.q_agg=min --agent.adam_eps=3e-3
+RUNNING | CDG_rfs33_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.q_agg=min --agent.adam_eps=3e-3
+ON | CDG_rfs33_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.q_agg=min --agent.adam_eps=3e-3
+ON | CDG_rfs3_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.q_agg=min --agent.adam_eps=1e-3
+ON | CDG_rfs3_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.q_agg=min --agent.adam_eps=1e-3
+ON | CDX_sfe33L_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.adam_eps=3e-3
+ON | CDX_sfe33L_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.adam_eps=3e-3
+ON | CDX_sfe33L_t2_s2 | agents/stdfp.py | 2 | 2 | --agent.adam_eps=3e-3
+ON | CDX_ashl3L_t2_s0 | agents/anq_stdfp.py | 2 | 0 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=1e-3
+ON | CDX_ashl3L_t2_s1 | agents/anq_stdfp.py | 2 | 1 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=1e-3
+ON | CDF_sfe23_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.adam_eps=2e-3
+ON | CDF_sfe23_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.adam_eps=2e-3
