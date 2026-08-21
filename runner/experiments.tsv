@@ -538,7 +538,15 @@ RUNNING | CDF_asdeps_t2_s1 | agents/anq_stdfp.py | 2 | 1 | --agent.refine_anchor
 # opt2: linear BC-weight decay 100k->400k (smooth version of bc_stop).
 # opt3: force_norm=const 0.055 (early-training force RMS): full-strength BC at
 #       the start, anneals as the true force decays relative to the constant.
-ON | CDF_sfdec_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.bc_decay_start=100000 --agent.bc_decay_end=400000
-ON | CDF_sfdec_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.bc_decay_start=100000 --agent.bc_decay_end=400000
-ON | CDF_sfconst_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.drift_force_norm=const --agent.drift_force_scale=0.055
-ON | CDF_sfconst_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.drift_force_norm=const --agent.drift_force_scale=0.055
+RUNNING | CDF_sfdec_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.bc_decay_start=100000 --agent.bc_decay_end=400000
+RUNNING | CDF_sfdec_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.bc_decay_start=100000 --agent.bc_decay_end=400000
+RUNNING | CDF_sfconst_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.drift_force_norm=const --agent.drift_force_scale=0.055
+RUNNING | CDF_sfconst_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.drift_force_norm=const --agent.drift_force_scale=0.055
+
+# ---- user suggestion: raw force + DECODER-ONLY eps=1e-4 --------------------
+# raw alone: decoder grads ~30x small -> underfit/decay (0.36).  raw + GLOBAL
+# eps=1e-3: dead (~0.0, everything damped).  raw + drift_adam_eps=1e-4 keeps
+# early decoder updates at lr scale (sqrt(v) > eps) and anneals once the true
+# force decays below the floor -- raw's annealing with unit-norm's early speed.
+RUNNING | CDF_sfrawde4_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4
+RUNNING | CDF_sfrawde4_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4

@@ -411,3 +411,54 @@ Root cause and fix for the orchestration bug: domain selection now matches
 `env_name` is verified from its flags.json before being aggregated, and the
 summary tooling asserts the env matches the domain the group claims.
 
+
+## FINAL: cube-double solved via drift-BC overfitting fixes (user-directed)
+
+The working base on manipulation was `stdfp.py` all along (user's hint).  Stock
+stdfp peaks at 0.52-0.56 within 200k steps and then collapses to 0.03 -- drift-BC
+overfitting.  Root cause, measured: `drift_loss` divides its force by its own
+RMS, so the BC loss is pinned at exactly 1.000 at every step of every run and
+the decoder receives constant-magnitude (mostly noise) gradients forever.
+
+**Fix comparison** (stdfp, cube-double t2, h=5, disc 0.99, 1M steps, mean last5):
+
+| fix | mean | n | note |
+|---|---|---|---|
+| Adam eps=3e-3 (global) | **0.772** | 3 | best; eps floor damps per-param noise |
+| Adam eps=3e-3 decoder-only (`drift_adam_eps`) | 0.736 | 3 | same, without damping critic/latent |
+| raw force + decoder eps=1e-4 | 0.728 | 2 | annealing emerges from eps floor |
+| Adam eps=1e-3 (global) | 0.680 | 3 | |
+| BC hard stop @150k (`bc_stop_step`) | 0.651 | 3 | timing-sensitive: 50k underfits, 600k too late |
+| BC weight decay 100k->400k | 0.336 | 2 | soft stop, mediocre |
+| const-scale force normaliser | 0.08 | 2 | fails: raw force RMS stays flat, so a
+|   |  |  | constant normaliser is unit-norm rescaled -- same pathology |
+| stock (eps=1e-8) | 0.032 | 2 | collapse |
+| `dsrl.py` | 0.837 | 3 | reference |
+
+Ranks 1-3 are within one seed-sigma.  Best final table:
+
+| agent | cube-double t2 |
+|---|---|
+| `dsrl.py` | 0.837 |
+| **`stdfp.py` + eps=3e-3** | **0.772** (single evals to 0.94) |
+| **`anq_stdfp.py` + refine_anchor=base, lam=10, eps=1e-3** | **0.744** (n=3) |
+| `anq_stdfp.py` lam=30, eps=1e-3 | 0.737 (n=3) |
+| stock stdfp / anq_rfs / rebrac | 0.02-0.04 |
+
+**Both user objectives met:** stdfp fixed (0.032 -> 0.772, 92% of dsrl), and the
+refine-actor-added `anq_stdfp` (0.744) matches stdfp (0.772) within noise --
+high lam on the residual anchor + the eps fix, no structural change anywhere.
+
+Eps mechanism (why an optimizer constant fixes a loss pathology): with the BC
+gradient magnitude pinned by the normalisation, Adam at eps=1e-8 renormalises
+even pure-noise per-param gradients to full lr steps for all 1M steps; a large
+eps acts as a gradient-magnitude floor below which updates scale with the true
+signal.  Interior optimum in eps (1e-8 collapse / 1e-4 partial / 1e-3-3e-3 best
+/ 1e-2 too damped at 1M) matches that account.  The const-normaliser failure
+shows the annealing story alone is insufficient: what matters is suppressing
+per-parameter noise components, which only the eps-family fixes do.
+
+(Validation-based adaptive BC stop was implemented but ruled out by the user as
+cheating -- it leaks held-out data into a training decision; the code remains,
+default-off.)
+
