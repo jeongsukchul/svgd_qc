@@ -20,7 +20,7 @@ from utils.drift_loss import drift_loss
 from utils.encoders import encoder_modules
 from utils.flax_utils import ModuleDict, TrainState, nonpytree_field
 from utils.networks import ActorVectorField, LogParam, MLP, Normal, TanhNormal, Value
-from utils.optimizers import make_optimizer
+from utils.optimizers import make_optimizer, make_module_optimizer
 
 
 
@@ -771,9 +771,11 @@ class STDFPAgent(flax.struct.PyTreeNode):
         network_args = {k: v[1] for k, v in network_info.items()}
 
         network_def = ModuleDict(networks)
-        network_tx = make_optimizer(
+        _deps = config["drift_adam_eps"] if "drift_adam_eps" in config else None
+        network_tx = make_module_optimizer(
             config["optimizer"], config["lr"],
             eps=config["adam_eps"] if "adam_eps" in config else 1e-8,
+            module_eps={"actor_drift": _deps} if _deps else None,
         )
         network_params = network_def.init(init_rng, **network_args)["params"]
         network = TrainState.create(network_def, network_params, tx=network_tx)
@@ -813,6 +815,7 @@ def get_config():
             drift_temps=0.1,
             bc_stop_step=0,   # 0 = never stop (previous behaviour)
             adam_eps=1e-8,
+            drift_adam_eps=ml_collections.config_dict.placeholder(float),  # decoder-only eps
             drift_force_norm="unit",  # "raw" = un-normalised force, BC anneals naturally    # larger (1e-4-ish) damps updates where 2nd moment is tiny
             gen_per_label=8,
             noise_regularizer="kl",

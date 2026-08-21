@@ -31,7 +31,7 @@ from utils.networks import (
     TanhNormal,
     Value,
 )
-from utils.optimizers import make_optimizer
+from utils.optimizers import make_optimizer, make_module_optimizer
 
 
 def td_expectile_loss(td_error, expectile):
@@ -635,9 +635,14 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
         network = TrainState.create(
             network_def,
             params,
-            tx=make_optimizer(
+            tx=make_module_optimizer(
                 config["optimizer"], config["lr"],
                 eps=config["adam_eps"] if "adam_eps" in config else 1e-8,
+                module_eps=(
+                    {"actor_drift": config["drift_adam_eps"]}
+                    if "drift_adam_eps" in config and config["drift_adam_eps"]
+                    else None
+                ),
             ),
         )
         config["ob_dims"] = ex_observations.shape
@@ -745,6 +750,7 @@ def get_config():
             drift_temps=0.1,
             bc_stop_step=0,
             adam_eps=1e-8,
+            drift_adam_eps=ml_collections.config_dict.placeholder(float),  # decoder-only eps
             drift_force_norm="unit",  # "raw" = un-normalised force, BC anneals naturally
             noise_regularizer="kl",
             noise_state_dependent_std=False,
