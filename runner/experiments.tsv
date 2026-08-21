@@ -560,15 +560,81 @@ RUNNING | CDF_sfrawde4_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.drift_force_nor
 # B: 3M-step runs (CDX_ prefix) of the two best known configs.
 # C: eps fine grid around the 3e-3 optimum.
 # ============================================================================
-RUNNING | CDG_rfs33_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.q_agg=min --agent.adam_eps=3e-3
-RUNNING | CDG_rfs33_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.q_agg=min --agent.adam_eps=3e-3
-ON | CDG_rfs33_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.q_agg=min --agent.adam_eps=3e-3
-ON | CDG_rfs3_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.q_agg=min --agent.adam_eps=1e-3
-ON | CDG_rfs3_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.q_agg=min --agent.adam_eps=1e-3
-ON | CDX_sfe33L_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.adam_eps=3e-3
-ON | CDX_sfe33L_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.adam_eps=3e-3
-ON | CDX_sfe33L_t2_s2 | agents/stdfp.py | 2 | 2 | --agent.adam_eps=3e-3
-ON | CDX_ashl3L_t2_s0 | agents/anq_stdfp.py | 2 | 0 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=1e-3
-ON | CDX_ashl3L_t2_s1 | agents/anq_stdfp.py | 2 | 1 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=1e-3
-ON | CDF_sfe23_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.adam_eps=2e-3
-ON | CDF_sfe23_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.adam_eps=2e-3
+OFF | CDG_rfs33_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.q_agg=min --agent.adam_eps=3e-3   # superseded by q_agg=mean variants
+OFF | CDG_rfs33_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.q_agg=min --agent.adam_eps=3e-3   # superseded by q_agg=mean variants
+OFF | CDG_rfs33_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.q_agg=min --agent.adam_eps=3e-3   # superseded by q_agg=mean variants
+OFF | CDG_rfs3_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.q_agg=min --agent.adam_eps=1e-3   # superseded by q_agg=mean variants
+OFF | CDG_rfs3_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.q_agg=min --agent.adam_eps=1e-3   # superseded by q_agg=mean variants
+OFF | CDX_sfe33L_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.adam_eps=3e-3   # user: 1M only, no extended runs
+OFF | CDX_sfe33L_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.adam_eps=3e-3   # user: 1M only, no extended runs
+OFF | CDX_sfe33L_t2_s2 | agents/stdfp.py | 2 | 2 | --agent.adam_eps=3e-3   # user: 1M only, no extended runs
+OFF | CDX_ashl3L_t2_s0 | agents/anq_stdfp.py | 2 | 0 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=1e-3   # user: 1M only, no extended runs
+OFF | CDX_ashl3L_t2_s1 | agents/anq_stdfp.py | 2 | 1 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=1e-3   # user: 1M only, no extended runs
+RUNNING | CDF_sfe23_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.adam_eps=2e-3
+RUNNING | CDF_sfe23_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.adam_eps=2e-3
+
+# ---- q_agg=mean (user direction).  NOTE the earlier 'mean gives 0.000' was
+# on the mislaunched antmaze data and is void; genuine-cube mean is untested.
+# dsrl's own backup is mean-0.5*std, so mean-family is plausible here.
+RUNNING | CDG_rfs33m_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3
+RUNNING | CDG_rfs33m_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3
+RUNNING | CDG_rfs33m_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3
+RUNNING | CDG_rfs3m_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=1e-3
+RUNNING | CDG_rfs3m_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=1e-3
+RUNNING | CDF_sfe33m_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.adam_eps=3e-3 --agent.q_agg=mean
+RUNNING | CDF_sfe33m_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.adam_eps=3e-3 --agent.q_agg=mean
+
+# ---- tanh latent under the CURRENT recipe (earlier tanh tests were confounded
+# by the pre-eps broken config).  NOTE at full_action_dim=25 the tanh support
+# carries ~11.4 nats irreducible KL; tm=0.5 (budget 12.5) leaves ~1.1 usable,
+# so a tanh arm plausibly needs a bigger budget -- tm=1.0 variant included.
+RUNNING | CDG_rfstanh_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.latent_squash_tanh=True
+RUNNING | CDG_rfstanh_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.latent_squash_tanh=True
+RUNNING | CDG_rfstanh10_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.latent_squash_tanh=True --agent.target_multiplier=1.0
+
+# ---- tm=0.125 on cube under the CURRENT recipe (never tested -- the only
+# prior 0.125 cube run was the broken pre-eps config).  Tests whether cube
+# genuinely needs the big KL budget or 0.125 also works once everything else
+# is fixed.  Antmaze's 'tm=0.5 is bad' is itself only n=1 (0.292 vs 0.378).
+RUNNING | CDG_tm0125_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.125
+RUNNING | CDG_tm0125_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.125
+
+# ---- data anchor + eps on cube: the untested cell.  Every cube data-anchor
+# failure predates the eps fix, so 'data anchor is bad on cube' is strictly
+# 'was bad under eps=1e-8'.  lam=0.01 (the antmaze-validated value) + eps=3e-3.
+RUNNING | CDG_data33m_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3
+RUNNING | CDG_data33m_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.target_multiplier=0.5 --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3
+
+# ---- 3rd seeds for the two leaders (sfe33m 0.828, tm0125 0.786) ------------
+RUNNING | CDF_sfe33m_t2_s2 | agents/stdfp.py | 2 | 2 | --agent.adam_eps=3e-3 --agent.q_agg=mean
+RUNNING | CDG_tm0125_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.125
+
+# ---- stabilise the leader: tm0125 shows +-0.2-0.5 checkpoint churn (policy
+# movement, not overfitting: decoder mse stable 0.064-0.068, delta~0, Q stable).
+# use_target_latent decodes through the EMA decoder -> slow-moving latent space.
+RUNNING | CDG_tm0125tgt_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.125 --agent.use_target_latent=True
+RUNNING | CDG_tm0125tgt_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.125 --agent.use_target_latent=True
+
+# ---- idle-GPU slate ---------------------------------------------------------
+# 1) 4th seeds of both leaders (n=4 for the final claim)
+# 2) lam bracket on the rfs leader: lam=10 was carried from anq_stdfp, never
+#    swept under the current cube recipe
+# 3) anq_stdfp + q_agg=mean: its 0.744 used min; mean was worth +0.06 on stdfp
+# 4) eps=5e-3: the 3e-3..1e-2 grid gap (1e-2 was too damped, 3e-3 best)
+RUNNING | CDF_sfe33m_t2_s3 | agents/stdfp.py | 2 | 3 | --agent.adam_eps=3e-3 --agent.q_agg=mean
+RUNNING | CDG_tm0125_t2_s3 | agents/anq_rfs.py | 2 | 3 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.125 --agent.lam=10.0
+RUNNING | CDG_lam3tm_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.125 --agent.lam=3.0
+RUNNING | CDG_lam3tm_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.125 --agent.lam=3.0
+RUNNING | CDG_lam30tm_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.125 --agent.lam=30.0
+RUNNING | CDG_lam30tm_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.125 --agent.lam=30.0
+RUNNING | CDF_asme3_t2_s0 | agents/anq_stdfp.py | 2 | 0 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=1e-3 --agent.q_agg=mean
+RUNNING | CDF_asme3_t2_s1 | agents/anq_stdfp.py | 2 | 1 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=1e-3 --agent.q_agg=mean
+RUNNING | CDF_sfe53_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.adam_eps=5e-3 --agent.q_agg=mean
+RUNNING | CDF_sfe53_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.adam_eps=5e-3 --agent.q_agg=mean
+
+# ---- anchor-asymmetry analysis, E1: residual anchor at PROPER lam on antmaze.
+# The antmaze residual-anchor 'collapse' (R03/R06) used lam=0.01 -- effectively
+# unregularised.  If lam=10 works on antmaze too, the domain story collapses to
+# 'drift anchor fine everywhere at proper lam; DATA anchor is the domain knob'.
+RUNNING | AR_resid10_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
+RUNNING | AR_resid10_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.lam=10.0 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
