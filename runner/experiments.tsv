@@ -669,13 +669,179 @@ RUNNING | CDP_lo50stgt_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output
 #   - stochastic execution x lam {1,3}: out-support component with real freedom
 #   - leader config scouted on cube t1/t3 for the SOTA table
 # ============================================================================
-ON | CDQ_tm0125e3_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.latent_deterministic=False --agent.lam=10.0 --agent.adam_eps=1e-3 --agent.latent_deterministic=True
-ON | CDQ_tm0125e3_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.latent_deterministic=False --agent.lam=10.0 --agent.adam_eps=1e-3 --agent.latent_deterministic=True
-ON | CDQ_l1s_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.latent_deterministic=False --agent.lam=1.0 --agent.adam_eps=3e-3
-ON | CDQ_l1s_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.latent_deterministic=False --agent.lam=1.0 --agent.adam_eps=3e-3
-ON | CDQ_l3s_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.latent_deterministic=False --agent.lam=3.0 --agent.adam_eps=3e-3
-ON | CDQ_l3s_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.latent_deterministic=False --agent.lam=3.0 --agent.adam_eps=3e-3
-ON | CDQ_tgts_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.latent_deterministic=False --agent.lam=10.0 --agent.adam_eps=3e-3 --agent.use_target_latent=True
-ON | CDQ_tgts_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.latent_deterministic=False --agent.lam=10.0 --agent.adam_eps=3e-3 --agent.use_target_latent=True
-ON | CDQ_lead_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.latent_deterministic=False --agent.lam=10.0 --agent.adam_eps=3e-3 --agent.latent_deterministic=True
-ON | CDQ_lead_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.latent_deterministic=False --agent.lam=10.0 --agent.adam_eps=3e-3 --agent.latent_deterministic=True
+RUNNING | CDQ_tm0125e3_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.latent_deterministic=False --agent.lam=10.0 --agent.adam_eps=1e-3 --agent.latent_deterministic=True
+RUNNING | CDQ_tm0125e3_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.latent_deterministic=False --agent.lam=10.0 --agent.adam_eps=1e-3 --agent.latent_deterministic=True
+RUNNING | CDQ_l1s_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.latent_deterministic=False --agent.lam=1.0 --agent.adam_eps=3e-3
+RUNNING | CDQ_l1s_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.latent_deterministic=False --agent.lam=1.0 --agent.adam_eps=3e-3
+RUNNING | CDQ_l3s_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.latent_deterministic=False --agent.lam=3.0 --agent.adam_eps=3e-3
+RUNNING | CDQ_l3s_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.latent_deterministic=False --agent.lam=3.0 --agent.adam_eps=3e-3
+RUNNING | CDQ_tgts_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.latent_deterministic=False --agent.lam=10.0 --agent.adam_eps=3e-3 --agent.use_target_latent=True
+RUNNING | CDQ_tgts_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.latent_deterministic=False --agent.lam=10.0 --agent.adam_eps=3e-3 --agent.use_target_latent=True
+RUNNING | CDQ_lead_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.latent_deterministic=False --agent.lam=10.0 --agent.adam_eps=3e-3 --agent.latent_deterministic=True
+RUNNING | CDQ_lead_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.latent_deterministic=False --agent.lam=10.0 --agent.adam_eps=3e-3 --agent.latent_deterministic=True
+
+# ---- wake 1: stoch execution rejected (0.668 vs 0.763 det).  Fill slots:
+# leader 5th seed, det lam=1 (completes ladder), cube t4/t5 SOTA scouts.
+RUNNING | CDG_tm0125_t2_s4 | agents/anq_rfs.py | 2 | 4 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.125 --agent.lam=10.0
+RUNNING | CDQ_l1d_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.125 --agent.lam=1.0
+RUNNING | CDQ_lead_t4_s0 | agents/anq_rfs.py | 4 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.125 --agent.lam=10.0
+RUNNING | CDQ_lead_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.125 --agent.lam=10.0
+
+# ---- wake 3: dsrl baselines on t1/t3/t4/t5 under OUR protocol (we only have
+# its t2).  Required for any honest '>dsrl' claim; table numbers are theirs.
+RUNNING | CDQ_dsrl_t1_s0 | agents/dsrl.py | 1 | 0 | --agent.target_entropy_multiplier=0.5
+RUNNING | CDQ_dsrl_t3_s0 | agents/dsrl.py | 3 | 0 | --agent.target_entropy_multiplier=0.5
+RUNNING | CDQ_dsrl_t4_s0 | agents/dsrl.py | 4 | 0 | --agent.target_entropy_multiplier=0.5
+RUNNING | CDQ_dsrl_t5_s0 | agents/dsrl.py | 5 | 0 | --agent.target_entropy_multiplier=0.5
+
+# ---- wake 4: t2 probes exhausted (leader stands at 0.763).  Breadth: t1 seeds
+# + a t1 tm=0.25 probe (its KL ran 4.87 vs 3.125 budget -> wants more in-support
+# deviation).
+RUNNING | CDQ_lead_t1_s1 | agents/anq_rfs.py | 1 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.lam=10.0 --agent.target_multiplier=0.125
+RUNNING | CDQ_lead_t1_s2 | agents/anq_rfs.py | 1 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.lam=10.0 --agent.target_multiplier=0.125
+RUNNING | CDQ_t1tm025_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.lam=10.0 --agent.target_multiplier=0.25
+
+# ---- wake 6: lam=1 DETERMINISTIC beat the lam=10 leader at n=1 (0.792 vs
+# 0.763, best 0.94).  Seed it and carry it to the gap tasks (t1 gap 0.26 vs
+# dsrl-on-our-protocol 0.920; t3 0.404).  Plus the lam=0.3 ladder edge.
+RUNNING | CDQ_l1d_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.125 --agent.lam=1.0
+RUNNING | CDQ_l1d_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.125 --agent.lam=1.0
+RUNNING | CDQ_l1d_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.125 --agent.lam=1.0
+RUNNING | CDQ_l1d_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.125 --agent.lam=1.0
+RUNNING | CDQ_l03d_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.125 --agent.lam=0.3
+
+# ---- wake 7: lam=0.3 hit 0.840 n=1 with an ACTIVE residual (drms 0.0099).
+# Seed it on t2; carry lam-freedom to every gap task; stdfp-family diagnostic
+# on t5 to separate rfs-specific failure from family-wide.
+RUNNING | CDQ_l03d_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.125 --agent.lam=0.3
+RUNNING | CDQ_l03d_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.125 --agent.lam=0.3
+RUNNING | CDQ_l03d_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.125 --agent.lam=0.3
+RUNNING | CDQ_l03d_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.125 --agent.lam=0.3
+RUNNING | CDQ_l03d_t4_s0 | agents/anq_rfs.py | 4 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.125 --agent.lam=0.3
+RUNNING | CDQ_l03d_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.125 --agent.lam=0.3
+RUNNING | CDQ_sf_t5_s0 | agents/stdfp.py | 5 | 0 | --agent.adam_eps=3e-3 --agent.q_agg=mean
+
+# ---- raw force inside anq_rfs (never tested; stdfp ranking was unit+eps 0.845
+# > raw+decoder-eps 0.728, carried over unverified).  On the lam=0.3 recipe.
+RUNNING | CDQ_l03raw_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.lam=0.3 --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4
+
+# ---- wake 8 (idle recovery): stdfp cracked t5 at 0.728 (beats dsrl 0.660)
+# using tm=0.5; ALL rfs gap-task arms used tm=0.125.  tm=0.5 x gap tasks is
+# the prime suspect.  Deep queue so the fleet cannot drain again.
+RUNNING | CDR_tm05l10_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.5 --agent.lam=10.0
+RUNNING | CDR_tm05l03_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.5 --agent.lam=0.3
+RUNNING | CDR_tm05l10_t4_s0 | agents/anq_rfs.py | 4 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.5 --agent.lam=10.0
+RUNNING | CDR_tm05l03_t4_s0 | agents/anq_rfs.py | 4 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.5 --agent.lam=0.3
+RUNNING | CDR_tm05l10_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.5 --agent.lam=10.0
+RUNNING | CDR_tm05l03_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.5 --agent.lam=0.3
+RUNNING | CDR_tm05l10_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.5 --agent.lam=10.0
+RUNNING | CDQ_l03raw_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.125 --agent.lam=0.3 --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4
+RUNNING | CDQ_l03raw_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.125 --agent.lam=0.3 --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4
+RUNNING | CDQ_sf_t3_s0 | agents/stdfp.py | 3 | 0 | --agent.adam_eps=3e-3 --agent.q_agg=mean
+RUNNING | CDQ_sf_t4_s0 | agents/stdfp.py | 4 | 0 | --agent.adam_eps=3e-3 --agent.q_agg=mean
+# backlog (2nd seeds, launch when slots free):
+RUNNING | CDR_tm05l10_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.5 --agent.lam=10.0
+RUNNING | CDR_tm05l10_t4_s1 | agents/anq_rfs.py | 4 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.5 --agent.lam=10.0
+RUNNING | CDR_tm05l10_t5_s1 | agents/anq_rfs.py | 5 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.5 --agent.lam=10.0
+RUNNING | CDQ_sf_t5_s1 | agents/stdfp.py | 5 | 1 | --agent.adam_eps=3e-3 --agent.q_agg=mean
+
+# ---- wake 10: tm=0.5 confirmed on t3 (0.404 -> 0.632) and the KL dual is
+# STILL saturating at 12.5 on t1 (12.93) and t3 (13.55) -> probe tm=1.0.
+RUNNING | CDR_tm10l10_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.lam=10.0 --agent.target_multiplier=1.0
+RUNNING | CDR_tm10l10_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.lam=10.0 --agent.target_multiplier=1.0
+RUNNING | CDR_tm05l10_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.lam=10.0 --agent.target_multiplier=0.5
+
+# ---- wake 11: rfs-vs-stdfp residue persists at matched tm on every gap task
+# (t3 0.63 vs 0.88, t4 0.21 vs 0.36, t5 0.29 vs 0.69).  anq_stdfp ALSO
+# instantiates the two-component structure (separate nets, isolated losses)
+# and is untested on gap tasks -- its best t2 recipe (0.744-0.765) deployed.
+RUNNING | CDS_as_t3_s0 | agents/anq_stdfp.py | 3 | 0 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=1e-3
+RUNNING | CDS_as_t3_s1 | agents/anq_stdfp.py | 3 | 1 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=1e-3
+RUNNING | CDS_as_t4_s0 | agents/anq_stdfp.py | 4 | 0 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=1e-3
+RUNNING | CDS_as_t4_s1 | agents/anq_stdfp.py | 4 | 1 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=1e-3
+RUNNING | CDS_as_t5_s0 | agents/anq_stdfp.py | 5 | 0 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=1e-3
+RUNNING | CDS_as_t5_s1 | agents/anq_stdfp.py | 5 | 1 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=1e-3
+
+# ============================================================================
+# OVERNIGHT CAMPAIGN (8h): beat dsrl-on-our-protocol per task with the
+# two-component structure (anq_stdfp or anq_rfs instantiation).
+# dsrl targets: t1 .920  t2 .837  t3 .848  t4 .356  t5 .660
+# ============================================================================
+RUNNING | CDS_as_t1_s0 | agents/anq_stdfp.py | 1 | 0 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=1e-3
+RUNNING | CDS_as_t1_s1 | agents/anq_stdfp.py | 1 | 1 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=1e-3
+RUNNING | CDS_as_t2_s0 | agents/anq_stdfp.py | 2 | 0 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=1e-3
+RUNNING | CDS_as_t2_s1 | agents/anq_stdfp.py | 2 | 1 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=1e-3
+RUNNING | CDS_rfs1tm05_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.lam=1.0 --agent.target_multiplier=0.5
+RUNNING | CDS_rfs1tm05_t1_s1 | agents/anq_rfs.py | 1 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.lam=1.0 --agent.target_multiplier=0.5
+RUNNING | CDS_raw_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.lam=0.3 --agent.target_multiplier=0.5 --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4
+RUNNING | CDS_raw_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.lam=0.3 --agent.target_multiplier=0.5 --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4
+RUNNING | CDS_as_t3_s2 | agents/anq_stdfp.py | 3 | 2 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=1e-3
+RUNNING | CDS_as_t4_s2 | agents/anq_stdfp.py | 4 | 2 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=1e-3
+RUNNING | CDS_as_t5_s2 | agents/anq_stdfp.py | 5 | 2 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=1e-3
+
+# ---- overnight w2: as_t3 0.802 (n=2); rfs t1 tm=1.0 -> 0.780 with KL STILL
+# saturating (24.4/25).  Exploit: t1 tm=1.0 seeds + tm=2.0 probe.
+RUNNING | CDR_tm10l10_t1_s1 | agents/anq_rfs.py | 1 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.lam=10.0 --agent.target_multiplier=1.0
+RUNNING | CDR_tm10l10_t1_s2 | agents/anq_rfs.py | 1 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.lam=10.0 --agent.target_multiplier=1.0
+RUNNING | CDR_tm20l10_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.lam=10.0 --agent.target_multiplier=2.0
+
+# ---- overnight w4: as trails sf on gap tasks; residue = eps(1e-3 vs 3e-3)
+# and q_agg(min vs mean).  Isolate: eps=3e-3 keeping min, and eps=3e-3+mean.
+RUNNING | CDS_asE_t3_s0 | agents/anq_stdfp.py | 3 | 0 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=3e-3
+RUNNING | CDS_asE_t4_s0 | agents/anq_stdfp.py | 4 | 0 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=3e-3
+RUNNING | CDS_asE_t5_s0 | agents/anq_stdfp.py | 5 | 0 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=3e-3
+RUNNING | CDS_asEM_t3_s0 | agents/anq_stdfp.py | 3 | 0 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=3e-3 --agent.q_agg=mean
+RUNNING | CDS_asEM_t4_s0 | agents/anq_stdfp.py | 4 | 0 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=3e-3 --agent.q_agg=mean
+RUNNING | CDS_asEM_t5_s0 | agents/anq_stdfp.py | 5 | 0 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=3e-3 --agent.q_agg=mean
+
+# ---- overnight w6: as_t1 = 0.936 (n=2) BEATS dsrl 0.920.  Secure n=3;
+# extend the exact winning recipe to t2 (its one untried task at this recipe).
+RUNNING | CDS_as_t1_s2 | agents/anq_stdfp.py | 1 | 2 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=1e-3
+RUNNING | CDS_asE_t2_s0 | agents/anq_stdfp.py | 2 | 0 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=3e-3
+
+# ---- backlog pre-load (keep fleet full while isolation arms finish):
+# t1 win to n=4; pre-seed the eps-isolation cells so winners reach n=2 fast.
+RUNNING | CDS_as_t1_s3 | agents/anq_stdfp.py | 1 | 3 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=1e-3
+RUNNING | CDS_asE_t3_s1 | agents/anq_stdfp.py | 3 | 1 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=3e-3
+RUNNING | CDS_asE_t4_s1 | agents/anq_stdfp.py | 4 | 1 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=3e-3
+RUNNING | CDS_asE_t5_s1 | agents/anq_stdfp.py | 5 | 1 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=3e-3
+RUNNING | CDS_asEM_t3_s1 | agents/anq_stdfp.py | 3 | 1 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=3e-3 --agent.q_agg=mean
+RUNNING | CDS_asEM_t5_s1 | agents/anq_stdfp.py | 5 | 1 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=3e-3 --agent.q_agg=mean
+
+# ---- w12: asE ruled out eps as the residue.  Open fronts: t2 (as never ran
+# tm=0.125 there), t4 (biggest gap; freer refine head untested for as).
+RUNNING | CDS_as125_t2_s0 | agents/anq_stdfp.py | 2 | 0 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.125 --agent.adam_eps=1e-3
+RUNNING | CDS_as125_t2_s1 | agents/anq_stdfp.py | 2 | 1 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.125 --agent.adam_eps=1e-3
+RUNNING | CDS_asl1_t4_s0 | agents/anq_stdfp.py | 4 | 0 | --agent.refine_anchor=base --agent.lam=1.0 --agent.target_multiplier=0.5 --agent.adam_eps=1e-3
+RUNNING | CDS_asl1_t4_s1 | agents/anq_stdfp.py | 4 | 1 | --agent.refine_anchor=base --agent.lam=1.0 --agent.target_multiplier=0.5 --agent.adam_eps=1e-3
+
+# ---- w15: eps and q_agg both ruled out; as recipe locally optimal.  Seed
+# depth for the morning claims (n>=3-4 on every task's leader).
+RUNNING | CDS_as_t3_s3 | agents/anq_stdfp.py | 3 | 3 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=1e-3
+RUNNING | CDS_as_t4_s3 | agents/anq_stdfp.py | 4 | 3 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=1e-3
+RUNNING | CDS_as_t5_s3 | agents/anq_stdfp.py | 5 | 3 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=1e-3
+
+# ---- backlog top-up: t4's stdfp-recipe-with-refine (asEM_t4) 2nd seed;
+# t2 rfs-raw leader to n=4.
+RUNNING | CDS_asEM_t4_s1 | agents/anq_stdfp.py | 4 | 1 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=3e-3 --agent.q_agg=mean
+RUNNING | CDQ_l03raw_t2_s3 | agents/anq_rfs.py | 2 | 3 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.target_multiplier=0.125 --agent.lam=0.3 --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4
+
+# ---- w19: t5 WON (asE 0.694 > dsrl 0.660, n=2).  Secure n=3; t4 asEM depth.
+RUNNING | CDS_asE_t5_s2 | agents/anq_stdfp.py | 5 | 2 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=3e-3
+RUNNING | CDS_asEM_t4_s2 | agents/anq_stdfp.py | 4 | 2 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=3e-3 --agent.q_agg=mean
+
+# ---- w20: t2 leader = rfs l03raw 0.780 (gap 0.057 to dsrl).  Probes around it.
+RUNNING | CDT_rawE3_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.lam=0.3 --agent.drift_force_norm=raw --agent.target_multiplier=0.125 --agent.drift_adam_eps=3e-4
+RUNNING | CDT_rawtm25_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.q_agg=mean --agent.lam=0.3 --agent.drift_force_norm=raw --agent.target_multiplier=0.25 --agent.drift_adam_eps=1e-4
+
+# ---- w23: t4 stuck ~0.26 (dsrl .356), t3 at 0.773 (dsrl .848).  Last probes:
+# t3 lam=30 (pin refine harder -> stdfp-like), t4 tm=0.25 and drift_temps=0.3.
+RUNNING | CDT_asl30_t3_s0 | agents/anq_stdfp.py | 3 | 0 | --agent.refine_anchor=base --agent.lam=30.0 --agent.target_multiplier=0.5 --agent.adam_eps=1e-3
+RUNNING | CDT_tm25_t4_s0 | agents/anq_stdfp.py | 4 | 0 | --agent.refine_anchor=base --agent.target_multiplier=0.25 --agent.adam_eps=3e-3 --agent.q_agg=mean --agent.lam=10.0
+RUNNING | CDT_dt03_t4_s0 | agents/anq_stdfp.py | 4 | 0 | --agent.refine_anchor=base --agent.target_multiplier=0.5 --agent.adam_eps=3e-3 --agent.q_agg=mean --agent.lam=10.0 --agent.drift_temps=0.3
+
+# ---- w26: dsrl is n=1 on t1/t3/t4 -- seed the baseline for fair paired claims.
+RUNNING | CDQ_dsrl_t1_s1 | agents/dsrl.py | 1 | 1 | --agent.target_entropy_multiplier=0.5
+RUNNING | CDQ_dsrl_t3_s1 | agents/dsrl.py | 3 | 1 | --agent.target_entropy_multiplier=0.5
+RUNNING | CDQ_dsrl_t4_s1 | agents/dsrl.py | 4 | 1 | --agent.target_entropy_multiplier=0.5
+RUNNING | CDQ_dsrl_t5_s2 | agents/dsrl.py | 5 | 2 | --agent.target_entropy_multiplier=0.5

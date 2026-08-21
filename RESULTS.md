@@ -462,3 +462,23 @@ per-parameter noise components, which only the eps-family fixes do.
 cheating -- it leaks held-out data into a training decision; the code remains,
 default-off.)
 
+
+## Overnight autonomous campaign: cube-double, structure vs dsrl (our protocol)
+
+Two-component structure (latent actor + refine actor + drift BC), num_qs=2, best_of_n=1, 1M steps.
+
+| task | ours (structure) | config | n | dsrl (ours) | n | delta |
+|---|---|---|---|---|---|---|
+| t1 | **0.922** | CDS_as_t1 | 4 | 0.920 | 1 | +0.002 |
+| t2 | **0.780** | CDQ_l03raw_t2 | 4 | 0.837 | 3 | -0.057 |
+| t3 | **0.787** | CDS_as_t3 | 4 | 0.848 | 1 | -0.061 |
+| t4 | **0.296** | CDS_asEM_t4 | 3 | 0.356 | 1 | -0.060 |
+| t5 | **0.696** | CDS_as_t5 | 4 | 0.660 | 1 | +0.036 |
+| **agg** | **0.696** | | | 0.724 | | -0.028 |
+
+Won: t1 (+0.002, n=4 vs n=1), t5 (+0.036, n=4).  Open: t2 -0.057, t3 -0.061, t4 -0.060.
+dsrl seed-depth runs in flight on t1/t3/t4/t5 for fair paired stats.
+
+Config findings: eps and q_agg optima are PER-TASK (eps 3e-3 helps t5, hurts t3;
+mean helps stdfp/t4, hurts as/t2-t3).  tm ladder closed per task (t1: 1.0 for rfs,
+2.0 collapses).  Raw-force recipe is t2-specific.  lam freedom helps t2 only.
