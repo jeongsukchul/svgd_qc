@@ -165,7 +165,11 @@ def set_agent_online_learning(agent, online_learning):
 
 
 def save_checkpoints(agent, save_dir, epoch):
-    save_agent(agent, save_dir, epoch)
+    # Checkpoint saving disabled entirely (user request, disk at 96%): the
+    # ~68MB agent pkl per run was never consumed by anything in this project,
+    # and metrics/configs are synced to HF.  Re-enable by uncommenting.
+    # save_agent(agent, save_dir, epoch)
+    return
     # save_critic disabled: the standalone critic pkl (~13MB/run) is never
     # consumed anywhere and the critic params are already inside the agent pkl.
     # (2.7GB reclaimed across 213 runs when this was turned off.)
