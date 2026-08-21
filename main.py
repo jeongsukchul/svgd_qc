@@ -36,6 +36,11 @@ flags.DEFINE_integer('start_training', 5000, 'when does training start')
 
 flags.DEFINE_integer('utd_ratio', 1, "update to data ratio")
 
+flags.DEFINE_bool('bc_val_stop', False, 'Adaptively stop the drift-BC loss when validation '
+                  'generated_to_data_mse stops improving (requires an agent with drift_bc_loss '
+                  'and the bc_stop_step config).')
+flags.DEFINE_integer('bc_val_patience', 3, 'Consecutive non-improving val checks before stopping BC.')
+
 flags.DEFINE_bool('prune_batch_keys', False, 'Drop batch keys the agent never reads (full_observations/terminals/next_actions) before the host->device copy.')
 
 flags.DEFINE_integer('offline_scan_chunk', 1, 'Fuse this many offline updates into one lax.scan dispatch (1 = per-step, as before). Mathematically identical; purely a host-dispatch optimization.')
@@ -303,6 +308,7 @@ def main(_):
     offline_init_time = time.time()
     agent = set_agent_online_learning(agent, False)
     # Offline RL
+    _bc_val_state = {'best': float('inf'), 'bad': 0, 'stopped': False}
     scan_chunk = max(1, FLAGS.offline_scan_chunk)
     if scan_chunk > 1:
         for _name, _iv in (("eval_interval", FLAGS.eval_interval), ("log_interval", FLAGS.log_interval),
@@ -358,6 +364,32 @@ def main(_):
         # saving
         if FLAGS.save_interval > 0 and i % FLAGS.save_interval == 0:
             save_checkpoints(agent, FLAGS.save_dir, log_step)
+
+        # Adaptive BC stop (option 4): at each eval point, measure the drift
+        # decoder's fit on the VALIDATION set; when it stops improving for
+        # bc_val_patience checks, flip bc_stop_step so the (already jitted)
+        # gate turns the BC loss off.  One-time config change = one retrace.
+        if (FLAGS.bc_val_stop and val_dataset is not None
+                and FLAGS.eval_interval != 0 and i % FLAGS.eval_interval == 0
+                and hasattr(agent, 'drift_bc_loss')
+                and 'bc_stop_step' in agent.config
+                and not _bc_val_state.get('stopped')):
+            _vb = val_dataset.sample_sequence(config['batch_size'],
+                                              sequence_length=FLAGS.horizon_length,
+                                              discount=discount)
+            _, _vinfo = agent.drift_bc_loss(_vb, agent.network.params, jax.random.PRNGKey(0))
+            _vmse = float(_vinfo['generated_to_data_mse'])
+            if _vmse < _bc_val_state['best'] - 1e-4:
+                _bc_val_state['best'] = _vmse
+                _bc_val_state['bad'] = 0
+            else:
+                _bc_val_state['bad'] += 1
+            print(f"[bc_val_stop] step {i}: val mse {_vmse:.4f} "
+                  f"(best {_bc_val_state['best']:.4f}, bad {_bc_val_state['bad']})", flush=True)
+            if _bc_val_state['bad'] >= FLAGS.bc_val_patience:
+                agent = agent.replace(config=agent.config.copy({'bc_stop_step': 1}))
+                _bc_val_state['stopped'] = True
+                print(f"[bc_val_stop] BC stopped at step {i}", flush=True)
 
         # eval
         if (i == FLAGS.offline_steps if scan_chunk > 1 else i == FLAGS.offline_steps - 1) or \

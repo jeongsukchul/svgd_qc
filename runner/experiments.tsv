@@ -507,7 +507,38 @@ RUNNING | CDF_as10e3_t2_s1 | agents/anq_stdfp.py | 2 | 1 | --agent.refine_anchor
 # damp; force_norm=raw is the loss-level fix (BC push anneals with actual force).
 # Test raw at DEFAULT eps (1e-8): if it alone prevents the collapse, mechanism
 # confirmed at the loss level.
-ON | CDF_sfraw_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.drift_force_norm=raw
-ON | CDF_sfraw_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.drift_force_norm=raw
-ON | CDF_sfrawe3_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.drift_force_norm=raw --agent.adam_eps=1e-3
-ON | CDF_sfrawe3_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.drift_force_norm=raw --agent.adam_eps=1e-3
+RUNNING | CDF_sfraw_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.drift_force_norm=raw
+RUNNING | CDF_sfraw_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.drift_force_norm=raw
+RUNNING | CDF_sfrawe3_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.drift_force_norm=raw --agent.adam_eps=1e-3
+RUNNING | CDF_sfrawe3_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.drift_force_norm=raw --agent.adam_eps=1e-3
+
+# ---- phase 18g: finish line.  eps=3e-3 > 1e-3 for stdfp (0.804 vs 0.680);
+# give the refine version the same eps, add eps=1e-2 bracket + 3rd seeds.
+RUNNING | CDF_sfe33_t2_s2 | agents/stdfp.py | 2 | 2 | --agent.adam_eps=3e-3
+RUNNING | CDF_sfe2_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.adam_eps=1e-2
+RUNNING | CDF_sfe2_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.adam_eps=1e-2
+RUNNING | CDF_as30e33_t2_s0 | agents/anq_stdfp.py | 2 | 0 | --agent.refine_anchor=base --agent.target_multiplier=0.5 --agent.adam_eps=3e-3 --agent.lam=30.0
+RUNNING | CDF_as30e33_t2_s1 | agents/anq_stdfp.py | 2 | 1 | --agent.refine_anchor=base --agent.target_multiplier=0.5 --agent.adam_eps=3e-3 --agent.lam=30.0
+RUNNING | CDF_as30e33_t2_s2 | agents/anq_stdfp.py | 2 | 2 | --agent.refine_anchor=base --agent.target_multiplier=0.5 --agent.adam_eps=3e-3 --agent.lam=30.0
+RUNNING | CDF_as10e3_t2_s2 | agents/anq_stdfp.py | 2 | 2 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.adam_eps=1e-3
+
+# ---- phase 18h: DECODER-ONLY eps (removes the global-eps damping trade-off).
+# drift_adam_eps applies the large eps to actor_drift only; critic and latent
+# actor keep 1e-8.  If the mechanism story is right this should match or beat
+# eps-global=3e-3 (0.772) with faster early learning.
+RUNNING | CDF_sfdeps_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.drift_adam_eps=3e-3
+RUNNING | CDF_sfdeps_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.drift_adam_eps=3e-3
+RUNNING | CDF_sfdeps_t2_s2 | agents/stdfp.py | 2 | 2 | --agent.drift_adam_eps=3e-3
+RUNNING | CDF_asdeps_t2_s0 | agents/anq_stdfp.py | 2 | 0 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.drift_adam_eps=3e-3
+RUNNING | CDF_asdeps_t2_s1 | agents/anq_stdfp.py | 2 | 1 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.5 --agent.drift_adam_eps=3e-3
+
+# ---- phase 18i: options 2 & 3, each at DEFAULT eps to isolate the mechanism.
+# (option 4, validation-based stop, dropped per user: it leaks held-out
+#  supervision into a training decision -- cheating vs baselines.)
+# opt2: linear BC-weight decay 100k->400k (smooth version of bc_stop).
+# opt3: force_norm=const 0.055 (early-training force RMS): full-strength BC at
+#       the start, anneals as the true force decays relative to the constant.
+ON | CDF_sfdec_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.bc_decay_start=100000 --agent.bc_decay_end=400000
+ON | CDF_sfdec_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.bc_decay_start=100000 --agent.bc_decay_end=400000
+ON | CDF_sfconst_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.drift_force_norm=const --agent.drift_force_scale=0.055
+ON | CDF_sfconst_t2_s1 | agents/stdfp.py | 2 | 1 | --agent.drift_force_norm=const --agent.drift_force_scale=0.055

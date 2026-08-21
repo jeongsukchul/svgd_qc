@@ -241,6 +241,7 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
             fixed_pos=actions[..., None, :],
             R_list=(self.config["drift_temps"],),
             force_norm=self.config["drift_force_norm"] if "drift_force_norm" in self.config else "unit",
+            force_scale_const=self.config["drift_force_scale"] if "drift_force_scale" in self.config else 0.0,
         )
         loss = losses.mean()
         info = {
@@ -369,6 +370,14 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
         if bc_stop:
             bc_on = (self.network.step < bc_stop).astype(bc_loss.dtype)
             bc_loss = bc_loss * bc_on
+        bc_end = self.config["bc_decay_end"] if "bc_decay_end" in self.config else 0
+        if bc_end:
+            bc_start = self.config["bc_decay_start"] if "bc_decay_start" in self.config else 0
+            frac = jnp.clip(
+                (bc_end - self.network.step) / jnp.maximum(bc_end - bc_start, 1),
+                0.0, 1.0,
+            ).astype(bc_loss.dtype)
+            bc_loss = bc_loss * frac
         refine_loss, refine_info = self.refine_actor_loss(
             batch, grad_params, refine_rng
         )
@@ -752,6 +761,9 @@ def get_config():
             adam_eps=1e-8,
             drift_adam_eps=ml_collections.config_dict.placeholder(float),  # decoder-only eps
             drift_force_norm="unit",  # "raw" = un-normalised force, BC anneals naturally
+            bc_decay_start=0,
+            bc_decay_end=0,   # >0 enables linear BC-weight decay to 0 at this step
+            drift_force_scale=0.0,  # >0 with drift_force_norm='const': fixed normaliser
             noise_regularizer="kl",
             noise_state_dependent_std=False,
             noise_target_entropy=ml_collections.config_dict.placeholder(float),

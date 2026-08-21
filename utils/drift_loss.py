@@ -12,7 +12,7 @@ def cdist(x, y, eps=1e-8):
     return jnp.clip(sq_dist, a_min=eps)
 
 
-@partial(jax.jit, static_argnames=("R_list", "plus_only", "use_neg_only", "force_norm"))
+@partial(jax.jit, static_argnames=("R_list", "plus_only", "use_neg_only", "force_norm", "force_scale_const"))
 def drift_loss(
     gen,
     fixed_pos,
@@ -22,6 +22,7 @@ def drift_loss(
     weight_neg=None,
     R_list=(0.02, 0.05, 0.2),
     force_norm="unit",
+    force_scale_const=0.0,
     plus_only=False,
     use_neg_only=False,
     score=None,
@@ -141,7 +142,12 @@ def drift_loss(
             # chasing re-inflated noise late in training (the measured
             # overfitting on cube-double).  "raw" keeps the force at its actual
             # magnitude so the BC push anneals as the fit improves.
-            if force_norm == "raw":
+            if force_norm == "const":
+                # Fixed normaliser (e.g. the early-training force RMS ~0.055 on
+                # cube-double): full-strength BC at the start, then the applied
+                # force anneals as the true force decays relative to the const.
+                force_scale = jnp.asarray(force_scale_const)
+            elif force_norm == "raw":
                 force_scale = jnp.ones(())
             else:
                 force_scale = jnp.sqrt(jnp.clip(f_norm_val, a_min=1e-8))  # normalize force of each temperature

@@ -175,6 +175,7 @@ class STDFPAgent(flax.struct.PyTreeNode):
             fixed_pos=batch_actions[:, None, :],
             R_list=(self.config["drift_temps"],),
             force_norm=self.config["drift_force_norm"] if "drift_force_norm" in self.config else "unit",
+            force_scale_const=self.config["drift_force_scale"] if "drift_force_scale" in self.config else 0.0,
         )
         actor_drift_loss = drift_loss_val.mean()
         info = {
@@ -215,6 +216,17 @@ class STDFPAgent(flax.struct.PyTreeNode):
         if bc_stop:
             bc_on = (self.network.step < bc_stop).astype(actor_drift_loss.dtype)
             actor_drift_loss = actor_drift_loss * bc_on
+        # Option: smooth linear decay of the BC weight from bc_decay_start to
+        # bc_decay_end (then 0).  Avoids the hard-cutoff timing sensitivity of
+        # bc_stop_step (150k good / 600k dead on cube-double).
+        bc_end = self.config["bc_decay_end"] if "bc_decay_end" in self.config else 0
+        if bc_end:
+            bc_start = self.config["bc_decay_start"] if "bc_decay_start" in self.config else 0
+            frac = jnp.clip(
+                (bc_end - self.network.step) / jnp.maximum(bc_end - bc_start, 1),
+                0.0, 1.0,
+            ).astype(actor_drift_loss.dtype)
+            actor_drift_loss = actor_drift_loss * frac
 
         if noise_actor_type == "sac":
             dist = self.network.select("noise_actor")(
@@ -816,7 +828,10 @@ def get_config():
             bc_stop_step=0,   # 0 = never stop (previous behaviour)
             adam_eps=1e-8,
             drift_adam_eps=ml_collections.config_dict.placeholder(float),  # decoder-only eps
-            drift_force_norm="unit",  # "raw" = un-normalised force, BC anneals naturally    # larger (1e-4-ish) damps updates where 2nd moment is tiny
+            drift_force_norm="unit",  # "raw" = un-normalised force, BC anneals naturally
+            bc_decay_start=0,
+            bc_decay_end=0,   # >0 enables linear BC-weight decay to 0 at this step
+            drift_force_scale=0.0,  # >0 with drift_force_norm='const': fixed normaliser    # larger (1e-4-ish) damps updates where 2nd moment is tiny
             gen_per_label=8,
             noise_regularizer="kl",
             noise_state_dependent_std=False,
