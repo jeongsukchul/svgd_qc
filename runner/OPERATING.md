@@ -19,6 +19,15 @@ Autonomously tune the two-component algorithm to SOTA. Do not wait for user repl
   baselines/diagnostics only.
 - num_qs=2 and best_of_n=1 are FIXED for fair comparison. 1M steps only.
 
+## Rule 1b: SEED BUDGET (user correction — depth was crowding out exploration)
+- Screening: n=2-3 (kills n=1 flattery; never rank on n=1).
+- Promising arm: confirm at n=4-5. STOP there unless it is a final headline claim.
+- Final headline claims only (the per-task leaders in the paper table): n=8 cap.
+  NOTHING goes past n=8. SEM gain beyond that is ~0.005 — pure waste.
+- Backlog filler priority: (1) untested cells/probes at n=2, (2) confirmations
+  to n=4-5, (3) headline depth to n=8. Depth is the LAST resort filler, not the
+  default.
+
 ## Rule 3: analysis discipline
 - Read the FULL metric set (dashboard.py): eval + decoder mse + latent KL vs
   budget + delta_rms + critic q & drift.
