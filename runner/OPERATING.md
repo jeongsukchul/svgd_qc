@@ -37,6 +37,11 @@ Autonomously tune the two-component algorithm to SOTA. Do not wait for user repl
   mislaunch happened; done-markers must be eval-row counts, not log strings).
 - Baselines need seed depth too (dsrl n=1 numbers moved by +-0.07).
 
+## Rule 3b: after EDITING run_plan.sh, ALWAYS kill + restart the runner
+The runner is a long-lived bash process; it never re-reads domain cases.  The
+57-run mislaunch AND the HM_rfs_t1 mislaunch both came from stale runners.
+After restart, verify the FIRST launched row's env dir matches its domain.
+
 ## Rule 4: hygiene at every wake
 - `find exp -name "*.pkl" -delete`  (checkpoints disabled but old-code runs write them)
 - Confirm `run_plan.sh` alive (restart with IDLE_EXIT=999999999) and sync daemon alive.
