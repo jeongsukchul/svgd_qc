@@ -28,6 +28,13 @@ Autonomously tune the two-component algorithm to SOTA. Do not wait for user repl
   to n=4-5, (3) headline depth to n=8. Depth is the LAST resort filler, not the
   default.
 
+## Rule 2b: USER-VETOED directions (do NOT test these)
+- Multi-scale drift kernel (drift_multi_temp / R_list with several temps): user strictly vetoed.
+- n-step TD returns via h>1 on locomotion (breaks the h=1 protocol): vetoed.
+- Refine-head per-module lr: allowed but user judges it won't matter -- lowest priority.
+- Critic expectile > 0.5: allowed, but user expects it to fail; keep to the n=1 probes already queued.
+- State-dependent latent std: allowed.
+
 ## Rule 3: analysis discipline
 - Read the FULL metric set (dashboard.py): eval + decoder mse + latent KL vs
   budget + delta_rms + critic q & drift.

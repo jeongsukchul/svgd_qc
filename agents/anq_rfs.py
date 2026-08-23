@@ -275,6 +275,13 @@ class ANQRFSAgent(flax.struct.PyTreeNode):
             if self.config["residual_sees_stopped_base"] else base,
             mode="residual", params=params,
         )
+        # Curriculum: keep the policy purely in-support (delta = 0) until
+        # refine_start_step, then let the refine head engage.  Mirror of the
+        # decoder freeze at the other end of training.
+        start = self.config.get("refine_start_step", 0)
+        if start and not self.config["residual_stochastic"]:
+            gate = (self.network.step >= start).astype(base.dtype)
+            raw = raw * gate
         if self.config["residual_stochastic"]:
             r_mean, r_std = raw
             if deterministic or rng is None:
@@ -291,10 +298,19 @@ class ANQRFSAgent(flax.struct.PyTreeNode):
 
     def critic_loss(self, batch, grad_params, rng):
         next_observations = batch["next_observations"][..., -1, :]
-        next_actions, _ = self._sample_actions_bestof(
-            next_observations, rng, actor_name="target_rfs_actor",
-            critic_name="target_critic",
-        )
+        if self.config.get("critic_target_actions", "refined") == "base":
+            # DSRL-style bootstrap: the TD target evaluates the in-support base
+            # policy (latent + decoder), so a bad refine head cannot poison the
+            # critic targets.  Execution still uses the full refined policy.
+            refined, delta, noises, mean, std, log_prob = self._act(
+                next_observations, rng, actor_name="target_rfs_actor",
+            )
+            next_actions = self._safe_clip(refined - delta)
+        else:
+            next_actions, _ = self._sample_actions_bestof(
+                next_observations, rng, actor_name="target_rfs_actor",
+                critic_name="target_critic",
+            )
         next_qs = self.network.select("target_critic")(
             next_observations, actions=next_actions
         )
@@ -333,14 +349,45 @@ class ANQRFSAgent(flax.struct.PyTreeNode):
         generated = self.network.select("actor_drift")(
             observations, noises, params=grad_params
         ).reshape(batch_size, self.config["gen_per_label"], action_dim)
+        # drift_multi_temp: multi-scale kernel around the base temperature
+        # (drift_loss was designed for an R_list; we have only ever passed one).
+        _R = ((self.config["drift_temps"] * 0.25, self.config["drift_temps"],
+               self.config["drift_temps"] * 4.0)
+              if self.config.get("drift_multi_temp", False)
+              else (self.config["drift_temps"],))
         losses, drift_info = drift_loss(
             gen=generated,
             fixed_pos=actions[..., None, :],
-            R_list=(self.config["drift_temps"],),
+            R_list=_R,
             force_norm=self.config["drift_force_norm"] if "drift_force_norm" in self.config else "unit",
             force_scale_const=self.config["drift_force_scale"] if "drift_force_scale" in self.config else 0.0,
         )
         loss = losses.mean()
+        # Q-guided drift (Q-Flow-style guidance transplanted onto the SVGD
+        # decoder): regress the generated samples one beta-scaled unit step
+        # along the critic's action-gradient.  The target is stop-gradded, so
+        # this adds a bounded steering force rather than raw Q-ascent; beta is
+        # comparable to the unit-RMS drift-BC step (beta ~ 1/lambda_QFlow).
+        qg = self.config.get("drift_q_guidance", 0.0)
+        if qg:
+            # Warmup gate: a cold critic's gradients destroy the decoder
+            # (measured: all always-on guidance arms flat 0.00).  Engage
+            # guidance only once the critic has trained for qg_start steps.
+            qg_start = self.config.get("drift_qg_start", 0)
+            if qg_start:
+                qg = qg * (self.network.step >= qg_start).astype(jnp.float32)
+            flat_gen = generated.reshape(-1, generated.shape[-1])
+
+            def _qsum(a):
+                qs = self.network.select("critic")(observations, actions=a)
+                return self._aggregate_q(qs).sum()
+
+            g = jax.lax.stop_gradient(jax.grad(_qsum)(flat_gen))
+            g = g / jnp.clip(
+                jnp.sqrt(jnp.square(g).mean(axis=-1, keepdims=True)), 1e-6
+            )
+            guide_goal = jax.lax.stop_gradient(flat_gen + qg * g)
+            loss = loss + jnp.square(flat_gen - guide_goal).mean()
         info = {
             "actor_drift_loss": loss,
             "drift_scale": drift_info.get("scale", 0.0),
@@ -482,6 +529,12 @@ class ANQRFSAgent(flax.struct.PyTreeNode):
         critic_rng, bc_rng, actor_rng = jax.random.split(rng, 3)
         critic_loss, critic_info = self.critic_loss(batch, grad_params, critic_rng)
         bc_loss, bc_info = self.drift_bc_loss(batch, grad_params, bc_rng)
+        # Drift-BC hard stop (see anq_stdfp.py): the decoder is trained only by
+        # this loss, so zeroing it after bc_stop_step freezes the decoder.
+        bc_stop = self.config["bc_stop_step"] if "bc_stop_step" in self.config else 0
+        if bc_stop:
+            bc_on = (self.network.step < bc_stop).astype(bc_loss.dtype)
+            bc_loss = bc_loss * bc_on
         actor_loss, actor_info = self.unified_actor_loss(batch, grad_params, actor_rng)
         loss = critic_loss + self.config["bc_coef"] * bc_loss + actor_loss
         info = {"total_loss": loss}
@@ -546,8 +599,13 @@ class ANQRFSAgent(flax.struct.PyTreeNode):
 
     @partial(jax.jit, static_argnames=("critic_name",))
     def sample_actions(self, observations, rng=None, critic_name="critic"):
+        # eval_use_target: execute the Polyak-averaged (target) actor instead
+        # of the live one.  Retention aid: measured t5 arms repeatedly FIND the
+        # solution then lose it to policy oscillation; the EMA smooths that.
+        actor = ("target_rfs_actor"
+                 if self.config.get("eval_use_target", False) else "rfs_actor")
         actions, _ = self._sample_actions_bestof(
-            observations, rng, critic_name=critic_name
+            observations, rng, actor_name=actor, critic_name=critic_name
         )
         return self._safe_clip(actions)
 
@@ -697,6 +755,7 @@ def get_config():
             num_qs=2,
             rho=0.5,
             q_agg="min",
+            critic_target_actions="refined",  # "base" = DSRL-style in-support TD targets
             refine_q_agg="mean",
             bfn_q_agg="mean",
             critic_expectile=0.5,
@@ -718,6 +777,12 @@ def get_config():
             lam=0.01,
             # Weight on the drift behaviour-cloning loss.
             bc_coef=1.0,
+            bc_stop_step=0,
+            refine_start_step=0,  # >0: refine head engages only after this step
+            drift_q_guidance=0.0,  # >0: Q-Flow-style guidance force on the drift decoder
+            drift_qg_start=0,  # >0: engage guidance only after this step
+            eval_use_target=False,  # execute the EMA (target) actor at eval
+            drift_multi_temp=False,  # True: 3-scale kernel (0.25x, 1x, 4x drift_temps)
             # "kl":      alpha * KL(z || N(0,I)), dual on noise_target_kl
             # "entropy": SAC -- alpha * log pi, dual on noise_target_entropy
             # "none":    unregularised

@@ -10,6 +10,7 @@ from agents.qam import QAMAgent
 from agents.stdfp import STDFPAgent
 from agents.trqam import TRQAMAgent
 from agents.mdfp import MDFPAgent
+from agents.qflow import QFlowAgent
 from agents.rebrac import ReBRACAgent
 from agents.rql import RQLAgent
 from agents.anq import ANQAgent
@@ -37,6 +38,7 @@ agents = dict(
     mdfp=MDFPAgent,
     rql=RQLAgent,
     rebrac=ReBRACAgent,
+    qflow=QFlowAgent,
     anq=ANQAgent,
     anq2=ANQ2Agent,
     anq_rfs=ANQRFSAgent,

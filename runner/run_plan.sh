@@ -51,6 +51,7 @@ while true; do
   case "$grp" in
     HM_*)  DOM="ENV_PREFIX=humanoidmaze-medium-navigate DISCOUNT=0.995 HORIZON=1" ;;
     HL_*)  DOM="ENV_PREFIX=humanoidmaze-large-navigate DISCOUNT=0.995 HORIZON=1" ;;
+    CQF_*) DOM="ENV_PREFIX=cube-double-play DISCOUNT=0.99 HORIZON=1" ;;   # qflow standard setting: flat 1-step
     CDX_*) DOM="ENV_PREFIX=cube-double-play DISCOUNT=0.99 HORIZON=5 STEPS=3000000" ;;
     CD*)   DOM="ENV_PREFIX=cube-double-play DISCOUNT=0.99 HORIZON=5" ;;
     *)    DOM="" ;;

@@ -945,16 +945,23 @@ RUNNING | AMU_rawdeps_t3_s4 | agents/anq_rfs.py | 3 | 4 | --agent.refine_output_
 # ---- PRIORITY: HUMANOIDMAZE-MEDIUM wave 1 (user directive).  Antmaze-winner
 # config as prior (maze locomotion; h=1 disc .995).  RQL-local baselines:
 # t1 .05 t2 .375 t3 .725 t4 .10 t5 .175 (agg .285).  Screening n=2 (Rule 1b).
-ON | HM_rfs_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
-ON | HM_rfs_t1_s1 | agents/anq_rfs.py | 1 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
-ON | HM_rfs_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
-ON | HM_rfs_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
-ON | HM_rfs_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
-ON | HM_rfs_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
-ON | HM_rfs_t4_s0 | agents/anq_rfs.py | 4 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
-ON | HM_rfs_t4_s1 | agents/anq_rfs.py | 4 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
-ON | HM_rfs_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
-ON | HM_rfs_t5_s1 | agents/anq_rfs.py | 5 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
+RUNNING | HM_rfs_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
+RUNNING | HM_rfs_t1_s1 | agents/anq_rfs.py | 1 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
+RUNNING | HM_rfs_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
+RUNNING | HM_rfs_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
+RUNNING | HM_rfs_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
+RUNNING | HM_rfs_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
+RUNNING | HM_rfs_t4_s0 | agents/anq_rfs.py | 4 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
+RUNNING | HM_rfs_t4_s1 | agents/anq_rfs.py | 4 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
+RUNNING | HM_rfs_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
+RUNNING | HM_rfs_t5_s1 | agents/anq_rfs.py | 5 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
+
+# ---- PRIORITY: humanoid shows peak-decay (t2 best 0.82 -> last5 0.29,
+# dq -20..-34).  Probe the known remedies on t2: global eps (cube fix),
+# unified raw+deps (near-free), bigger tm (21-dim actions, budget 2.6 nats).
+RUNNING | HM_eps33_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.adam_eps=3e-3
+RUNNING | HM_rawdeps_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4
+RUNNING | HM_tm05_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.q_agg=min
 
 # STANDING DEEP BACKLOG (policy change): the queue must NEVER empty.  Seed
 # depth is always-useful work: every leader and baseline to n>=6-8.  Probes
@@ -1121,6 +1128,648 @@ RUNNING | CDW_asraw_t3_s2 | agents/anq_stdfp.py | 3 | 2 | --agent.refine_anchor=
 
 # ---- Rule-1 refill while humanoid downloads.
 RUNNING | CDW_tm075_t3_s2 | agents/anq_stdfp.py | 3 | 2 | --agent.refine_anchor=base --agent.lam=10.0 --agent.target_multiplier=0.75 --agent.adam_eps=1e-3 --agent.gen_per_label=16
-ON | CDW_rfsg16_t3_s2 | agents/anq_rfs.py | 3 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.lam=10.0 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.5 --agent.gen_per_label=16
-ON | W_rfs_t2_s5 | agents/anq_rfs.py | 2 | 5 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
-ON | W_rfs_t4_s6 | agents/anq_rfs.py | 4 | 6 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
+RUNNING | CDW_rfsg16_t3_s2 | agents/anq_rfs.py | 3 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.1 --agent.lam=10.0 --agent.q_agg=mean --agent.adam_eps=3e-3 --agent.target_multiplier=0.5 --agent.gen_per_label=16
+RUNNING | W_rfs_t2_s5 | agents/anq_rfs.py | 2 | 5 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
+RUNNING | W_rfs_t4_s6 | agents/anq_rfs.py | 4 | 6 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
+
+# ---- Rule-1 refill: dsrl baselines on humanoidmaze-medium (needed for the
+# >dsrl claim there) + rebrac reference; cube t3 probe seeds.
+RUNNING | HM_dsrl_t1_s0 | agents/dsrl.py | 1 | 0 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_dsrl_t2_s0 | agents/dsrl.py | 2 | 0 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_dsrl_t3_s0 | agents/dsrl.py | 3 | 0 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_reb_t1_s0 | agents/rebrac.py | 1 | 0 |
+RUNNING | HM_reb_t3_s0 | agents/rebrac.py | 3 | 0 |
+
+# ---- dt=0.05 led at n=1 (0.836 vs leader 0.805).  Seeds per Rule 1b.
+RUNNING | CDW_dt005_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.05 --agent.lam=0.3 --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.target_multiplier=0.125 --agent.q_agg=mean --agent.residual_sees_stopped_base=False
+RUNNING | CDW_dt005_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.05 --agent.lam=0.3 --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.target_multiplier=0.125 --agent.q_agg=mean --agent.residual_sees_stopped_base=False
+RUNNING | CDW_dt005_t2_s3 | agents/anq_rfs.py | 2 | 3 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.05 --agent.lam=0.3 --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.target_multiplier=0.125 --agent.q_agg=mean --agent.residual_sees_stopped_base=False
+
+# ---- Rule-1 refill: HM baselines t4/t5 + cube dt005 support + confirmations.
+RUNNING | HM_dsrl_t4_s0 | agents/dsrl.py | 4 | 0 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_dsrl_t5_s0 | agents/dsrl.py | 5 | 0 | --agent.target_entropy_multiplier=0.5
+RUNNING | CDW_dt005_t2_s4 | agents/anq_rfs.py | 2 | 4 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.05 --agent.lam=0.3 --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.target_multiplier=0.125 --agent.q_agg=mean --agent.residual_sees_stopped_base=False
+RUNNING | CDW_dt005_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.05 --agent.lam=0.3 --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.target_multiplier=0.125 --agent.q_agg=mean --agent.residual_sees_stopped_base=False
+
+# ---- Rule-1 refill: cube t2 dt005 depth; W_rfs t4/t5 to n=5 (Rule-1b tier 3).
+RUNNING | W_rfs_t4_s7 | agents/anq_rfs.py | 4 | 7 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
+RUNNING | W_rfs_t5_s5 | agents/anq_rfs.py | 5 | 5 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
+RUNNING | HM_reb_t2_s0 | agents/rebrac.py | 2 | 0 |
+RUNNING | HM_reb_t5_s0 | agents/rebrac.py | 5 | 0 |
+
+# ---- Rule-1 refill: cube t2 leaders depth + HM t3/t5 seeds.
+RUNNING | HM_rfs_t3_s2 | agents/anq_rfs.py | 3 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
+RUNNING | HM_rfs_t5_s2 | agents/anq_rfs.py | 5 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min
+RUNNING | CDW_dt005_t2_s5 | agents/anq_rfs.py | 2 | 5 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.05 --agent.lam=0.3 --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.target_multiplier=0.125 --agent.q_agg=mean --agent.residual_sees_stopped_base=False
+
+# ---- Rule-1 refill: generic depth while HM remedies run.
+RUNNING | CDW_dt005_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.05 --agent.lam=0.3 --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.target_multiplier=0.5 --agent.q_agg=mean --agent.residual_sees_stopped_base=False
+RUNNING | HM_dsrl_t2_s1 | agents/dsrl.py | 2 | 1 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_reb_t4_s0 | agents/rebrac.py | 4 | 0 |
+
+# ---- Q-Flow baseline (paper arXiv:2605.13435 standard setting, ens=2; Table 9a/10a) ----
+RUNNING | HM_qflow_t1_s0 | agents/qflow.py | 1 | 0 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_qflow_t1_s1 | agents/qflow.py | 1 | 1 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_qflow_t2_s0 | agents/qflow.py | 2 | 0 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_qflow_t2_s1 | agents/qflow.py | 2 | 1 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_qflow_t3_s0 | agents/qflow.py | 3 | 0 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_qflow_t3_s1 | agents/qflow.py | 3 | 1 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_qflow_t4_s0 | agents/qflow.py | 4 | 0 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_qflow_t4_s1 | agents/qflow.py | 4 | 1 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_qflow_t5_s0 | agents/qflow.py | 5 | 0 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_qflow_t5_s1 | agents/qflow.py | 5 | 1 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+OFF | QF_ant_t1_s0 | agents/qflow.py | 1 | 0 | --agent.guidance_lambda=0.2 --agent.q_agg=min --agent.use_time_embed=True --agent.time_embed_dim=16
+OFF | QF_ant_t2_s0 | agents/qflow.py | 2 | 0 | --agent.guidance_lambda=0.2 --agent.q_agg=min --agent.use_time_embed=True --agent.time_embed_dim=16
+OFF | QF_ant_t3_s0 | agents/qflow.py | 3 | 0 | --agent.guidance_lambda=0.2 --agent.q_agg=min --agent.use_time_embed=True --agent.time_embed_dim=16
+OFF | QF_ant_t4_s0 | agents/qflow.py | 4 | 0 | --agent.guidance_lambda=0.2 --agent.q_agg=min --agent.use_time_embed=True --agent.time_embed_dim=16
+OFF | QF_ant_t5_s0 | agents/qflow.py | 5 | 0 | --agent.guidance_lambda=0.2 --agent.q_agg=min --agent.use_time_embed=True --agent.time_embed_dim=16
+OFF | CQF_qflow_t1_s0 | agents/qflow.py | 1 | 0 | --agent.guidance_lambda=2.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+OFF | CQF_qflow_t2_s0 | agents/qflow.py | 2 | 0 | --agent.guidance_lambda=2.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+OFF | CQF_qflow_t3_s0 | agents/qflow.py | 3 | 0 | --agent.guidance_lambda=2.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+OFF | CQF_qflow_t4_s0 | agents/qflow.py | 4 | 0 | --agent.guidance_lambda=2.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+OFF | CQF_qflow_t5_s0 | agents/qflow.py | 5 | 0 | --agent.guidance_lambda=2.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+
+# ---- HM stabilization probes (t2, n=1; oscillation diagnosis: try mean-agg + stronger BC) ----
+RUNNING | HM_qmean_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean
+RUNNING | HM_lam01_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.1 --agent.q_agg=min
+# ---- qmean breadth screen (probe priority) ----
+RUNNING | HM_qmean_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean
+RUNNING | HM_qmean_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean
+RUNNING | HM_qmean_t4_s0 | agents/anq_rfs.py | 4 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean
+RUNNING | HM_qmean_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean
+RUNNING | HM_lam03_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.3 --agent.q_agg=min
+RUNNING | HM_qmean_lam01_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.1 --agent.q_agg=mean
+RUNNING | HM_tm05_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=min
+
+# ---- refill: HM probe second seeds + baseline depth ----
+RUNNING | HM_qmean_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean
+RUNNING | HM_lam01_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.1 --agent.q_agg=min
+RUNNING | HM_lam03_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.3 --agent.q_agg=min
+RUNNING | HM_qmean_lam01_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.1 --agent.q_agg=mean
+# ---- axis 3: late-oscillation damping (mean-agg base) ----
+# ---- user suggestion: decoder-only adam eps on the mean-agg base ----
+RUNNING | HM_deps_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4
+RUNNING | HM_rawdepsM_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4
+RUNNING | HM_tau001_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.tau=0.001
+RUNNING | HM_tgtlat_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.use_target_latent=True
+RUNNING | HM_dsrl_t1_s1 | agents/dsrl.py | 1 | 1 | --agent.target_entropy_multiplier=0.5
+# ---- deps (decoder-eps + mean-agg) breadth + second seed ----
+RUNNING | HM_deps_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4
+RUNNING | HM_deps_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4
+RUNNING | HM_deps_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4
+RUNNING | HM_deps_t4_s0 | agents/anq_rfs.py | 4 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4
+# ---- combo: target-latent stability + decoder-eps ramp ----
+RUNNING | HM_tgtlat_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.use_target_latent=True
+RUNNING | HM_combo_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.use_target_latent=True --agent.drift_adam_eps=1e-4
+RUNNING | HM_combo_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.use_target_latent=True --agent.drift_adam_eps=1e-4
+# ---- tgtlat breadth screen (the t2-stable recipe on t1/t3/t4/t5) ----
+RUNNING | HM_tgtlat_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.use_target_latent=True
+RUNNING | HM_tgtlat_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.use_target_latent=True
+# ---- tgtlat + decoder BC freeze at 600k (late-dip hypothesis: decoder drift) ----
+# ---- combo breadth screen (candidate HM recipe) ----
+RUNNING | HM_combo_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.use_target_latent=True --agent.drift_adam_eps=1e-4
+# ---- factorial cell: eps + bc-freeze WITHOUT tgtlat (is tgtlat needed at all?) ----
+RUNNING | HM_depscut_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_depscut_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_tgtcut_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.use_target_latent=True --agent.bc_stop_step=600000
+RUNNING | HM_tgtcut_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.use_target_latent=True --agent.bc_stop_step=600000
+RUNNING | HM_combo_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.use_target_latent=True --agent.drift_adam_eps=1e-4
+RUNNING | HM_combo_t4_s0 | agents/anq_rfs.py | 4 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.use_target_latent=True --agent.drift_adam_eps=1e-4
+RUNNING | HM_combo_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.use_target_latent=True --agent.drift_adam_eps=1e-4
+RUNNING | HM_tgtlat_t4_s0 | agents/anq_rfs.py | 4 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.use_target_latent=True
+RUNNING | HM_tgtlat_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.use_target_latent=True
+RUNNING | HM_deps_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4
+RUNNING | HM_dsrl_t3_s1 | agents/dsrl.py | 3 | 1 | --agent.target_entropy_multiplier=0.5
+
+# ---- refill: complete HM baseline grid (dsrl/rebrac) ----
+RUNNING | HM_dsrl_t4_s0 | agents/dsrl.py | 4 | 0 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_dsrl_t5_s0 | agents/dsrl.py | 5 | 0 | --agent.target_entropy_multiplier=0.5
+# ---- depscut breadth (candidate final recipe) + no-eps ablation ----
+RUNNING | HM_depscut_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_depscut_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_depscut_t4_s0 | agents/anq_rfs.py | 4 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_depscut_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_cut_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.bc_stop_step=600000
+RUNNING | HM_cut_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.bc_stop_step=600000
+RUNNING | HM_reb_t2_s0 | agents/rebrac.py | 2 | 0 |
+RUNNING | HM_reb_t5_s0 | agents/rebrac.py | 5 | 0 |
+RUNNING | HM_dsrl_t2_s2 | agents/dsrl.py | 2 | 2 | --agent.target_entropy_multiplier=0.5
+
+# ---- HM probe axis 2: residual anchor (bound refine delta, keep latent doing the work) ----
+OFF | HM_ranch03_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.bc_anchor=residual --agent.lam=0.3
+OFF | HM_ranch3_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.bc_anchor=residual --agent.lam=3.0
+OFF | HM_ranch3_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.bc_anchor=residual --agent.lam=3.0
+OFF | HM_qmean_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean
+OFF | HM_qmean_t2_s3 | agents/anq_rfs.py | 2 | 3 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean
+OFF | HM_qmean_t1_s1 | agents/anq_rfs.py | 1 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean
+OFF | HM_qmean_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean
+OFF | HM_qmean_t5_s1 | agents/anq_rfs.py | 5 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean
+
+# ---- globality checks: use_target_latent on the antmaze & cube winners (neutrality test) ----
+RUNNING | Acut_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | Acut_t4_s0 | agents/anq_rfs.py | 4 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | CDcut_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.05 --agent.lam=0.3 --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.target_multiplier=0.125 --agent.q_agg=mean --agent.residual_sees_stopped_base=False --agent.bc_stop_step=600000
+RUNNING | Adeps_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4
+
+# ---- depscut depth: leader confirmation + breadth second seeds ----
+RUNNING | HM_depscut_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_depscut_t1_s1 | agents/anq_rfs.py | 1 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_depscut_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_depscut_t4_s1 | agents/anq_rfs.py | 4 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_depscut_t5_s1 | agents/anq_rfs.py | 5 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_qflow_t4_s2 | agents/qflow.py | 4 | 2 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_reb_t3_s1 | agents/rebrac.py | 3 | 1 |
+RUNNING | HM_dsrl_t3_s2 | agents/dsrl.py | 3 | 2 | --agent.target_entropy_multiplier=0.5
+
+# ---- humanoidmaze-large prep: qflow baseline on its nonzero tasks (paper: 14/0/16/5/5) ----
+RUNNING | HL_qflow_t1_s0 | agents/qflow.py | 1 | 0 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HL_qflow_t3_s0 | agents/qflow.py | 3 | 0 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_depscut_t2_s3 | agents/anq_rfs.py | 2 | 3 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+
+# ---- diagnostics: t3 agg question + freeze-timing (late-ramp tasks) ----
+RUNNING | HM_min_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.drift_adam_eps=1e-4 --agent.q_agg=min --agent.bc_stop_step=600000
+RUNNING | HM_cut8_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.drift_adam_eps=1e-4 --agent.q_agg=mean --agent.bc_stop_step=800000
+RUNNING | HM_cut8_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.drift_adam_eps=1e-4 --agent.q_agg=mean --agent.bc_stop_step=800000
+
+# ---- refill: globality second seeds + diagnostic seeds + HL baseline ----
+RUNNING | Acut_t1_s1 | agents/anq_rfs.py | 1 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | Acut_t4_s1 | agents/anq_rfs.py | 4 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | CDcut_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.05 --agent.lam=0.3 --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.target_multiplier=0.125 --agent.q_agg=mean --agent.residual_sees_stopped_base=False --agent.bc_stop_step=600000
+RUNNING | HM_cut8_t5_s1 | agents/anq_rfs.py | 5 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.drift_adam_eps=1e-4 --agent.q_agg=mean --agent.bc_stop_step=800000
+RUNNING | HM_min_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.drift_adam_eps=1e-4 --agent.q_agg=min --agent.bc_stop_step=600000
+RUNNING | HL_qflow_t1_s1 | agents/qflow.py | 1 | 1 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+
+# ---- latent-authority probes: tm=0.5 (+ DSRL tanh variant) on freeze base ----
+RUNNING | HM_tmcut_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.target_multiplier=0.5
+RUNNING | HM_tmcut_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.target_multiplier=0.5
+RUNNING | HM_tmcut_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.target_multiplier=0.5
+RUNNING | HM_tanhcut_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.target_multiplier=0.5 --agent.latent_squash_tanh=True
+RUNNING | HM_dsrl_t5_s2 | agents/dsrl.py | 5 | 2 | --agent.target_entropy_multiplier=0.5
+RUNNING | CDcut_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.05 --agent.lam=0.3 --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.target_multiplier=0.125 --agent.q_agg=mean --agent.residual_sees_stopped_base=False --agent.bc_stop_step=600000
+RUNNING | HL_qflow_t3_s1 | agents/qflow.py | 3 | 1 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_cut8_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=800000
+RUNNING | HM_depscut_t5_s2 | agents/anq_rfs.py | 5 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | Acut_t1_s2 | agents/anq_rfs.py | 1 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+
+# ---- refill: latent-authority on dead tasks + gen16 diversity + t1 depth ----
+RUNNING | HM_tmcut_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.target_multiplier=0.5
+RUNNING | HM_tmcut_t4_s0 | agents/anq_rfs.py | 4 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.target_multiplier=0.5
+RUNNING | HM_tanhcut_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.target_multiplier=0.5 --agent.latent_squash_tanh=True
+RUNNING | HM_gen16_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.target_multiplier=0.125 --agent.gen_per_label=16
+RUNNING | HM_depscut_t1_s2 | agents/anq_rfs.py | 1 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.target_multiplier=0.125
+
+# ---- refill: second seeds for live hypotheses + HL baseline grid ----
+RUNNING | HM_tmcut_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.target_multiplier=0.5 --agent.bc_stop_step=600000
+RUNNING | HM_tmcut_t5_s1 | agents/anq_rfs.py | 5 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.target_multiplier=0.5 --agent.bc_stop_step=600000
+RUNNING | HM_cut8_t5_s2 | agents/anq_rfs.py | 5 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.target_multiplier=0.125 --agent.bc_stop_step=800000
+RUNNING | HM_cut8_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.target_multiplier=0.125 --agent.bc_stop_step=800000
+RUNNING | HM_tanhcut_t5_s1 | agents/anq_rfs.py | 5 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.target_multiplier=0.5 --agent.latent_squash_tanh=True --agent.bc_stop_step=600000
+RUNNING | HM_gen16_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.target_multiplier=0.125 --agent.gen_per_label=16 --agent.bc_stop_step=600000
+RUNNING | HL_qflow_t4_s0 | agents/qflow.py | 4 | 0 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HL_qflow_t5_s0 | agents/qflow.py | 5 | 0 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+
+# ---- tanh screen on dead tasks + cube late-freeze test ----
+RUNNING | HM_tanhcut_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.target_multiplier=0.5 --agent.latent_squash_tanh=True
+RUNNING | HM_tanhcut_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.target_multiplier=0.5 --agent.latent_squash_tanh=True
+RUNNING | CDcut8_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.05 --agent.lam=0.3 --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.target_multiplier=0.125 --agent.q_agg=mean --agent.residual_sees_stopped_base=False --agent.bc_stop_step=800000
+
+# ---- residual-anchor on freeze base: refine head learns to be small (t3/t5 fix attempt) ----
+RUNNING | HM_ranchcut_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.bc_anchor=residual --agent.lam=3.0
+RUNNING | HM_ranchcut_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.bc_anchor=residual --agent.lam=3.0
+RUNNING | HM_ranchcut_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.bc_anchor=residual --agent.lam=3.0
+RUNNING | HM_ranchcut_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.bc_anchor=residual --agent.lam=3.0
+RUNNING | CDcut8_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.05 --agent.lam=0.3 --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.target_multiplier=0.125 --agent.q_agg=mean --agent.residual_sees_stopped_base=False --agent.bc_stop_step=800000
+RUNNING | Acut_t4_s2 | agents/anq_rfs.py | 4 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+
+# ---- refill: leader depth + baseline third seeds + pre-emptive ranchcut seed ----
+RUNNING | HM_depscut_t2_s4 | agents/anq_rfs.py | 2 | 4 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_depscut_t2_s5 | agents/anq_rfs.py | 2 | 5 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_ranchcut_t5_s1 | agents/anq_rfs.py | 5 | 1 | --agent.refine_output_mode=action --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.bc_anchor=residual --agent.lam=3.0
+RUNNING | Acut_t1_s3 | agents/anq_rfs.py | 1 | 3 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_qflow_t1_s2 | agents/qflow.py | 1 | 2 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_qflow_t3_s2 | agents/qflow.py | 3 | 2 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_qflow_t5_s2 | agents/qflow.py | 5 | 2 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | CDcut_t2_s3 | agents/anq_rfs.py | 2 | 3 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.05 --agent.lam=0.3 --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.target_multiplier=0.125 --agent.q_agg=mean --agent.residual_sees_stopped_base=False --agent.bc_stop_step=600000
+
+# ---- dsrl-mimic latent: entropy-target reg on freeze base (t3/t5) + ranchcut seeds ----
+RUNNING | HM_entcut_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_entcut_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_entcut_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_ranchcut_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.bc_anchor=residual --agent.lam=3.0
+RUNNING | HM_ranchcut_t1_s1 | agents/anq_rfs.py | 1 | 1 | --agent.refine_output_mode=action --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.bc_anchor=residual --agent.lam=3.0
+RUNNING | HM_dsrl_t1_s2 | agents/dsrl.py | 1 | 2 | --agent.target_entropy_multiplier=0.5
+
+# ---- refill: cube late-freeze n=3, HL scouts with HM recipe, misc depth ----
+RUNNING | CDcut8_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.05 --agent.lam=0.3 --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.target_multiplier=0.125 --agent.q_agg=mean --agent.residual_sees_stopped_base=False --agent.bc_stop_step=800000
+RUNNING | HL_depscut_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HL_depscut_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_entcut_t5_s1 | agents/anq_rfs.py | 5 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_dsrl_t4_s1 | agents/dsrl.py | 4 | 1 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_reb_t1_s1 | agents/rebrac.py | 1 | 1 |
+RUNNING | HM_pess_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.q_agg=pessimistic
+RUNNING | HM_pess_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.q_agg=pessimistic
+RUNNING | HM_pess_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.q_agg=pessimistic
+
+# ---- drift-temperature probe on dead tasks (3.0 was an antmaze choice) ----
+RUNNING | HM_dt1_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.drift_temps=1.0
+RUNNING | HM_dt1_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.drift_temps=1.0
+RUNNING | HM_qflow_t2_s2 | agents/qflow.py | 2 | 2 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | CDcut8_t2_s3 | agents/anq_rfs.py | 2 | 3 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.05 --agent.lam=0.3 --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.target_multiplier=0.125 --agent.q_agg=mean --agent.residual_sees_stopped_base=False --agent.bc_stop_step=800000
+
+# ---- latent_only refine: out-of-support steering in z-space (t3/t5 structural fix) ----
+RUNNING | HM_lat_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.refine_output_mode=latent_only
+RUNNING | HM_lat_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.refine_output_mode=latent_only
+RUNNING | HM_lat_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.refine_output_mode=latent_only
+
+# ---- verdict seeds + HL dsrl baselines ----
+RUNNING | HM_pess_t5_s1 | agents/anq_rfs.py | 5 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.q_agg=pessimistic
+RUNNING | HM_lat_t5_s1 | agents/anq_rfs.py | 5 | 1 | --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.refine_output_mode=latent_only
+RUNNING | HL_dsrl_t1_s0 | agents/dsrl.py | 1 | 0 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_dsrl_t3_s0 | agents/dsrl.py | 3 | 0 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_pess_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.q_agg=pessimistic
+RUNNING | HM_pess_t4_s0 | agents/anq_rfs.py | 4 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.q_agg=pessimistic
+RUNNING | HM_pess_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.q_agg=pessimistic
+
+# ---- base-target critic (DSRL-style in-support TD targets): the t3/t5 structural probe ----
+RUNNING | HM_bt_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.critic_target_actions=base
+RUNNING | HM_bt_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.critic_target_actions=base
+RUNNING | HM_bt_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.critic_target_actions=base
+RUNNING | HM_bt_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.critic_target_actions=base
+
+# ---- refill: dt1 confirm + bt second seeds ----
+RUNNING | HM_dt1_t5_s1 | agents/anq_rfs.py | 5 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.drift_temps=1.0
+RUNNING | HM_dt1_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.drift_temps=1.0
+RUNNING | HM_bt_t5_s1 | agents/anq_rfs.py | 5 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.critic_target_actions=base
+RUNNING | HM_bt_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.critic_target_actions=base
+RUNNING | HM_dt1_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.drift_temps=1.0
+
+# ---- dsrl-mode composite (all dsrl-mimic knobs at once; ablate later if it works) ----
+RUNNING | HM_dm_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=pessimistic --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.critic_target_actions=base
+RUNNING | HM_dm_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=pessimistic --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.critic_target_actions=base
+RUNNING | HM_dm_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=pessimistic --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.critic_target_actions=base
+RUNNING | HM_bt_t4_s0 | agents/anq_rfs.py | 4 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.critic_target_actions=base
+
+# ---- refill: t2 headline depth to n=8 + baseline table depth + dm seed ----
+RUNNING | HM_depscut_t2_s6 | agents/anq_rfs.py | 2 | 6 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_depscut_t2_s7 | agents/anq_rfs.py | 2 | 7 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_reb_t4_s1 | agents/rebrac.py | 4 | 1 |
+RUNNING | HM_reb_t5_s1 | agents/rebrac.py | 5 | 1 |
+RUNNING | HM_dm_t5_s1 | agents/anq_rfs.py | 5 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=pessimistic --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.critic_target_actions=base
+
+# ---- refill: dm breadth + t4 bar depth + t1 depth ----
+RUNNING | HM_dm_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=pessimistic --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.critic_target_actions=base
+RUNNING | HM_dm_t4_s0 | agents/anq_rfs.py | 4 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=pessimistic --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.critic_target_actions=base
+RUNNING | HM_qflow_t4_s3 | agents/qflow.py | 4 | 3 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_depscut_t1_s3 | agents/anq_rfs.py | 1 | 3 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+
+# ---- latent-potency probe: scale z influence on the decoder (impotence hypothesis) ----
+RUNNING | HM_lns2_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.latent_noise_scale=2.0
+RUNNING | HM_lns2_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.latent_noise_scale=2.0
+RUNNING | HM_lns2_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.latent_noise_scale=2.0
+RUNNING | HM_lns05_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.latent_noise_scale=0.5
+RUNNING | HM_reb_t3_s2 | agents/rebrac.py | 3 | 2 |
+RUNNING | HL_qflow_t2_s0 | agents/qflow.py | 2 | 0 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+
+# ---- refill: dm/lns second seeds + misc depth ----
+RUNNING | HM_dm_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=pessimistic --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.critic_target_actions=base
+RUNNING | HM_lns2_t5_s1 | agents/anq_rfs.py | 5 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.latent_noise_scale=2.0
+RUNNING | HM_depscut_t4_s2 | agents/anq_rfs.py | 4 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_dsrl_t5_s3 | agents/dsrl.py | 5 | 3 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_dsrl_t2_s3 | agents/dsrl.py | 2 | 3 | --agent.target_entropy_multiplier=0.5
+
+# ---- refine curriculum: in-support until 300k, refine on, decoder frozen at 600k ----
+RUNNING | HM_rs_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.refine_start_step=300000
+RUNNING | HM_rs_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.refine_start_step=300000
+RUNNING | HM_rs_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.refine_start_step=300000
+RUNNING | HM_rs_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.refine_start_step=300000
+
+# ---- refill: rs/lns second seeds ----
+RUNNING | HM_rs_t5_s1 | agents/anq_rfs.py | 5 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.refine_start_step=300000
+RUNNING | HM_rs_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.refine_start_step=300000
+RUNNING | HM_lns2_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.latent_noise_scale=2.0
+
+# ---- refill: rs completion + HL baseline table ----
+RUNNING | HM_rs_t1_s1 | agents/anq_rfs.py | 1 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.refine_start_step=300000
+RUNNING | HM_rs_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.refine_start_step=300000
+RUNNING | HL_reb_t1_s0 | agents/rebrac.py | 1 | 0 |
+RUNNING | HL_reb_t3_s0 | agents/rebrac.py | 3 | 0 |
+
+# ---- refill: HL baseline completion + misc depth ----
+RUNNING | HL_reb_t2_s0 | agents/rebrac.py | 2 | 0 |
+RUNNING | HL_dsrl_t3_s1 | agents/dsrl.py | 3 | 1 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_qflow_t1_s3 | agents/qflow.py | 1 | 3 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_qflow_t5_s3 | agents/qflow.py | 5 | 3 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_qflow_t3_s3 | agents/qflow.py | 3 | 3 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+
+# ---- refill: antmaze t1 depth + baselines ----
+RUNNING | Acut_t1_s4 | agents/anq_rfs.py | 1 | 4 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HL_dsrl_t1_s1 | agents/dsrl.py | 1 | 1 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_reb_t2_s1 | agents/rebrac.py | 2 | 1 |
+
+# ---- refill: t1 seed distribution + t4 existence check + cube headline depth ----
+RUNNING | HM_depscut_t1_s4 | agents/anq_rfs.py | 1 | 4 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_depscut_t1_s5 | agents/anq_rfs.py | 1 | 5 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_dsrl_t4_s2 | agents/dsrl.py | 4 | 2 | --agent.target_entropy_multiplier=0.5
+RUNNING | CDW_dt005_t2_s6 | agents/anq_rfs.py | 2 | 6 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.05 --agent.lam=0.3 --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.target_multiplier=0.125 --agent.q_agg=mean --agent.residual_sees_stopped_base=False
+RUNNING | CDW_dt005_t2_s7 | agents/anq_rfs.py | 2 | 7 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.05 --agent.lam=0.3 --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.target_multiplier=0.125 --agent.q_agg=mean --agent.residual_sees_stopped_base=False
+
+# ---- refill: final-table depth ----
+RUNNING | HM_depscut_t5_s3 | agents/anq_rfs.py | 5 | 3 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_depscut_t4_s3 | agents/anq_rfs.py | 4 | 3 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HL_qflow_t4_s1 | agents/qflow.py | 4 | 1 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HL_qflow_t5_s1 | agents/qflow.py | 5 | 1 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+
+# ---- dsrl-actor cell WITHOUT bt (dm was confounded by critic_target_actions=base) ----
+RUNNING | HM_da_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_da_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_da_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_da_t5_s1 | agents/anq_rfs.py | 5 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+
+# ---- t4 lottery characterization + da breadth ----
+RUNNING | HM_depscut_t4_s4 | agents/anq_rfs.py | 4 | 4 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_depscut_t4_s5 | agents/anq_rfs.py | 4 | 5 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_da_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_da_t4_s0 | agents/anq_rfs.py | 4 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+
+# ---- refill: da seeds + table depth ----
+RUNNING | HM_da_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_da_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_depscut_t3_s2 | agents/anq_rfs.py | 3 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_depscut_t3_s3 | agents/anq_rfs.py | 3 | 3 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | CDW_dt005_t2_s8 | agents/anq_rfs.py | 2 | 8 | --agent.refine_output_mode=action --agent.bc_anchor=residual --agent.drift_temps=0.05 --agent.lam=0.3 --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.target_multiplier=0.125 --agent.q_agg=mean --agent.residual_sees_stopped_base=False
+RUNNING | HM_qflow_t2_s3 | agents/qflow.py | 2 | 3 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_reb_t4_s2 | agents/rebrac.py | 4 | 2 |
+RUNNING | HM_reb_t5_s2 | agents/rebrac.py | 5 | 2 |
+
+# ---- da family deepening (first arm alive on t3 AND t5) ----
+RUNNING | HM_da_t5_s2 | agents/anq_rfs.py | 5 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_da_t3_s2 | agents/anq_rfs.py | 3 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_da_t1_s1 | agents/anq_rfs.py | 1 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_da_t4_s1 | agents/anq_rfs.py | 4 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+
+# ---- da recipe confirmation depth ----
+RUNNING | HM_da_t5_s3 | agents/anq_rfs.py | 5 | 3 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_da_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_da_t3_s3 | agents/anq_rfs.py | 3 | 3 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_da_t1_s2 | agents/anq_rfs.py | 1 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+
+# ---- da t5 distribution + breadth depth ----
+RUNNING | HM_da_t5_s4 | agents/anq_rfs.py | 5 | 4 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_da_t5_s5 | agents/anq_rfs.py | 5 | 5 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_da_t4_s2 | agents/anq_rfs.py | 4 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_da_t2_s3 | agents/anq_rfs.py | 2 | 3 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_da_t1_s3 | agents/anq_rfs.py | 1 | 3 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+
+# ---- steady-state filler: baseline table completion ----
+RUNNING | HM_dsrl_t4_s3 | agents/dsrl.py | 4 | 3 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_reb_t1_s2 | agents/rebrac.py | 1 | 2 |
+
+# ---- da refinements: pessimistic agg (dsrl-exact) and entropy_scale=0.5 ----
+RUNNING | HM_dap_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.q_agg=pessimistic
+RUNNING | HM_dap_t5_s1 | agents/anq_rfs.py | 5 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.q_agg=pessimistic
+RUNNING | HM_daes_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.q_agg=mean --agent.entropy_scale=0.5
+RUNNING | HM_daes_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.q_agg=mean --agent.entropy_scale=0.5
+RUNNING | HM_dap_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.q_agg=pessimistic
+RUNNING | HM_dap_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.q_agg=pessimistic
+RUNNING | HM_dsrl_t1_s3 | agents/dsrl.py | 1 | 3 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_reb_t3_s3 | agents/rebrac.py | 3 | 3 |
+RUNNING | HM_dap_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.q_agg=pessimistic
+
+# ---- refill: daes seeds + misc depth ----
+RUNNING | HM_daes_t5_s1 | agents/anq_rfs.py | 5 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.q_agg=mean --agent.entropy_scale=0.5
+RUNNING | HM_daes_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.q_agg=mean --agent.entropy_scale=0.5
+RUNNING | HM_da_t4_s3 | agents/anq_rfs.py | 4 | 3 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.q_agg=mean
+RUNNING | HL_dsrl_t3_s2 | agents/dsrl.py | 3 | 2 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_reb_t2_s2 | agents/rebrac.py | 2 | 2 |
+
+# ---- Q-guided drift decoder (new mechanism, not a diagnostic) ----
+RUNNING | HM_qg03_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.drift_q_guidance=0.3
+RUNNING | HM_qg03_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.drift_q_guidance=0.3
+RUNNING | HM_qg1_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.drift_q_guidance=1.0
+RUNNING | HM_qg1_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.drift_q_guidance=1.0
+RUNNING | HM_qg03_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.drift_q_guidance=0.3
+RUNNING | HM_dsrl_t2_s4 | agents/dsrl.py | 2 | 4 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_reb_t1_s3 | agents/rebrac.py | 1 | 3 |
+RUNNING | HL_dsrl_t1_s2 | agents/dsrl.py | 1 | 2 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_reb_t5_s0 | agents/rebrac.py | 5 | 0 |
+RUNNING | HL_reb_t4_s0 | agents/rebrac.py | 4 | 0 |
+
+# ---- refill: complete Acut antmaze grid + qg t1 + HL bar depth ----
+RUNNING | Acut_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | Acut_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | Acut_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_qg03_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.drift_q_guidance=0.3
+RUNNING | HL_qflow_t1_s2 | agents/qflow.py | 1 | 2 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_reb_t3_s4 | agents/rebrac.py | 3 | 4 |
+RUNNING | HM_dsrl_t3_s4 | agents/dsrl.py | 3 | 4 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_dsrl_t5_s4 | agents/dsrl.py | 5 | 4 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_dsrl_t5_s0 | agents/dsrl.py | 5 | 0 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_dsrl_t4_s0 | agents/dsrl.py | 4 | 0 | --agent.target_entropy_multiplier=0.5
+
+# ---- non-guidance ideas: multi-temp kernel, expectile 0.7, state-dep std ----
+OFF | HM_mt_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.drift_multi_temp=True
+OFF | HM_mt_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.drift_multi_temp=True
+OFF | HM_mt_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.drift_multi_temp=True
+RUNNING | HM_exp07_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.critic_expectile=0.7
+RUNNING | HM_exp07_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.critic_expectile=0.7
+RUNNING | HM_exp07_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.critic_expectile=0.7
+RUNNING | HM_ssd_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.noise_state_dependent_std=True
+RUNNING | HM_ssd_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.noise_state_dependent_std=True
+RUNNING | HM_dsrl_t4_s4 | agents/dsrl.py | 4 | 4 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_reb_t4_s3 | agents/rebrac.py | 4 | 3 |
+RUNNING | HL_qflow_t3_s2 | agents/qflow.py | 3 | 2 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_qgw_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.drift_q_guidance=0.3 --agent.drift_qg_start=200000
+RUNNING | HM_qgw_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.drift_q_guidance=0.3 --agent.drift_qg_start=200000
+
+# ---- Acut antmaze confirmation seeds (freeze recipe may beat banked winner) ----
+RUNNING | Acut_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | Acut_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | Acut_t5_s1 | agents/anq_rfs.py | 5 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | Acut_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | Acut_t5_s2 | agents/anq_rfs.py | 5 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | Acut_t3_s2 | agents/anq_rfs.py | 3 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_exp07_t5_s1 | agents/anq_rfs.py | 5 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.critic_expectile=0.7
+RUNNING | HM_dsrl_t1_s4 | agents/dsrl.py | 1 | 4 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_reb_t5_s3 | agents/rebrac.py | 5 | 3 |
+RUNNING | HM_da_t5_s6 | agents/anq_rfs.py | 5 | 6 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_dsrl_t2_s5 | agents/dsrl.py | 2 | 5 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_qflow_t5_s2 | agents/qflow.py | 5 | 2 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HL_qflow_t4_s2 | agents/qflow.py | 4 | 2 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+
+# ---- ssd t5 signal + exp07 t2 confirmation ----
+RUNNING | HM_ssd_t5_s1 | agents/anq_rfs.py | 5 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.noise_state_dependent_std=True
+RUNNING | HM_ssd_t5_s2 | agents/anq_rfs.py | 5 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.noise_state_dependent_std=True
+RUNNING | HM_ssd_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.noise_state_dependent_std=True
+RUNNING | HM_exp07_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.critic_expectile=0.7
+RUNNING | HM_ssd_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.noise_state_dependent_std=True
+RUNNING | HM_ssd_t4_s0 | agents/anq_rfs.py | 4 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.noise_state_dependent_std=True
+RUNNING | HM_reb_t1_s4 | agents/rebrac.py | 1 | 4 |
+
+# ---- refill: ssd t5 depth + combined ssd+exp07 cell + baselines ----
+RUNNING | HM_ssd_t5_s3 | agents/anq_rfs.py | 5 | 3 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.noise_state_dependent_std=True
+RUNNING | HM_sx_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.noise_state_dependent_std=True --agent.critic_expectile=0.7
+RUNNING | HM_sx_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.noise_state_dependent_std=True --agent.critic_expectile=0.7
+RUNNING | HM_dsrl_t1_s5 | agents/dsrl.py | 1 | 5 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_dsrl_t5_s1 | agents/dsrl.py | 5 | 1 | --agent.target_entropy_multiplier=0.5
+
+# ---- stochastic latent execution + conservative refine agg (t1/t3/t4 ideas) ----
+RUNNING | HM_sto_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.latent_deterministic=False
+RUNNING | HM_sto_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.latent_deterministic=False
+RUNNING | HM_sto_t4_s0 | agents/anq_rfs.py | 4 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.latent_deterministic=False
+RUNNING | HM_sto_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.latent_deterministic=False
+RUNNING | HM_rmin_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.refine_q_agg=min
+RUNNING | HM_rmin_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.refine_q_agg=min
+RUNNING | HM_rmin_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.refine_q_agg=min
+RUNNING | HM_reb_t2_s3 | agents/rebrac.py | 2 | 3 |
+RUNNING | HL_reb_t1_s1 | agents/rebrac.py | 1 | 1 |
+RUNNING | HL_reb_t3_s1 | agents/rebrac.py | 3 | 1 |
+RUNNING | HM_dsrl_t4_s5 | agents/dsrl.py | 4 | 5 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_dsrl_t4_s1 | agents/dsrl.py | 4 | 1 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_dsrl_t5_s2 | agents/dsrl.py | 5 | 2 | --agent.target_entropy_multiplier=0.5
+
+# ---- EMA-actor execution (retention mechanism for the find-then-lose pattern) ----
+RUNNING | HM_ema_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True
+# ---- sto t5 (missing from batch) + confirmation seeds, PRIORITY ----
+RUNNING | HM_sto_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.latent_deterministic=False
+RUNNING | HM_sto_t5_s1 | agents/anq_rfs.py | 5 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.latent_deterministic=False
+RUNNING | HM_sto_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.latent_deterministic=False
+RUNNING | HM_sto_t1_s1 | agents/anq_rfs.py | 1 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.latent_deterministic=False
+RUNNING | HM_ema_t5_s1 | agents/anq_rfs.py | 5 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True
+RUNNING | HM_ema_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True
+RUNNING | HM_ema_t4_s0 | agents/anq_rfs.py | 4 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True
+RUNNING | HL_qflow_t2_s1 | agents/qflow.py | 2 | 1 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_dsrl_t3_s5 | agents/dsrl.py | 3 | 5 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_reb_t3_s5 | agents/rebrac.py | 3 | 5 |
+RUNNING | HL_dsrl_t2_s0 | agents/dsrl.py | 2 | 0 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_qflow_t3_s4 | agents/qflow.py | 3 | 4 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_qflow_t1_s4 | agents/qflow.py | 1 | 4 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_reb_t5_s4 | agents/rebrac.py | 5 | 4 |
+RUNNING | HL_reb_t2_s1 | agents/rebrac.py | 2 | 1 |
+RUNNING | HL_reb_t5_s1 | agents/rebrac.py | 5 | 1 |
+
+# ---- sto family: t4 follow-up + t2 depth toward headline ----
+RUNNING | HM_sto_t4_s1 | agents/anq_rfs.py | 4 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.latent_deterministic=False
+RUNNING | HM_sto_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.latent_deterministic=False
+RUNNING | HM_sto_t2_s3 | agents/anq_rfs.py | 2 | 3 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.latent_deterministic=False
+RUNNING | HM_sto_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.latent_deterministic=False
+RUNNING | HM_dsrl_t5_s5 | agents/dsrl.py | 5 | 5 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_qflow_t5_s4 | agents/qflow.py | 5 | 4 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HL_dsrl_t2_s1 | agents/dsrl.py | 2 | 1 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_reb_t4_s4 | agents/rebrac.py | 4 | 4 |
+
+# ---- eval-mechanism breadth: ema on t1/t3/t4, ema+sto combo, antmaze cross-apply ----
+RUNNING | HM_ema_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True
+RUNNING | HM_ema_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True
+RUNNING | HM_es_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True --agent.latent_deterministic=False
+RUNNING | HM_es_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True --agent.latent_deterministic=False
+RUNNING | HM_es_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True --agent.latent_deterministic=False
+RUNNING | Asto_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.latent_deterministic=False
+RUNNING | Aema_t1_s0 | agents/anq_rfs.py | 1 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True
+RUNNING | HM_sto_t4_s2 | agents/anq_rfs.py | 4 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.latent_deterministic=False
+RUNNING | HM_ema_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True
+RUNNING | HM_ema_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True
+RUNNING | Aema_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True
+RUNNING | HL_qflow_t1_s3 | agents/qflow.py | 1 | 3 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_dsrl_t4_s6 | agents/dsrl.py | 4 | 6 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_reb_t1_s5 | agents/rebrac.py | 1 | 5 |
+RUNNING | HM_ema_t5_s2 | agents/anq_rfs.py | 5 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True
+RUNNING | HM_ema_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True
+RUNNING | HL_dsrl_t3_s3 | agents/dsrl.py | 3 | 3 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_reb_t2_s4 | agents/rebrac.py | 2 | 4 |
+RUNNING | HM_qflow_t2_s4 | agents/qflow.py | 2 | 4 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+
+# ---- sto t2 headline depth to n=6 + sto t1 seeds (late-spike task) ----
+RUNNING | HM_sto_t2_s4 | agents/anq_rfs.py | 2 | 4 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.latent_deterministic=False
+RUNNING | HM_sto_t2_s5 | agents/anq_rfs.py | 2 | 5 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.latent_deterministic=False
+RUNNING | HM_sto_t1_s2 | agents/anq_rfs.py | 1 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.latent_deterministic=False
+RUNNING | HM_sto_t1_s3 | agents/anq_rfs.py | 1 | 3 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.latent_deterministic=False
+RUNNING | HL_reb_t4_s1 | agents/rebrac.py | 4 | 1 |
+RUNNING | HM_ema_t3_s2 | agents/anq_rfs.py | 3 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True
+RUNNING | HM_es_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True --agent.latent_deterministic=False
+RUNNING | HM_es_t4_s0 | agents/anq_rfs.py | 4 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True --agent.latent_deterministic=False
+RUNNING | HM_sto_t2_s6 | agents/anq_rfs.py | 2 | 6 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.latent_deterministic=False
+RUNNING | HM_sto_t2_s7 | agents/anq_rfs.py | 2 | 7 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.latent_deterministic=False
+RUNNING | HM_es_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True --agent.latent_deterministic=False
+RUNNING | HM_dsrl_t2_s6 | agents/dsrl.py | 2 | 6 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_qflow_t2_s2 | agents/qflow.py | 2 | 2 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_es_t1_s1 | agents/anq_rfs.py | 1 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True --agent.latent_deterministic=False
+RUNNING | HM_es_t1_s2 | agents/anq_rfs.py | 1 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True --agent.latent_deterministic=False
+RUNNING | Aema_t1_s1 | agents/anq_rfs.py | 1 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True
+RUNNING | Aema_t3_s1 | agents/anq_rfs.py | 3 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True
+RUNNING | HM_reb_t5_s5 | agents/rebrac.py | 5 | 5 |
+RUNNING | HL_dsrl_t1_s3 | agents/dsrl.py | 1 | 3 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_qflow_t4_s5 | agents/qflow.py | 4 | 5 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_dsrl_t1_s6 | agents/dsrl.py | 1 | 6 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_reb_t5_s2 | agents/rebrac.py | 5 | 2 |
+
+# ---- per-task leaders need seeds: deps t1/t5 (NO freeze -- late-ramp tasks), exp07 t2, da t4 ----
+RUNNING | HM_deps_t1_s1 | agents/anq_rfs.py | 1 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4
+RUNNING | HM_deps_t1_s2 | agents/anq_rfs.py | 1 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4
+RUNNING | HM_deps_t5_s1 | agents/anq_rfs.py | 5 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4
+RUNNING | HM_deps_t5_s2 | agents/anq_rfs.py | 5 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4
+RUNNING | HM_exp07_t2_s2 | agents/anq_rfs.py | 2 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.critic_expectile=0.7
+RUNNING | HM_da_t4_s4 | agents/anq_rfs.py | 4 | 4 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_da_t4_s5 | agents/anq_rfs.py | 4 | 5 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=entropy --agent.latent_squash_tanh=True --agent.target_multiplier=0.5 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_qflow_t3_s5 | agents/qflow.py | 3 | 5 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_dsrl_t5_s6 | agents/dsrl.py | 5 | 6 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_dsrl_t3_s4 | agents/dsrl.py | 3 | 4 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_qflow_t3_s3 | agents/qflow.py | 3 | 3 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_reb_t4_s5 | agents/rebrac.py | 4 | 5 |
+RUNNING | HL_reb_t4_s2 | agents/rebrac.py | 4 | 2 |
+RUNNING | HM_dsrl_t3_s6 | agents/dsrl.py | 3 | 6 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_qflow_t4_s3 | agents/qflow.py | 4 | 3 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_qflow_t1_s5 | agents/qflow.py | 1 | 5 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_reb_t2_s5 | agents/rebrac.py | 2 | 5 |
+RUNNING | HL_dsrl_t2_s2 | agents/dsrl.py | 2 | 2 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_reb_t2_s2 | agents/rebrac.py | 2 | 2 |
+RUNNING | HM_exp07_t2_s3 | agents/anq_rfs.py | 2 | 3 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.critic_expectile=0.7
+RUNNING | HM_exp07_t2_s4 | agents/anq_rfs.py | 2 | 4 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.critic_expectile=0.7
+RUNNING | HM_dsrl_t4_s7 | agents/dsrl.py | 4 | 7 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_dsrl_t4_s2 | agents/dsrl.py | 4 | 2 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_reb_t3_s6 | agents/rebrac.py | 3 | 6 |
+RUNNING | HL_qflow_t5_s3 | agents/qflow.py | 5 | 3 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_dsrl_t1_s7 | agents/dsrl.py | 1 | 7 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_reb_t3_s2 | agents/rebrac.py | 3 | 2 |
+RUNNING | Aema_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True
+RUNNING | Aema_t4_s0 | agents/anq_rfs.py | 4 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True
+RUNNING | Aema_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True
+RUNNING | Aema_t3_s2 | agents/anq_rfs.py | 3 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True
+RUNNING | HM_dsrl_t2_s7 | agents/dsrl.py | 2 | 7 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_qflow_t1_s4 | agents/qflow.py | 1 | 4 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_reb_t1_s6 | agents/rebrac.py | 1 | 6 |
+RUNNING | HL_dsrl_t5_s3 | agents/dsrl.py | 5 | 3 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_dsrl_t1_s4 | agents/dsrl.py | 1 | 4 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_dsrl_t5_s7 | agents/dsrl.py | 5 | 7 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_qflow_t5_s5 | agents/qflow.py | 5 | 5 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_reb_t5_s6 | agents/rebrac.py | 5 | 6 |
+RUNNING | HL_reb_t1_s2 | agents/rebrac.py | 1 | 2 |
+RUNNING | HM_qflow_t3_s6 | agents/qflow.py | 3 | 6 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_dsrl_t3_s7 | agents/dsrl.py | 3 | 7 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_qflow_t2_s3 | agents/qflow.py | 2 | 3 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_reb_t4_s6 | agents/rebrac.py | 4 | 6 |
+RUNNING | HL_reb_t4_s3 | agents/rebrac.py | 4 | 3 |
+RUNNING | HL_dsrl_t3_s5 | agents/dsrl.py | 3 | 5 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_qflow_t1_s6 | agents/qflow.py | 1 | 6 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_qflow_t4_s6 | agents/qflow.py | 4 | 6 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_reb_t2_s6 | agents/rebrac.py | 2 | 6 |
+RUNNING | HL_dsrl_t2_s3 | agents/dsrl.py | 2 | 3 | --agent.target_entropy_multiplier=0.5
+RUNNING | Aema_t2_s1 | agents/anq_rfs.py | 2 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True
+RUNNING | Aema_t4_s1 | agents/anq_rfs.py | 4 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True
+RUNNING | Aema_t5_s1 | agents/anq_rfs.py | 5 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True
+RUNNING | Aema_t1_s2 | agents/anq_rfs.py | 1 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.eval_use_target=True
+RUNNING | HM_reb_t3_s7 | agents/rebrac.py | 3 | 7 |
+RUNNING | HL_qflow_t5_s4 | agents/qflow.py | 5 | 4 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | Acut_t2_s3 | agents/anq_rfs.py | 2 | 3 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | Acut_t3_s3 | agents/anq_rfs.py | 3 | 3 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | Acut_t5_s3 | agents/anq_rfs.py | 5 | 3 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | Acut_t4_s3 | agents/anq_rfs.py | 4 | 3 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+ON | HM_dsrl_t4_s8 | agents/dsrl.py | 4 | 8 | --agent.target_entropy_multiplier=0.5
+ON | HL_reb_t5_s3 | agents/rebrac.py | 5 | 3 |
+ON | HL_qflow_t3_s4 | agents/qflow.py | 3 | 4 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+ON | HM_qflow_t2_s5 | agents/qflow.py | 2 | 5 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+ON | HM_reb_t5_s7 | agents/rebrac.py | 5 | 7 |
+ON | HL_dsrl_t1_s5 | agents/dsrl.py | 1 | 5 | --agent.target_entropy_multiplier=0.5
+ON | HM_qflow_t4_s7 | agents/qflow.py | 4 | 7 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+ON | HL_reb_t2_s3 | agents/rebrac.py | 2 | 3 |
+ON | HL_qflow_t4_s4 | agents/qflow.py | 4 | 4 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+ON | HM_dsrl_t5_s8 | agents/dsrl.py | 5 | 8 | --agent.target_entropy_multiplier=0.5
