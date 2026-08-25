@@ -1763,13 +1763,352 @@ RUNNING | Acut_t2_s3 | agents/anq_rfs.py | 2 | 3 | --agent.refine_output_mode=ac
 RUNNING | Acut_t3_s3 | agents/anq_rfs.py | 3 | 3 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
 RUNNING | Acut_t5_s3 | agents/anq_rfs.py | 5 | 3 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
 RUNNING | Acut_t4_s3 | agents/anq_rfs.py | 4 | 3 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.lam=0.01 --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.q_agg=min --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
-ON | HM_dsrl_t4_s8 | agents/dsrl.py | 4 | 8 | --agent.target_entropy_multiplier=0.5
-ON | HL_reb_t5_s3 | agents/rebrac.py | 5 | 3 |
-ON | HL_qflow_t3_s4 | agents/qflow.py | 3 | 4 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
-ON | HM_qflow_t2_s5 | agents/qflow.py | 2 | 5 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
-ON | HM_reb_t5_s7 | agents/rebrac.py | 5 | 7 |
-ON | HL_dsrl_t1_s5 | agents/dsrl.py | 1 | 5 | --agent.target_entropy_multiplier=0.5
-ON | HM_qflow_t4_s7 | agents/qflow.py | 4 | 7 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
-ON | HL_reb_t2_s3 | agents/rebrac.py | 2 | 3 |
-ON | HL_qflow_t4_s4 | agents/qflow.py | 4 | 4 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
-ON | HM_dsrl_t5_s8 | agents/dsrl.py | 5 | 8 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_dsrl_t4_s8 | agents/dsrl.py | 4 | 8 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_reb_t5_s3 | agents/rebrac.py | 5 | 3 |
+RUNNING | HL_qflow_t3_s4 | agents/qflow.py | 3 | 4 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_qflow_t2_s5 | agents/qflow.py | 2 | 5 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_reb_t5_s7 | agents/rebrac.py | 5 | 7 |
+RUNNING | HL_dsrl_t1_s5 | agents/dsrl.py | 1 | 5 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_qflow_t4_s7 | agents/qflow.py | 4 | 7 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HL_reb_t2_s3 | agents/rebrac.py | 2 | 3 |
+# ---- latent-critic distillation (dsrl mechanism port), PRIORITY ----
+RUNNING | HM_lc_t5_s0 | agents/anq_rfs.py | 5 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.use_latent_critic=True
+RUNNING | HM_lc_t5_s1 | agents/anq_rfs.py | 5 | 1 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.use_latent_critic=True
+# ---- USER DIRECTIVE: stdfp (no refine head) isolation on t3/t5 ----
+RUNNING | HM_std_t5_s0 | agents/stdfp.py | 5 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_std_t5_s1 | agents/stdfp.py | 5 | 1 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_std_t3_s0 | agents/stdfp.py | 3 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_std_t3_s1 | agents/stdfp.py | 3 | 1 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_std_t2_s0 | agents/stdfp.py | 2 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_lc_t3_s0 | agents/anq_rfs.py | 3 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.use_latent_critic=True
+RUNNING | HM_lc_t2_s0 | agents/anq_rfs.py | 2 | 0 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.use_latent_critic=True
+# ---- stdfp + pessimistic agg (dsrl's conservatism on our in-support half) ----
+RUNNING | HM_stdp_t5_s0 | agents/stdfp.py | 5 | 0 | --agent.drift_temps=3.0 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.q_agg=pessimistic
+RUNNING | HM_stdp_t5_s1 | agents/stdfp.py | 5 | 1 | --agent.drift_temps=3.0 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.q_agg=pessimistic
+RUNNING | HM_stdp_t3_s0 | agents/stdfp.py | 3 | 0 | --agent.drift_temps=3.0 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.q_agg=pessimistic
+RUNNING | HL_qflow_t4_s4 | agents/qflow.py | 4 | 4 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+# ---- stdfp own-axes grid (temps/freeze/reg) -- no conclusions until this is in ----
+RUNNING | HM_stdt01_t5_s0 | agents/stdfp.py | 5 | 0 | --agent.drift_temps=0.1 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_stdt01_t3_s0 | agents/stdfp.py | 3 | 0 | --agent.drift_temps=0.1 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_stdt1_t5_s0 | agents/stdfp.py | 5 | 0 | --agent.drift_temps=1.0 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_stdnf_t5_s0 | agents/stdfp.py | 5 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.drift_adam_eps=1e-4
+RUNNING | HM_stdent_t5_s0 | agents/stdfp.py | 5 | 0 | --agent.drift_temps=3.0 --agent.q_agg=pessimistic --agent.noise_regularizer=entropy --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_dsrl_t5_s8 | agents/dsrl.py | 5 | 8 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_qflow_t5_s6 | agents/qflow.py | 5 | 6 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HL_dsrl_t2_s4 | agents/dsrl.py | 2 | 4 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_reb_t1_s7 | agents/rebrac.py | 1 | 7 |
+RUNNING | HL_reb_t1_s3 | agents/rebrac.py | 1 | 3 |
+RUNNING | HM_qflow_t3_s7 | agents/qflow.py | 3 | 7 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HL_dsrl_t5_s4 | agents/dsrl.py | 5 | 4 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_reb_t2_s7 | agents/rebrac.py | 2 | 7 |
+RUNNING | HM_std_t5_s2 | agents/stdfp.py | 5 | 2 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_lc_t5_s2 | agents/anq_rfs.py | 5 | 2 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.use_latent_critic=True
+RUNNING | HL_qflow_t2_s4 | agents/qflow.py | 2 | 4 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_stdent_t3_s0 | agents/stdfp.py | 3 | 0 | --agent.drift_temps=3.0 --agent.q_agg=pessimistic --agent.noise_regularizer=entropy --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000
+RUNNING | HM_stdnf_t5_s1 | agents/stdfp.py | 5 | 1 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.drift_adam_eps=1e-4
+RUNNING | HL_qflow_t1_s5 | agents/qflow.py | 1 | 5 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_qflow_t5_s7 | agents/qflow.py | 5 | 7 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HL_reb_t3_s3 | agents/rebrac.py | 3 | 3 |
+RUNNING | HM_dsrl_t1_s8 | agents/dsrl.py | 1 | 8 | --agent.target_entropy_multiplier=0.5
+# ---- USER DIRECTIVE: mani_stdfp manifold-metric refine penalty on HM ----
+RUNNING | HM_mani_t5_s0 | agents/mani_stdfp.py | 5 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+RUNNING | HM_mani_t3_s0 | agents/mani_stdfp.py | 3 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+RUNNING | HM_mani_t2_s0 | agents/mani_stdfp.py | 2 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+RUNNING | HM_manihi_t5_s0 | agents/mani_stdfp.py | 5 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=10.0
+# ---- mani t5 seed + breadth (0.56 first eval on t5) ----
+RUNNING | HM_mani_t5_s1 | agents/mani_stdfp.py | 5 | 1 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+RUNNING | HM_mani_t1_s0 | agents/mani_stdfp.py | 1 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+RUNNING | HM_mani_t4_s0 | agents/mani_stdfp.py | 4 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+# ---- mani family seeds (t3 0.72 / t5 0.92 mid-run breakthroughs) ----
+RUNNING | HM_mani_t3_s1 | agents/mani_stdfp.py | 3 | 1 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+RUNNING | HM_mani_t3_s2 | agents/mani_stdfp.py | 3 | 2 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+RUNNING | HM_mani_t5_s2 | agents/mani_stdfp.py | 5 | 2 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+RUNNING | HM_mani_t2_s1 | agents/mani_stdfp.py | 2 | 1 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+# ---- CONTROL: plain anq_stdfp, identical flags to mani (isolates the manifold metric) ----
+RUNNING | HM_astd_t5_s0 | agents/anq_stdfp.py | 5 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+RUNNING | HM_astd_t3_s0 | agents/anq_stdfp.py | 3 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+RUNNING | HM_astd_t2_s0 | agents/anq_stdfp.py | 2 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+RUNNING | HM_astd_t5_s1 | agents/anq_stdfp.py | 5 | 1 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+RUNNING | HM_manihi_t5_s1 | agents/mani_stdfp.py | 5 | 1 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=10.0
+RUNNING | HM_manihi_t3_s0 | agents/mani_stdfp.py | 3 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=10.0
+RUNNING | HL_dsrl_t3_s6 | agents/dsrl.py | 3 | 6 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_qflow_t1_s7 | agents/qflow.py | 1 | 7 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_reb_t4_s7 | agents/rebrac.py | 4 | 7 |
+RUNNING | HL_dsrl_t2_s5 | agents/dsrl.py | 2 | 5 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_reb_t5_s4 | agents/rebrac.py | 5 | 4 |
+RUNNING | HM_dsrl_t3_s8 | agents/dsrl.py | 3 | 8 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_qflow_t3_s5 | agents/qflow.py | 3 | 5 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HL_qflow_t4_s5 | agents/qflow.py | 4 | 5 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_reb_t5_s8 | agents/rebrac.py | 5 | 8 |
+RUNNING | HL_dsrl_t4_s3 | agents/dsrl.py | 4 | 3 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_reb_t1_s4 | agents/rebrac.py | 1 | 4 |
+
+# ---- mani depth: manihi t3 seeds, t1 seeds, lam=3 midpoint, astd t1 control ----
+RUNNING | HM_manihi_t3_s1 | agents/mani_stdfp.py | 3 | 1 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=10.0
+RUNNING | HM_manihi_t3_s2 | agents/mani_stdfp.py | 3 | 2 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=10.0
+RUNNING | HM_mani_t1_s1 | agents/mani_stdfp.py | 1 | 1 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+RUNNING | HM_mani_t1_s2 | agents/mani_stdfp.py | 1 | 2 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+RUNNING | HM_mani3_t5_s0 | agents/mani_stdfp.py | 5 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+RUNNING | HM_mani3_t3_s0 | agents/mani_stdfp.py | 3 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+RUNNING | HM_mani_t5_s3 | agents/mani_stdfp.py | 5 | 3 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+RUNNING | HM_astd_t1_s0 | agents/anq_stdfp.py | 1 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+RUNNING | HM_mani_t4_s1 | agents/mani_stdfp.py | 4 | 1 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+RUNNING | HM_manihi_t1_s0 | agents/mani_stdfp.py | 1 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=10.0
+RUNNING | HL_qflow_t5_s5 | agents/qflow.py | 5 | 5 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_dsrl_t2_s8 | agents/dsrl.py | 2 | 8 | --agent.target_entropy_multiplier=0.5
+
+# ---- refill: mani t2 with exp07 critic (unify t2 into mani family?) + depth ----
+RUNNING | HM_manix_t2_s0 | agents/mani_stdfp.py | 2 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0 --agent.critic_expectile=0.7
+RUNNING | HM_manix_t5_s0 | agents/mani_stdfp.py | 5 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0 --agent.critic_expectile=0.7
+RUNNING | HM_manihi_t5_s2 | agents/mani_stdfp.py | 5 | 2 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=10.0
+RUNNING | HM_astd_t3_s1 | agents/anq_stdfp.py | 3 | 1 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+RUNNING | HL_reb_t4_s4 | agents/rebrac.py | 4 | 4 |
+RUNNING | HM_manix_t3_s0 | agents/mani_stdfp.py | 3 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0 --agent.critic_expectile=0.7
+RUNNING | HM_manix_t1_s0 | agents/mani_stdfp.py | 1 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0 --agent.critic_expectile=0.7
+RUNNING | HM_qflow_t2_s6 | agents/qflow.py | 2 | 6 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HL_dsrl_t5_s5 | agents/dsrl.py | 5 | 5 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_reb_t2_s4 | agents/rebrac.py | 2 | 4 |
+RUNNING | HM_mani3_t5_s1 | agents/mani_stdfp.py | 5 | 1 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+# ---- USER REQUEST: mani cross-domain (antmaze default-case, CDmani -> cube h=5) ----
+RUNNING | Amani_t1_s0 | agents/mani_stdfp.py | 1 | 0 | --agent.drift_temps=3.0 --agent.q_agg=min --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+RUNNING | Amani_t4_s0 | agents/mani_stdfp.py | 4 | 0 | --agent.drift_temps=3.0 --agent.q_agg=min --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+RUNNING | Amani01_t1_s0 | agents/mani_stdfp.py | 1 | 0 | --agent.drift_temps=3.0 --agent.q_agg=min --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=0.1
+RUNNING | Amani_t2_s0 | agents/mani_stdfp.py | 2 | 0 | --agent.drift_temps=3.0 --agent.q_agg=min --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+RUNNING | CDmani_t2_s0 | agents/mani_stdfp.py | 2 | 0 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=0.3
+RUNNING | CDmanihi_t2_s0 | agents/mani_stdfp.py | 2 | 0 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=3.0
+RUNNING | CDmani_t1_s0 | agents/mani_stdfp.py | 1 | 0 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=0.3
+RUNNING | HM_mani3_t3_s1 | agents/mani_stdfp.py | 3 | 1 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+RUNNING | HM_mani3_t2_s0 | agents/mani_stdfp.py | 2 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+RUNNING | HM_mani3_t1_s0 | agents/mani_stdfp.py | 1 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+RUNNING | HM_qflow_t3_s8 | agents/qflow.py | 3 | 8 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HL_dsrl_t1_s6 | agents/dsrl.py | 1 | 6 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_reb_t1_s8 | agents/rebrac.py | 1 | 8 |
+RUNNING | HM_mani_t2_s2 | agents/mani_stdfp.py | 2 | 2 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+RUNNING | HM_mani_t5_s4 | agents/mani_stdfp.py | 5 | 4 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+RUNNING | HM_mani_t3_s3 | agents/mani_stdfp.py | 3 | 3 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+RUNNING | HM_manihi_t5_s3 | agents/mani_stdfp.py | 5 | 3 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=10.0
+RUNNING | HL_qflow_t1_s6 | agents/qflow.py | 1 | 6 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_dsrl_t4_s9 | agents/dsrl.py | 4 | 9 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_manihi_t2_s0 | agents/mani_stdfp.py | 2 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=10.0
+RUNNING | HM_mani3_t4_s0 | agents/mani_stdfp.py | 4 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+RUNNING | HM_qflow_t4_s8 | agents/qflow.py | 4 | 8 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HL_dsrl_t2_s6 | agents/dsrl.py | 2 | 6 | --agent.target_entropy_multiplier=0.5
+RUNNING | Amanilo_t1_s0 | agents/mani_stdfp.py | 1 | 0 | --agent.drift_temps=3.0 --agent.q_agg=min --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=0.01
+RUNNING | Amanilo_t4_s0 | agents/mani_stdfp.py | 4 | 0 | --agent.drift_temps=3.0 --agent.q_agg=min --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=0.01
+RUNNING | Amanird_t1_s0 | agents/mani_stdfp.py | 1 | 0 | --agent.drift_temps=3.0 --agent.q_agg=min --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0 --agent.manifold_ridge=1.0
+RUNNING | CDmani_t2_s1 | agents/mani_stdfp.py | 2 | 1 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=0.3
+RUNNING | CDmanihi_t2_s1 | agents/mani_stdfp.py | 2 | 1 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=3.0
+RUNNING | CDmani_t1_s1 | agents/mani_stdfp.py | 1 | 1 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=0.3
+RUNNING | HM_mani_t2_s3 | agents/mani_stdfp.py | 2 | 3 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+RUNNING | HL_qflow_t2_s5 | agents/qflow.py | 2 | 5 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_dsrl_t1_s9 | agents/dsrl.py | 1 | 9 | --agent.target_entropy_multiplier=0.5
+# ---- USER: scale-vs-shape disentangle (normalized metric + Euclidean lam sweep) ----
+RUNNING | HM_manin_t5_s0 | agents/mani_stdfp.py | 5 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0 --agent.metric_normalize=True
+RUNNING | HM_manin_t3_s0 | agents/mani_stdfp.py | 3 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0 --agent.metric_normalize=True
+RUNNING | HM_manin_t2_s0 | agents/mani_stdfp.py | 2 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0 --agent.metric_normalize=True
+RUNNING | HM_astd3_t5_s0 | agents/anq_stdfp.py | 5 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+# ---- scale-matched Euclidean control (measured metric mean eig = 36) ----
+RUNNING | HM_astd30_t5_s0 | agents/anq_stdfp.py | 5 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=30.0
+RUNNING | HM_astd30_t3_s0 | agents/anq_stdfp.py | 3 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=30.0
+RUNNING | HM_astd30_t2_s0 | agents/anq_stdfp.py | 2 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=30.0
+RUNNING | HM_astd10_t5_s0 | agents/anq_stdfp.py | 5 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=10.0
+RUNNING | HM_astd3_t3_s0 | agents/anq_stdfp.py | 3 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+RUNNING | HM_mani_t5_s5 | agents/mani_stdfp.py | 5 | 5 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+RUNNING | HM_manihi_t3_s3 | agents/mani_stdfp.py | 3 | 3 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=10.0
+RUNNING | HL_reb_t3_s4 | agents/rebrac.py | 3 | 4 |
+RUNNING | HM_qflow_t1_s8 | agents/qflow.py | 1 | 8 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | CDmanihi_t3_s0 | agents/mani_stdfp.py | 3 | 0 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=3.0
+RUNNING | CDmanihi_t5_s0 | agents/mani_stdfp.py | 5 | 0 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=3.0
+RUNNING | CDmanihi_t4_s0 | agents/mani_stdfp.py | 4 | 0 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=3.0
+RUNNING | HL_dsrl_t4_s4 | agents/dsrl.py | 4 | 4 | --agent.target_entropy_multiplier=0.5
+# ---- mani3 confirmation toward headline (Rule 1b n=4-5) ----
+RUNNING | HM_mani3_t3_s2 | agents/mani_stdfp.py | 3 | 2 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+RUNNING | HM_mani3_t5_s2 | agents/mani_stdfp.py | 5 | 2 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+RUNNING | HM_mani3_t2_s1 | agents/mani_stdfp.py | 2 | 1 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+RUNNING | HM_mani3_t1_s1 | agents/mani_stdfp.py | 1 | 1 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+RUNNING | HM_mani3_t4_s1 | agents/mani_stdfp.py | 4 | 1 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+# ---- disentangle second seeds (n=2 verdicts) ----
+RUNNING | HM_manin_t5_s1 | agents/mani_stdfp.py | 5 | 1 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0 --agent.metric_normalize=True
+RUNNING | HM_astd30_t5_s1 | agents/anq_stdfp.py | 5 | 1 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=30.0
+RUNNING | HM_astd30_t3_s1 | agents/anq_stdfp.py | 3 | 1 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=30.0
+RUNNING | HM_manin_t3_s1 | agents/mani_stdfp.py | 3 | 1 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0 --agent.metric_normalize=True
+RUNNING | HM_qflow_t5_s8 | agents/qflow.py | 5 | 8 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HL_dsrl_t1_s7 | agents/dsrl.py | 1 | 7 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_reb_t2_s5 | agents/rebrac.py | 2 | 5 |
+RUNNING | HL_qflow_t2_s6 | agents/qflow.py | 2 | 6 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+# ---- mani3 headline depth (the single-config HM candidate) ----
+RUNNING | HM_mani3_t5_s3 | agents/mani_stdfp.py | 5 | 3 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+RUNNING | HM_mani3_t3_s3 | agents/mani_stdfp.py | 3 | 3 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+RUNNING | HM_mani3_t2_s2 | agents/mani_stdfp.py | 2 | 2 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+RUNNING | HM_mani3_t1_s2 | agents/mani_stdfp.py | 1 | 2 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+RUNNING | CDmani_t3_s0 | agents/mani_stdfp.py | 3 | 0 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=0.3
+RUNNING | CDmani_t4_s0 | agents/mani_stdfp.py | 4 | 0 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=0.3
+RUNNING | CDmani_t5_s0 | agents/mani_stdfp.py | 5 | 0 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=0.3
+RUNNING | HM_mani_t3_s4 | agents/mani_stdfp.py | 3 | 4 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+# ---- USER: antmaze mani with LOW drift_temps (distributional decoder -> metric has geometry) ----
+RUNNING | Amanilt_t1_s0 | agents/mani_stdfp.py | 1 | 0 | --agent.q_agg=min --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.drift_temps=0.1 --agent.lam=1.0
+RUNNING | Amanilt_t4_s0 | agents/mani_stdfp.py | 4 | 0 | --agent.q_agg=min --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.drift_temps=0.1 --agent.lam=1.0
+RUNNING | Amanilt5_t1_s0 | agents/mani_stdfp.py | 1 | 0 | --agent.q_agg=min --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.drift_temps=0.5 --agent.lam=1.0
+RUNNING | Amanilt_t2_s0 | agents/mani_stdfp.py | 2 | 0 | --agent.q_agg=min --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.drift_temps=0.1 --agent.lam=1.0
+RUNNING | HM_mani_t5_s6 | agents/mani_stdfp.py | 5 | 6 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+RUNNING | HL_qflow_t3_s6 | agents/qflow.py | 3 | 6 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HL_dsrl_t3_s7 | agents/dsrl.py | 3 | 7 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_reb_t2_s8 | agents/rebrac.py | 2 | 8 |
+RUNNING | HL_reb_t1_s5 | agents/rebrac.py | 1 | 5 |
+RUNNING | HL_qflow_t4_s6 | agents/qflow.py | 4 | 6 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HL_dsrl_t5_s6 | agents/dsrl.py | 5 | 6 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_qflow_t5_s6 | agents/qflow.py | 5 | 6 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+# ---- manin (normalized metric) full grid: the shape-only recipe candidate ----
+RUNNING | HM_manin_t5_s2 | agents/mani_stdfp.py | 5 | 2 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0 --agent.metric_normalize=True
+RUNNING | HM_manin_t3_s2 | agents/mani_stdfp.py | 3 | 2 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0 --agent.metric_normalize=True
+RUNNING | HM_manin_t1_s0 | agents/mani_stdfp.py | 1 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0 --agent.metric_normalize=True
+RUNNING | HM_manin_t4_s0 | agents/mani_stdfp.py | 4 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0 --agent.metric_normalize=True
+RUNNING | HM_manin_t2_s1 | agents/mani_stdfp.py | 2 | 1 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0 --agent.metric_normalize=True
+RUNNING | Amanin_t1_s0 | agents/mani_stdfp.py | 1 | 0 | --agent.drift_temps=3.0 --agent.q_agg=min --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=0.01 --agent.metric_normalize=True
+# ---- manin depth (shape-only recipe headline counts) ----
+RUNNING | HM_manin_t5_s3 | agents/mani_stdfp.py | 5 | 3 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0 --agent.metric_normalize=True
+RUNNING | HM_manin_t3_s3 | agents/mani_stdfp.py | 3 | 3 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0 --agent.metric_normalize=True
+RUNNING | HM_manin_t2_s2 | agents/mani_stdfp.py | 2 | 2 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0 --agent.metric_normalize=True
+RUNNING | CDmanin_t2_s0 | agents/mani_stdfp.py | 2 | 0 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=0.3 --agent.metric_normalize=True
+RUNNING | CDmanin_t3_s0 | agents/mani_stdfp.py | 3 | 0 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=0.3 --agent.metric_normalize=True
+RUNNING | HL_qflow_t1_s7 | agents/qflow.py | 1 | 7 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HL_dsrl_t2_s7 | agents/dsrl.py | 2 | 7 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_reb_t4_s8 | agents/rebrac.py | 4 | 8 |
+RUNNING | HM_mani3_t5_s4 | agents/mani_stdfp.py | 5 | 4 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+RUNNING | HM_mani3_t3_s4 | agents/mani_stdfp.py | 3 | 4 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+RUNNING | HL_reb_t5_s5 | agents/rebrac.py | 5 | 5 |
+RUNNING | HL_qflow_t2_s7 | agents/qflow.py | 2 | 7 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_dsrl_t5_s9 | agents/dsrl.py | 5 | 9 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_reb_t3_s5 | agents/rebrac.py | 3 | 5 |
+RUNNING | HL_dsrl_t4_s5 | agents/dsrl.py | 4 | 5 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_qflow_t3_s7 | agents/qflow.py | 3 | 7 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_qflow_t2_s7 | agents/qflow.py | 2 | 7 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HL_dsrl_t1_s8 | agents/dsrl.py | 1 | 8 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_reb_t4_s5 | agents/rebrac.py | 4 | 5 |
+RUNNING | HM_reb_t5_s9 | agents/rebrac.py | 5 | 9 |
+RUNNING | HL_qflow_t5_s7 | agents/qflow.py | 5 | 7 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_manin_t5_s4 | agents/mani_stdfp.py | 5 | 4 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0 --agent.metric_normalize=True
+RUNNING | HM_mani3_t2_s3 | agents/mani_stdfp.py | 2 | 3 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+RUNNING | CDmanihi_t3_s1 | agents/mani_stdfp.py | 3 | 1 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=3.0
+RUNNING | CDmani_t3_s1 | agents/mani_stdfp.py | 3 | 1 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=0.3
+RUNNING | CDmani_t5_s1 | agents/mani_stdfp.py | 5 | 1 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=0.3
+RUNNING | HL_dsrl_t5_s7 | agents/dsrl.py | 5 | 7 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_qflow_t4_s7 | agents/qflow.py | 4 | 7 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_qflow_t3_s9 | agents/qflow.py | 3 | 9 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HL_reb_t1_s6 | agents/rebrac.py | 1 | 6 |
+RUNNING | HL_dsrl_t3_s8 | agents/dsrl.py | 3 | 8 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_dsrl_t3_s9 | agents/dsrl.py | 3 | 9 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_reb_t3_s8 | agents/rebrac.py | 3 | 8 |
+RUNNING | HL_qflow_t1_s8 | agents/qflow.py | 1 | 8 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HL_dsrl_t2_s8 | agents/dsrl.py | 2 | 8 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_reb_t5_s6 | agents/rebrac.py | 5 | 6 |
+RUNNING | HM_dsrl_t4_s10 | agents/dsrl.py | 4 | 10 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_qflow_t3_s8 | agents/qflow.py | 3 | 8 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_reb_t1_s9 | agents/rebrac.py | 1 | 9 |
+RUNNING | HL_reb_t2_s6 | agents/rebrac.py | 2 | 6 |
+RUNNING | HL_dsrl_t4_s6 | agents/dsrl.py | 4 | 6 | --agent.target_entropy_multiplier=0.5
+# ---- manin headline depth (universal-default candidate) ----
+RUNNING | HM_manin_t3_s4 | agents/mani_stdfp.py | 3 | 4 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0 --agent.metric_normalize=True
+RUNNING | HM_manin_t1_s1 | agents/mani_stdfp.py | 1 | 1 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0 --agent.metric_normalize=True
+RUNNING | CDmanin_t1_s0 | agents/mani_stdfp.py | 1 | 0 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=0.3 --agent.metric_normalize=True
+RUNNING | CDmanin_t5_s0 | agents/mani_stdfp.py | 5 | 0 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=0.3 --agent.metric_normalize=True
+RUNNING | CDmanin_t2_s1 | agents/mani_stdfp.py | 2 | 1 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=0.3 --agent.metric_normalize=True
+RUNNING | HM_qflow_t1_s9 | agents/qflow.py | 1 | 9 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HL_dsrl_t1_s9 | agents/dsrl.py | 1 | 9 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_reb_t3_s6 | agents/rebrac.py | 3 | 6 |
+RUNNING | HM_dsrl_t1_s10 | agents/dsrl.py | 1 | 10 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_reb_t2_s9 | agents/rebrac.py | 2 | 9 |
+RUNNING | HL_qflow_t5_s8 | agents/qflow.py | 5 | 8 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HL_dsrl_t5_s8 | agents/dsrl.py | 5 | 8 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_reb_t4_s6 | agents/rebrac.py | 4 | 6 |
+# ---- cube mani headline depth (n=3-4 for the beat-claims) ----
+RUNNING | CDmani_t3_s2 | agents/mani_stdfp.py | 3 | 2 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=0.3
+RUNNING | CDmani_t1_s2 | agents/mani_stdfp.py | 1 | 2 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=0.3
+RUNNING | CDmani_t5_s2 | agents/mani_stdfp.py | 5 | 2 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=0.3
+RUNNING | CDmani_t2_s2 | agents/mani_stdfp.py | 2 | 2 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=0.3
+RUNNING | CDmani_t4_s1 | agents/mani_stdfp.py | 4 | 1 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=0.3
+RUNNING | HM_mani3_t1_s3 | agents/mani_stdfp.py | 1 | 3 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+RUNNING | HM_mani3_t4_s2 | agents/mani_stdfp.py | 4 | 2 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+RUNNING | HL_qflow_t2_s8 | agents/qflow.py | 2 | 8 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HL_dsrl_t3_s9 | agents/dsrl.py | 3 | 9 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_reb_t3_s9 | agents/rebrac.py | 3 | 9 |
+RUNNING | HL_reb_t1_s7 | agents/rebrac.py | 1 | 7 |
+RUNNING | HL_qflow_t4_s8 | agents/qflow.py | 4 | 8 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_dsrl_t2_s9 | agents/dsrl.py | 2 | 9 | --agent.target_entropy_multiplier=0.5
+RUNNING | HL_dsrl_t2_s9 | agents/dsrl.py | 2 | 9 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_reb_t4_s9 | agents/rebrac.py | 4 | 9 |
+OFF | HL_qflow_t1_s9 | agents/qflow.py | 1 | 9 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+OFF | HL_dsrl_t4_s7 | agents/dsrl.py | 4 | 7 | --agent.target_entropy_multiplier=0.5
+OFF | HL_reb_t5_s7 | agents/rebrac.py | 5 | 7 |
+OFF | HL_reb_t2_s7 | agents/rebrac.py | 2 | 7 |
+RUNNING | HM_dsrl_t5_s11 | agents/dsrl.py | 5 | 11 | --agent.target_entropy_multiplier=0.5
+OFF | HL_qflow_t3_s9 | agents/qflow.py | 3 | 9 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HL_mani_t1_s0 | agents/mani_stdfp.py | 1 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+RUNNING | HL_mani_t3_s0 | agents/mani_stdfp.py | 3 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+RUNNING | HL_mani_t5_s0 | agents/mani_stdfp.py | 5 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+RUNNING | HM_mani_t2_s4 | agents/mani_stdfp.py | 2 | 4 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+RUNNING | HM_exp07_t2_s5 | agents/anq_rfs.py | 2 | 5 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.critic_expectile=0.7
+RUNNING | HM_qflow_t4_s9 | agents/qflow.py | 4 | 9 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HL_mani_t2_s0 | agents/mani_stdfp.py | 2 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+RUNNING | HL_mani_t4_s0 | agents/mani_stdfp.py | 4 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+OFF | HM_reb_t5_s10 | agents/rebrac.py | 5 | 10 |
+OFF | HM_dsrl_t3_s10 | agents/dsrl.py | 3 | 10 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_qflow_t5_s9 | agents/qflow.py | 5 | 9 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+OFF | HM_reb_t1_s10 | agents/rebrac.py | 1 | 10 |
+RUNNING | HM_mani3_t5_s5 | agents/mani_stdfp.py | 5 | 5 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+RUNNING | HM_manihi_t1_s1 | agents/mani_stdfp.py | 1 | 1 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=10.0
+RUNNING | HM_manihi_t1_s2 | agents/mani_stdfp.py | 1 | 2 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=10.0
+RUNNING | CDmanin_t3_s1 | agents/mani_stdfp.py | 3 | 1 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=0.3 --agent.metric_normalize=True
+RUNNING | CDmanin_t2_s1b | agents/mani_stdfp.py | 2 | 1 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=0.3 --agent.metric_normalize=True
+RUNNING | HM_manin_t2_s3 | agents/mani_stdfp.py | 2 | 3 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0 --agent.metric_normalize=True
+RUNNING | HM_exp07_t2_s6 | agents/anq_rfs.py | 2 | 6 | --agent.refine_output_mode=action --agent.bc_anchor=data --agent.latent_reg=kl --agent.target_multiplier=0.125 --agent.drift_temps=3.0 --agent.lam=0.01 --agent.q_agg=mean --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.critic_expectile=0.7
+RUNNING | HL_mani_t1_s1 | agents/mani_stdfp.py | 1 | 1 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+RUNNING | HL_mani_t3_s1 | agents/mani_stdfp.py | 3 | 1 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+RUNNING | HM_mani_t3_s5 | agents/mani_stdfp.py | 3 | 5 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+RUNNING | HM_mani_t5_s7 | agents/mani_stdfp.py | 5 | 7 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0
+RUNNING | CDmani_t4_s2 | agents/mani_stdfp.py | 4 | 2 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=0.3
+RUNNING | HL_qflow_t5_s9 | agents/qflow.py | 5 | 9 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16
+RUNNING | HM_manihi_t5_s4 | agents/mani_stdfp.py | 5 | 4 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=10.0
+# ---- DECISION: mani_stdfp is THE algorithm. (a) antmaze via degenerate metric ----
+RUNNING | Adeg_t1_s0 | agents/mani_stdfp.py | 1 | 0 | --agent.drift_temps=3.0 --agent.q_agg=min --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.metric_normalize=True --agent.manifold_ridge=100.0 --agent.lam=0.01
+RUNNING | Adeg_t4_s0 | agents/mani_stdfp.py | 4 | 0 | --agent.drift_temps=3.0 --agent.q_agg=min --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.metric_normalize=True --agent.manifold_ridge=100.0 --agent.lam=0.01
+RUNNING | Adeg_t2_s0 | agents/mani_stdfp.py | 2 | 0 | --agent.drift_temps=3.0 --agent.q_agg=min --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.metric_normalize=True --agent.manifold_ridge=100.0 --agent.lam=0.01
+RUNNING | Adeg_t1_s1 | agents/mani_stdfp.py | 1 | 1 | --agent.drift_temps=3.0 --agent.q_agg=min --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.metric_normalize=True --agent.manifold_ridge=100.0 --agent.lam=0.05
+# ---- (b) cube vs dsrl gap: t2/t4 probes ----
+RUNNING | CDmani1_t2_s0 | agents/mani_stdfp.py | 2 | 0 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=1.0
+RUNNING | CDmanitm_t2_s0 | agents/mani_stdfp.py | 2 | 0 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=0.3 --agent.target_multiplier=0.5
+RUNNING | CDmani1_t4_s0 | agents/mani_stdfp.py | 4 | 0 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=1.0
+RUNNING | CDmani_t1_s3 | agents/mani_stdfp.py | 1 | 3 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=0.3
+RUNNING | HM_manihi_t2_s1 | agents/mani_stdfp.py | 2 | 1 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=10.0
+OFF | HL_dsrl_t5_s9 | agents/dsrl.py | 5 | 9 | --agent.target_entropy_multiplier=0.5
+RUNNING | HM_mani3_t2_s4 | agents/mani_stdfp.py | 2 | 4 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+RUNNING | CDmanihi_t5_s1 | agents/mani_stdfp.py | 5 | 1 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=3.0
+RUNNING | CDmanihi_t1_s0 | agents/mani_stdfp.py | 1 | 0 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=3.0
+RUNNING | HM_mani3_t3_s5 | agents/mani_stdfp.py | 3 | 5 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+RUNNING | HM_manin_t5_s5 | agents/mani_stdfp.py | 5 | 5 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0 --agent.metric_normalize=True
+OFF | HL_mani_t5_s1 | agents/mani_stdfp.py | 5 | 1 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+OFF | HL_mani_t2_s1 | agents/mani_stdfp.py | 2 | 1 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+RUNNING | HM_manihi_t1_s3 | agents/mani_stdfp.py | 1 | 3 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=10.0
+RUNNING | HM_manix_t5_s1 | agents/mani_stdfp.py | 5 | 1 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0 --agent.critic_expectile=0.7
+RUNNING | HM_manix_t5_s2 | agents/mani_stdfp.py | 5 | 2 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=1.0 --agent.critic_expectile=0.7
+RUNNING | CDmani_t2_s3 | agents/mani_stdfp.py | 2 | 3 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=0.3
+# ---- R1 (v2-doc protocol): exploitation=Adeg grid + cube lam=1; exploration=t4 lam sweep ----
+RUNNING | Adeg_t3_s0 | agents/mani_stdfp.py | 3 | 0 | --agent.drift_temps=3.0 --agent.q_agg=min --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.metric_normalize=True --agent.manifold_ridge=100.0 --agent.lam=0.01
+RUNNING | Adeg_t5_s0 | agents/mani_stdfp.py | 5 | 0 | --agent.drift_temps=3.0 --agent.q_agg=min --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.metric_normalize=True --agent.manifold_ridge=100.0 --agent.lam=0.01
+RUNNING | CDmani1_t2_s1 | agents/mani_stdfp.py | 2 | 1 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=1.0
+RUNNING | CDmani1_t2_s2 | agents/mani_stdfp.py | 2 | 2 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=1.0
+RUNNING | CDmani1_t1_s0 | agents/mani_stdfp.py | 1 | 0 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=1.0
+RUNNING | CDmanilo_t4_s0 | agents/mani_stdfp.py | 4 | 0 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=0.1
+RUNNING | HM_mani03_t4_s0 | agents/mani_stdfp.py | 4 | 0 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=0.3
+RUNNING | Adeg_t2_s1 | agents/mani_stdfp.py | 2 | 1 | --agent.drift_temps=3.0 --agent.q_agg=min --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.metric_normalize=True --agent.manifold_ridge=100.0 --agent.lam=0.01
+ON | Adeg_t4_s1 | agents/mani_stdfp.py | 4 | 1 | --agent.drift_temps=3.0 --agent.q_agg=min --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.metric_normalize=True --agent.manifold_ridge=100.0 --agent.lam=0.01
+ON | Adeg_t5_s1 | agents/mani_stdfp.py | 5 | 1 | --agent.drift_temps=3.0 --agent.q_agg=min --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.metric_normalize=True --agent.manifold_ridge=100.0 --agent.lam=0.01
+ON | CDmani1_t5_s0 | agents/mani_stdfp.py | 5 | 0 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=1.0
+ON | CDmani1_t3_s0 | agents/mani_stdfp.py | 3 | 0 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=1.0
+ON | Adeg_t3_s1 | agents/mani_stdfp.py | 3 | 1 | --agent.drift_temps=3.0 --agent.q_agg=min --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.metric_normalize=True --agent.manifold_ridge=100.0 --agent.lam=0.01
+ON | Adeg_t1_s2 | agents/mani_stdfp.py | 1 | 2 | --agent.drift_temps=3.0 --agent.q_agg=min --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.metric_normalize=True --agent.manifold_ridge=100.0 --agent.lam=0.01
+ON | HM_mani3_t5_s6 | agents/mani_stdfp.py | 5 | 6 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+ON | HM_mani3_t3_s6 | agents/mani_stdfp.py | 3 | 6 | --agent.drift_temps=3.0 --agent.q_agg=mean --agent.adam_eps=1e-8 --agent.drift_adam_eps=1e-4 --agent.bc_stop_step=600000 --agent.lam=3.0
+ON | CDmani_t5_s3 | agents/mani_stdfp.py | 5 | 3 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=0.3
+ON | CDmani_t3_s3 | agents/mani_stdfp.py | 3 | 3 | --agent.drift_temps=0.05 --agent.q_agg=mean --agent.drift_force_norm=raw --agent.drift_adam_eps=1e-4 --agent.refine_anchor=base --agent.lam=0.3
+ON | HM_qflow_t2_s8 | agents/qflow.py | 2 | 8 | --agent.guidance_lambda=1.0 --agent.q_agg=mean --agent.use_time_embed=True --agent.time_embed_dim=16

@@ -173,6 +173,10 @@ class ANQRFSAgent(flax.struct.PyTreeNode):
             return qs.mean(axis=0) - self.config["rho"] * qs.std(axis=0)
         raise ValueError(f"Unsupported Q aggregation: {mode}")
 
+    def _full_action_dim(self):
+        d = self.config.get("full_action_dim", None) or self.config["action_dim"]
+        return d
+
     def _safe_clip(self, actions):
         actions = jnp.nan_to_num(actions, nan=0.0, posinf=1.0, neginf=-1.0)
         return jnp.clip(actions, -1.0, 1.0)
@@ -329,6 +333,26 @@ class ANQRFSAgent(flax.struct.PyTreeNode):
         valid = batch.get("valid", jnp.ones_like(batch["rewards"]))[..., -1]
         valid = jnp.broadcast_to(valid[None, ...], losses.shape)
         loss = (losses * valid).sum() / jnp.maximum(valid.sum(), 1.0)
+        if self.config.get("use_latent_critic", False):
+            # Distill the action critic into z-space at prior samples: the
+            # latent actor then climbs a smooth landscape defined directly
+            # over z (DSRL), instead of differentiating through the decoder.
+            z_rng = jax.random.fold_in(rng, 3)
+            zs = jax.random.normal(
+                z_rng, (batch["observations"].shape[0], self._full_action_dim())
+            )
+            dec = jax.lax.stop_gradient(
+                self.network.select("target_actor_drift")(batch["observations"], zs)
+            )
+            with_q = jax.lax.stop_gradient(
+                self._aggregate_q(
+                    self.network.select("target_critic")(batch["observations"], actions=dec)
+                )
+            )
+            zqs = self.network.select("latent_critic")(
+                batch["observations"], actions=zs, params=grad_params
+            )
+            loss = loss + jnp.square(zqs - with_q[None, ...]).mean()
         return loss, {
             "critic_loss": loss,
             "q_mean": qs.mean(),
@@ -445,6 +469,22 @@ class ANQRFSAgent(flax.struct.PyTreeNode):
         qs = self.network.select("critic")(observations, actions=refined)
         q = self._aggregate_q(qs, mode=self.config["refine_q_agg"])
         norm_q = jax.lax.stop_gradient(1.0 / jnp.abs(q).mean())
+        if self.config.get("use_latent_critic", False):
+            # z-gradient comes from the distilled latent critic (smooth in z);
+            # the action-space Q term still trains the refine head, but z is
+            # blocked from it so the two improvement paths stay separate.
+            zq = self._aggregate_q(
+                self.network.select("latent_critic")(observations, actions=noises)
+            )
+            norm_zq = jax.lax.stop_gradient(1.0 / jnp.abs(zq).mean())
+            qs = self.network.select("critic")(
+                observations,
+                actions=self._safe_clip(
+                    jax.lax.stop_gradient(refined - delta) + delta
+                ),
+            )
+            q = self._aggregate_q(qs, mode=self.config["refine_q_agg"])
+            norm_q = jax.lax.stop_gradient(1.0 / jnp.abs(q).mean())
 
         data_actions = self._batch_actions(batch)
         valid = batch["valid"][..., -1]
@@ -505,6 +545,8 @@ class ANQRFSAgent(flax.struct.PyTreeNode):
             train_alpha = jnp.asarray(0.0)
 
         loss = -norm_q * q.mean() + self.config["lam"] * bc + reg_term + alpha_loss
+        if self.config.get("use_latent_critic", False):
+            loss = loss - norm_zq * zq.mean()
         return loss, {
             "actor_loss": loss,
             "actor_q": q.mean(),
@@ -562,6 +604,8 @@ class ANQRFSAgent(flax.struct.PyTreeNode):
         )
         agent._target_update(new_network, "critic")
         agent._target_update(new_network, "rfs_actor")
+        if agent.config.get("use_latent_critic", False):
+            agent._target_update(new_network, "latent_critic")
         if agent.config["use_target_latent"]:
             agent._target_update(new_network, "actor_drift")
         return agent.replace(network=new_network, rng=new_rng), info
@@ -671,6 +715,16 @@ class ANQRFSAgent(flax.struct.PyTreeNode):
             "target_rfs_actor": (copy.deepcopy(rfs_actor), actor_init),
             "noise_alpha": (LogParam(init_value=config["noise_init_temp"]), ()),
         }
+        if config.get("use_latent_critic", False):
+            # DSRL-style distilled latent critic: Q_z(s, z) ~= Q(s, decode(s, z)).
+            latent_critic = Value(
+                hidden_dims=config["value_hidden_dims"],
+                layer_norm=config["layer_norm"],
+                num_ensembles=config["num_qs"],
+            )
+            definitions["latent_critic"] = (latent_critic, (ex_observations, full_actions))
+            definitions["target_latent_critic"] = (
+                copy.deepcopy(latent_critic), (ex_observations, full_actions))
         network_def = ModuleDict({k: v[0] for k, v in definitions.items()})
         params = network_def.init(
             init_rng, **{k: v[1] for k, v in definitions.items()}
@@ -782,6 +836,7 @@ def get_config():
             drift_q_guidance=0.0,  # >0: Q-Flow-style guidance force on the drift decoder
             drift_qg_start=0,  # >0: engage guidance only after this step
             eval_use_target=False,  # execute the EMA (target) actor at eval
+            use_latent_critic=False,  # DSRL-style distilled z-critic for the latent actor
             drift_multi_temp=False,  # True: 3-scale kernel (0.25x, 1x, 4x drift_temps)
             # "kl":      alpha * KL(z || N(0,I)), dual on noise_target_kl
             # "entropy": SAC -- alpha * log pi, dual on noise_target_entropy

@@ -1,6 +1,15 @@
 # OPERATING RULES — read at EVERY wake before doing anything else
 
-## Prime directive (user mandate, standing)
+## Rule 0: CURRENT TARGETS + ALGORITHM (user, 2026-08-25)
+- THE algorithm is mani_stdfp (anq_stdfp + manifold-metric refine). anq_rfs = ablation only.
+- Headline comparisons: cube-double vs DSRL(our protocol, agg .72); antmaze-giant vs
+  rebrac (.52, already beaten); humanoidmaze-medium vs Q-Flow (.81).
+- humanoidmaze-large: DROPPED by user.
+- Antmaze coverage via degenerate metric (normalize + ridge=100 = Euclidean).
+
+## Prime directive
+- Standing protocol doc: docs/OGBench_Researcher_Prompt_v2.md (round format = its §11; dead axes = 부록 B).
+ (user mandate, standing)
 Autonomously tune the two-component algorithm to SOTA. Do not wait for user replies.
 
 ## Rule 1: GPUs MUST NEVER be idle  (violated 3x — the user is rightly angry)
@@ -43,6 +52,13 @@ Autonomously tune the two-component algorithm to SOTA. Do not wait for user repl
 - Verify env_name from each run's flags.json before aggregating (57-run
   mislaunch happened; done-markers must be eval-row counts, not log strings).
 - Baselines need seed depth too (dsrl n=1 numbers moved by +-0.07).
+
+## Rule 3c: isolation runs get the component's OWN config sweep
+When testing a component in isolation (e.g. stdfp without the refine head), do
+NOT inherit the parent recipe's constants (drift_temps, agg, freeze) and then
+judge the component -- sweep its own key axes first (its defaults + the domain
+candidates).  Premature call made 2026-08-24: "stdfp is weak everywhere on
+humanoid" from ONE inherited config at n<=2 mid-run.  User corrected it.
 
 ## Rule 3b: after EDITING run_plan.sh, ALWAYS kill + restart the runner
 The runner is a long-lived bash process; it never re-reads domain cases.  The
