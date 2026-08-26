@@ -24,6 +24,7 @@ nohup /venv/main/bin/python main.py \
   --save_dir=exp/beat \
   --run_group="$GROUP" \
   --offline_scan_chunk=25 \
+  --eval_vector=10 \
   --horizon_length=${HORIZON:-1} \
   --sparse=${SPARSE:-False} \
   "$@" > "$LOGDIR/${GROUP}.log" 2>&1 &

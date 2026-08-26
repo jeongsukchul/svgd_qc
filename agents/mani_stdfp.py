@@ -90,6 +90,24 @@ class ManiSTDFPAgent(ANQSTDFPAgent):
         jacobians = jnp.nan_to_num(
             jacobians, nan=0.0, posinf=0.0, neginf=0.0
         )
+        # Variance stabilisation: JJ^T from a single z-draw is a 1-sample
+        # estimate of E_z[JJ^T].  Averaging over k draws (implemented by
+        # stacking jacobians along the latent axis with 1/sqrt(k) scaling,
+        # which yields exactly the averaged covariance) shrinks noise
+        # directions toward isotropy while consistent signal survives.
+        k = int(self.config.get("metric_z_samples", 1))
+        if k > 1:
+            zs_rng = jax.random.fold_in(rng, 11)
+            extra = []
+            for j in range(k - 1):
+                zj = jax.random.normal(
+                    jax.random.fold_in(zs_rng, j), noises.shape, dtype=noises.dtype
+                )
+                Jj = jax.lax.stop_gradient(
+                    self.generator_jacobians(observations, zj)
+                )
+                extra.append(jnp.nan_to_num(Jj, nan=0.0, posinf=0.0, neginf=0.0))
+            jacobians = jnp.concatenate([jacobians] + extra, axis=-1) / jnp.sqrt(k)
         # Which displacement the metric trust region is measured on.  Anchoring
         # on ``delta`` (the drift sample) makes the penalty pure shrinkage toward
         # the decoder's own output: with M^-1 eigenvalues of 6-100 it dominates
@@ -101,10 +119,49 @@ class ManiSTDFPAgent(ANQSTDFPAgent):
             offset = refined - self._batch_actions(batch)
         else:
             offset = delta
-        metric_offset_sq = manifold_quadratic(
-            offset, jacobians, self.config["manifold_ridge"],
-            normalize=self.config["metric_normalize"],
-        )
+        # Relative ridge: ridge_eff = rel * mean_eig(JJ^T) + absolute floor.
+        # Caps the metric's anisotropy at the decoder's signal-to-mean ratio,
+        # so a z-impotent decoder (antmaze: JJ^T ~ noise) self-degenerates to
+        # an isotropic anchor while a z-potent one (HM/cube) keeps its shape.
+        ridge = self.config["manifold_ridge"]
+        rel = self.config.get("manifold_ridge_rel", 0.0)
+        if rel:
+            cov = generator_covariance(jacobians)
+            mean_eig = jax.lax.stop_gradient(
+                jnp.trace(cov, axis1=-2, axis2=-1) / cov.shape[-1]
+            )
+            ridge = ridge + rel * mean_eig[..., None, None]
+        alpha = float(self.config.get("metric_power", 1.0))
+        if alpha != 1.0 and not self.config.get("metric_invert", False):
+            # Matrix-power smoothing: (JJ^T + ridge I)^-alpha interpolates
+            # Euclidean (alpha=0) <-> full metric (alpha=1); anisotropy ratio
+            # r is compressed to r^alpha.
+            cov = generator_covariance(jacobians)
+            covr = cov + ridge * jnp.eye(cov.shape[-1], dtype=cov.dtype) \
+                if jnp.ndim(ridge) == 0 else cov + ridge[..., None] * jnp.eye(cov.shape[-1], dtype=cov.dtype)
+            w, v = jnp.linalg.eigh(jax.lax.stop_gradient(covr))
+            inv_pow = jnp.clip(w, 1e-8) ** (-alpha)
+            if self.config["metric_normalize"]:
+                inv_pow = inv_pow / jnp.clip(inv_pow.mean(axis=-1, keepdims=True), 1e-8)
+            proj = jnp.einsum("...ij,...i->...j", v, offset) if False else jnp.einsum("...ji,...j->...i", v, offset)
+            metric_offset_sq = jnp.einsum("...i,...i,...i->...", proj, inv_pow, proj)
+        elif self.config.get("metric_invert", False):
+            # Inverted metric: penalise TANGENT deviation, allow normal
+            # deviation -- tests the hypothesis that antmaze's useful
+            # refinements point off the behaviour manifold.
+            cov = generator_covariance(jacobians)
+            covr = cov + ridge * jnp.eye(cov.shape[-1], dtype=cov.dtype)
+            if self.config["metric_normalize"]:
+                covr = covr / jnp.clip(
+                    jnp.trace(covr, axis1=-2, axis2=-1)[..., None, None]
+                    / covr.shape[-1], 1e-8)
+            metric_offset_sq = jnp.einsum(
+                "...i,...ij,...j->...", offset, jax.lax.stop_gradient(covr), offset)
+        else:
+            metric_offset_sq = manifold_quadratic(
+                offset, jacobians, ridge,
+                normalize=self.config["metric_normalize"],
+            )
 
         valid = batch.get("valid", jnp.ones_like(batch["rewards"]))[..., -1]
         # Means, not sums, so ``lam`` and the logged penalties are directly
@@ -142,6 +199,10 @@ def get_config():
     config = get_anq_stdfp_config()
     config.agent_name = "mani_stdfp"
     config.manifold_ridge = 1e-2
+    config.manifold_ridge_rel = 0.0
+    config.metric_z_samples = 1
+    config.metric_invert = False
+    config.metric_power = 1.0  # (JJ^T+ridge I)^-alpha; 0=Euclidean, 1=full metric  # penalise tangent instead of normal deviation  # >1: average JJ^T over k z-draws (variance stabilisation)  # >0: ridge += rel*mean_eig(JJ^T) (self-degenerating metric)
     # Scale-free metric: shape only, with ``lam`` alone setting the strength.
     config.metric_normalize = False
     return config

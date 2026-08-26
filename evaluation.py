@@ -159,3 +159,59 @@ def evaluate(
 
     return stats, trajs, renders
 
+def evaluate_vectorized(
+    agent,
+    envs,
+    num_eval_episodes=50,
+    eval_gaussian=None,
+    action_dim=None,
+):
+    """Parallel-episode evaluation over a list of identical envs.
+
+    Statistically identical to ``evaluate`` for the table metrics: the same
+    number of independent episodes, the same policy and chunk-execution
+    semantics, stats taken from each episode's terminal ``info`` (where
+    ``success`` lives).  Gripper-contact diagnostics are not collected here.
+    MuJoCo releases the GIL inside ``mj_step``, so a thread pool genuinely
+    parallelises the physics stepping across envs.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    actor_fn = supply_rng(
+        agent.sample_actions, rng=jax.random.PRNGKey(np.random.randint(0, 2**32))
+    )
+    stats = defaultdict(list)
+    pool = ThreadPoolExecutor(max_workers=len(envs))
+    episodes_left = num_eval_episodes
+    while episodes_left > 0:
+        n = min(len(envs), episodes_left)
+        resets = list(pool.map(lambda e: e.reset(), envs[:n]))
+        obs = [r[0] for r in resets]
+        queues = [[] for _ in range(n)]
+        done = [False] * n
+        while not all(done):
+            idx = [i for i in range(n) if not done[i]]
+            if len(queues[idx[0]]) == 0:
+                batch = np.stack([obs[i] for i in idx])
+                acts = np.asarray(actor_fn(observations=batch))
+                acts = acts.reshape(len(idx), -1, action_dim)
+                for j, i in enumerate(idx):
+                    queues[i] = list(acts[j])
+            acts_now = {}
+            for i in idx:
+                a = queues[i].pop(0)
+                if eval_gaussian is not None:
+                    a = np.random.normal(a, eval_gaussian)
+                acts_now[i] = np.clip(a, -1, 1)
+            results = list(pool.map(lambda i: envs[i].step(acts_now[i]), idx))
+            for j, i in enumerate(idx):
+                o2, r, term, trunc, info = results[j]
+                obs[i] = o2
+                if term or trunc:
+                    done[i] = True
+                    add_to(stats, flatten(info))
+        episodes_left -= n
+    pool.shutdown()
+    for k, v in stats.items():
+        stats[k] = np.mean(v)
+    return stats, [], []

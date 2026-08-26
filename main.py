@@ -10,7 +10,7 @@ from envs.ogbench_utils import make_ogbench_env_and_datasets
 from utils.flax_utils import save_agent, save_critic
 from utils.datasets import Dataset, ReplayBuffer
 
-from evaluation import evaluate
+from evaluation import evaluate, evaluate_vectorized
 from agents import agents
 import numpy as np
 
@@ -43,6 +43,7 @@ flags.DEFINE_integer('bc_val_patience', 3, 'Consecutive non-improving val checks
 
 flags.DEFINE_bool('prune_batch_keys', False, 'Drop batch keys the agent never reads (full_observations/terminals/next_actions) before the host->device copy.')
 
+flags.DEFINE_integer('eval_vector', 0, 'If >0, run evals over this many parallel envs (thread pool; statistically identical episodes).')
 flags.DEFINE_integer('offline_scan_chunk', 1, 'Fuse this many offline updates into one lax.scan dispatch (1 = per-step, as before). Mathematically identical; purely a host-dispatch optimization.')
 
 flags.DEFINE_float('discount', 0.99, 'discount factor')
@@ -272,6 +273,14 @@ def main(_):
         return ds
     
     train_dataset = process_train_dataset(train_dataset)
+    _eval_env_pool = None
+    if FLAGS.eval_vector > 0:
+        from envs.ogbench_utils import make_ogbench_env_and_datasets as _menv
+        _eval_env_pool = [
+            _menv(FLAGS.env_name, env_only=True)
+            for _ in range(FLAGS.eval_vector)
+        ]
+
     example_batch = train_dataset.sample(())
     
     agent_class = agents[config['agent_name']]
@@ -399,14 +408,22 @@ def main(_):
         if (i == FLAGS.offline_steps if scan_chunk > 1 else i == FLAGS.offline_steps - 1) or \
             (FLAGS.eval_interval != 0 and i % FLAGS.eval_interval == 0):
             # during eval, the action chunk is executed fully
-            eval_info, _, renders = evaluate(
-                agent=agent,
-                env=eval_env,
-                action_dim=example_batch["actions"].shape[-1],
-                num_eval_episodes=FLAGS.eval_episodes,
-                num_video_episodes=FLAGS.video_episodes,
-                video_frame_skip=FLAGS.video_frame_skip,
-            )
+            if _eval_env_pool is not None and FLAGS.video_episodes == 0:
+                eval_info, _, renders = evaluate_vectorized(
+                    agent=agent,
+                    envs=_eval_env_pool,
+                    action_dim=example_batch["actions"].shape[-1],
+                    num_eval_episodes=FLAGS.eval_episodes,
+                )
+            else:
+                eval_info, _, renders = evaluate(
+                    agent=agent,
+                    env=eval_env,
+                    action_dim=example_batch["actions"].shape[-1],
+                    num_eval_episodes=FLAGS.eval_episodes,
+                    num_video_episodes=FLAGS.video_episodes,
+                    video_frame_skip=FLAGS.video_frame_skip,
+                )
             eval_info = add_eval_video(eval_info, renders)
             logger.log(eval_info, "eval", step=log_step)
             maybe_save_best_eval(agent, eval_info, log_step)
