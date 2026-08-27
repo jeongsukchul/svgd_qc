@@ -8,7 +8,10 @@ from utils.datasets import Dataset
 
 def make_env(env_name):
     """Make D4RL environment."""
-    env = gymnasium.make('GymV21Environment-v0', env_id=env_name)
+    # gymnasium 1.x registers only a stub for GymV21Environment-v0 that raises;
+    # construct shimmy's compatibility wrapper directly instead.
+    from shimmy.openai_gym_compatibility import GymV21CompatibilityV0
+    env = GymV21CompatibilityV0(env_id=env_name)
     env = EpisodeMonitor(env)
     return env
 
@@ -23,7 +26,10 @@ def get_dataset(
         env: Environment instance.
         env_name: Name of the environment.
     """
-    dataset = d4rl.qlearning_dataset(env)
+    raw = env
+    while not hasattr(raw, 'get_dataset'):
+        raw = getattr(raw, 'gym_env', None) or getattr(raw, 'env', None) or raw.unwrapped
+    dataset = d4rl.qlearning_dataset(raw)
 
     terminals = np.zeros_like(dataset['rewards'])  # Indicate the end of an episode.
     masks = np.zeros_like(dataset['rewards'])  # Indicate whether we should bootstrap from the next state.

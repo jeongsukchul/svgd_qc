@@ -24,14 +24,19 @@ while true; do
     [ -z "$row" ] && { echo "$(date) queue idle ${waited}s, exiting" >> "$LOG"; break; }
     echo "$(date) new rows appeared after ${waited}s idle" >> "$LOG"
   fi
+  # Wait for a free slot FIRST, then re-grab the head row and flip it
+  # immediately -- holding a line number across the slot-wait races against
+  # concurrent queue edits (2026-08-26: Apow_t2_s8 launched but stayed ON).
+  while [ "$(pgrep -cf '/venv/main/bin/python main.py --agent')" -ge "$MAXJOBS" ]; do sleep 60; done
+  row=$(grep -nE '^ON[[:space:]]*\|' "$PLAN" | head -1)
+  [ -z "$row" ] && continue
   ln=${row%%:*}
+  sed -i "${ln}s/^ON /RUNNING /" "$PLAN"
   body=${row#*:}
   IFS='|' read -r _ grp agent task seed flags <<< "$body"
   grp=$(echo "$grp" | xargs); agent=$(echo "$agent" | xargs)
   task=$(echo "$task" | xargs); seed=$(echo "$seed" | xargs)
   flags=$(echo "$flags" | sed 's/#.*//')
-
-  while [ "$(pgrep -cf 'main.py --agent')" -ge "$MAXJOBS" ]; do sleep 60; done
 
   # least-busy GPU by live compute-process count
   best=0; bestc=99
@@ -54,11 +59,30 @@ while true; do
     CQF_*) DOM="ENV_PREFIX=cube-double-play DISCOUNT=0.99 HORIZON=1" ;;   # qflow standard setting: flat 1-step
     CDX_*) DOM="ENV_PREFIX=cube-double-play DISCOUNT=0.99 HORIZON=5 STEPS=3000000" ;;
     CD*)   DOM="ENV_PREFIX=cube-double-play DISCOUNT=0.99 HORIZON=5" ;;
+    RM_L*) DOM="ENV_FULL=lift-mh-low_dim DISCOUNT=0.99 HORIZON=5" ;;
+    RM_C*) DOM="ENV_FULL=can-mh-low_dim DISCOUNT=0.99 HORIZON=5" ;;
+    RMX_S*) DOM="ENV_FULL=square-mh-low_dim DISCOUNT=0.99 HORIZON=5 STEPS=2000000" ;;
+    RM_S*) DOM="ENV_FULL=square-mh-low_dim DISCOUNT=0.99 HORIZON=5" ;;
+    RG_L*) DOM="ENV_FULL=lift-mh-low_dim DISCOUNT=0.995 HORIZON=5" ;;
+    RG_C*) DOM="ENV_FULL=can-mh-low_dim DISCOUNT=0.995 HORIZON=5" ;;
+    RG_S*) DOM="ENV_FULL=square-mh-low_dim DISCOUNT=0.995 HORIZON=5" ;;
+    AD_PH*) DOM="ENV_FULL=pen-human-v1 DISCOUNT=0.99 HORIZON=5" ;;
+    AD_PC*) DOM="ENV_FULL=pen-cloned-v1 DISCOUNT=0.99 HORIZON=5" ;;
+    AD_HH*) DOM="ENV_FULL=hammer-human-v1 DISCOUNT=0.99 HORIZON=5" ;;
+    AD_HC*) DOM="ENV_FULL=hammer-cloned-v1 DISCOUNT=0.99 HORIZON=5" ;;
+    AD_DH*) DOM="ENV_FULL=door-human-v1 DISCOUNT=0.99 HORIZON=5" ;;
+    AD_DC*) DOM="ENV_FULL=door-cloned-v1 DISCOUNT=0.99 HORIZON=5" ;;
+    AD_RH*) DOM="ENV_FULL=relocate-human-v1 DISCOUNT=0.99 HORIZON=5" ;;
+    AD_RC*) DOM="ENV_FULL=relocate-cloned-v1 DISCOUNT=0.99 HORIZON=5" ;;
+    A1_PH*) DOM="ENV_FULL=pen-human-v1 DISCOUNT=0.99 HORIZON=1" ;;
+    KT_C*) DOM="ENV_FULL=kitchen-complete-v0 DISCOUNT=0.99 HORIZON=5" ;;
+    KT_P*) DOM="ENV_FULL=kitchen-partial-v0 DISCOUNT=0.99 HORIZON=5" ;;
+    KT_M*) DOM="ENV_FULL=kitchen-mixed-v0 DISCOUNT=0.99 HORIZON=5" ;;
+    A1_DC*) DOM="ENV_FULL=door-cloned-v1 DISCOUNT=0.99 HORIZON=1" ;;
     *)    DOM="" ;;
   esac
 
   echo "$(date) gpu$best ev=$EV <- $grp" >> "$LOG"
   eval "$DOM EVAL_EPISODES=$EV /workspace/svgd_qc/runner/launch.sh $best $MF $grp $agent $task $seed $flags" >> "$LOG" 2>&1
-  sed -i "${ln}s/^ON /RUNNING /" "$PLAN"
-  sleep 25
+  sleep 40
 done

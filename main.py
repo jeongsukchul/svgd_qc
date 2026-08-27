@@ -15,8 +15,12 @@ from agents import agents
 import numpy as np
 
 if 'CUDA_VISIBLE_DEVICES' in os.environ:
-    os.environ['EGL_DEVICE_ID'] = '0'
-    os.environ['MUJOCO_EGL_DEVICE_ID'] = '0'
+    # Use the first visible GPU's PHYSICAL id: EGL enumerates all GPUs
+    # regardless of CUDA masking, and robosuite asserts the id is listed in
+    # CUDA_VISIBLE_DEVICES.
+    _first_gpu = os.environ['CUDA_VISIBLE_DEVICES'].split(',')[0].strip()
+    os.environ['EGL_DEVICE_ID'] = _first_gpu or '0'
+    os.environ['MUJOCO_EGL_DEVICE_ID'] = _first_gpu or '0'
 
 FLAGS = flags.FLAGS
 
@@ -274,12 +278,24 @@ def main(_):
     
     train_dataset = process_train_dataset(train_dataset)
     _eval_env_pool = None
+    _is_d4rl = any(t in FLAGS.env_name for t in ('pen','hammer','relocate','door','kitchen')) and 'singletask' not in FLAGS.env_name
     if FLAGS.eval_vector > 0:
-        from envs.ogbench_utils import make_ogbench_env_and_datasets as _menv
-        _eval_env_pool = [
-            _menv(FLAGS.env_name, env_only=True)
-            for _ in range(FLAGS.eval_vector)
-        ]
+        if _is_d4rl:
+            from envs import d4rl_utils as _d4u
+            _eval_env_pool = [_d4u.make_env(FLAGS.env_name) for _ in range(FLAGS.eval_vector)]
+        elif is_robomimic_env_name(FLAGS.env_name):
+            from envs import robomimic_utils as _rmu
+            _norm = _rmu.compute_normalization_stats(FLAGS.env_name)
+            _eval_env_pool = [
+                _rmu.make_env(FLAGS.env_name, seed=1000 + i, normalization_path=_norm)
+                for i in range(FLAGS.eval_vector)
+            ]
+        else:
+            from envs.ogbench_utils import make_ogbench_env_and_datasets as _menv
+            _eval_env_pool = [
+                _menv(FLAGS.env_name, env_only=True)
+                for _ in range(FLAGS.eval_vector)
+            ]
 
     example_batch = train_dataset.sample(())
     

@@ -74,7 +74,7 @@ class ManiSTDFPAgent(ANQSTDFPAgent):
 
     def refine_actor_loss(self, batch, grad_params, rng):
         observations = batch["observations"]
-        base, noises = self._refine_base_actions(observations, rng)
+        base, noises = self._refine_base_actions(observations, rng, train=True)
         refined, delta = self._refine(
             observations, base, params=grad_params
         )
@@ -176,7 +176,18 @@ class ManiSTDFPAgent(ANQSTDFPAgent):
         ).mean()
 
         norm_q = jax.lax.stop_gradient(1 / jnp.abs(q).mean())
-        loss = - norm_q * q_objective + self.config["lam"] * penalty
+        lam = self.config["lam"]
+        warm = self.config.get("lam_warmup_steps", 0)
+        if warm:
+            lam = lam * jnp.clip(self.network.step / warm, 0.0, 1.0)
+        if self.config.get("delta_budget", 0.0) > 0.0:
+            # hinge trust region on the (metric-weighted) per-dim offset:
+            # penalty-free inside the budget, stiff wall beyond it.
+            dim = offset.shape[-1]
+            viol = jnp.maximum(metric_offset_sq / dim - self.config["delta_budget"], 0.0)
+            loss = - norm_q * q_objective + self.config.get("budget_lam", 10.0) * (viol * batch["valid"][..., -1]).mean()
+        else:
+            loss = - norm_q * q_objective + lam * penalty
         return loss, {
             "refine_actor_loss": loss,
             "refine_q": q_objective,

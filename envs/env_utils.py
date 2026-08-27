@@ -9,7 +9,7 @@ from gymnasium.spaces import Box
 
 from utils.datasets import Dataset
 
-ROBOMIMIC_ENABLED = False
+ROBOMIMIC_ENABLED = True
 ROBOMIMIC_TASK_PREFIXES = ("lift", "can", "square", "transport", "tool_hang")
 
 
@@ -124,7 +124,7 @@ def make_env_and_datasets(env_name, frame_stack=None, action_clip_eps=1e-5):
         eval_env = d4rl_utils.make_env(env_name)
         dataset = d4rl_utils.get_dataset(env, env_name)
         train_dataset, val_dataset = dataset, None
-    elif 'pen' in env_name or 'hammer' in env_name or 'relocate' in env_name or 'door' in env_name:
+    elif 'pen' in env_name or 'hammer' in env_name or 'relocate' in env_name or 'door' in env_name or 'kitchen' in env_name:
         # D4RL Adroit.
         import d4rl.hand_manipulation_suite  # noqa
         from envs import d4rl_utils
@@ -142,8 +142,9 @@ def make_env_and_datasets(env_name, frame_stack=None, action_clip_eps=1e-5):
             )
         from envs import robomimic_utils
 
-        env = robomimic_utils.make_env(env_name, seed=0)
-        eval_env = robomimic_utils.make_env(env_name, seed=42)
+        norm_path = robomimic_utils.compute_normalization_stats(env_name)
+        env = robomimic_utils.make_env(env_name, seed=0, normalization_path=norm_path)
+        eval_env = robomimic_utils.make_env(env_name, seed=42, normalization_path=norm_path)
         env = EpisodeMonitor(env)
         eval_env = EpisodeMonitor(eval_env)
         dataset = robomimic_utils.get_dataset(env, env_name)

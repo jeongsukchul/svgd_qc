@@ -11,6 +11,7 @@ import robomimic.utils.env_utils as EnvUtils
 import robomimic.utils.file_utils as FileUtils
 import robomimic.utils.env_utils as EnvUtils
 import robomimic.utils.obs_utils as ObsUtils
+from robomimic import DATASET_REGISTRY
 
 from utils.datasets import Dataset
 
@@ -45,42 +46,7 @@ def _get_max_episode_length(env_name):
         raise ValueError(f"Unsupported environment: {env_name}")
 
 
-def _get_normalization_path(env_name):
-    """Return the path where normalization stats are cached for this env."""
-    task, dataset_type, _ = env_name.split("-")
-    return os.path.join(expanduser("~/.robomimic"), task, dataset_type, "normalization.npz")
-
-
-def compute_normalization_stats(env_name):
-    """Compute and cache obs normalization stats from the dataset HDF5.
-
-    Returns the path to the saved .npz file.
-    """
-    norm_path = _get_normalization_path(env_name)
-    if os.path.exists(norm_path):
-        return norm_path
-
-    dataset_path = _check_dataset_exists(env_name)
-    rm_dataset = h5py.File(dataset_path, "r")
-    demos = list(rm_dataset["data"].keys())
-
-    all_obs = []
-    for ep in demos:
-        obs_parts = [np.array(rm_dataset[f"data/{ep}/obs/{k}"]) for k in low_dim_keys["low_dim"]]
-        next_obs_parts = [np.array(rm_dataset[f"data/{ep}/next_obs/{k}"]) for k in low_dim_keys["low_dim"]]
-        all_obs.append(np.concatenate(obs_parts, axis=-1))
-        all_obs.append(np.concatenate(next_obs_parts, axis=-1))
-    rm_dataset.close()
-
-    all_obs = np.concatenate(all_obs, axis=0)
-    np.savez(norm_path,
-             obs_min=all_obs.min(axis=0).astype(np.float32),
-             obs_max=all_obs.max(axis=0).astype(np.float32))
-    print(f"Saved normalization stats to {norm_path}")
-    return norm_path
-
-
-def make_env(env_name, seed=0, normalization_path=None):
+def make_env(env_name, seed=0):
     """
     NOTE: should get_dataset() first, so that the metadata is downloaded before creating the environment
     """
@@ -95,9 +61,7 @@ def make_env(env_name, seed=0, normalization_path=None):
         render=False, 
         render_offscreen=False,
     )
-    env = RobomimicLowdimWrapper(env, normalization_path=normalization_path,
-                                 low_dim_keys=low_dim_keys["low_dim"],
-                                 max_episode_length=max_episode_length)
+    env = RobomimicLowdimWrapper(env, low_dim_keys=low_dim_keys["low_dim"], max_episode_length=max_episode_length)
     env.seed(seed)
     
     return env
@@ -162,25 +126,14 @@ def get_dataset(env, env_name):
         terminals.append(dones.astype(np.float32))
         masks.append(1.0 - dones.astype(np.float32))
         next_observations.append(next_obs.astype(np.float32))
-
-    all_obs = np.concatenate(observations, axis=0)
-    all_next_obs = np.concatenate(next_observations, axis=0)
-
-    # Normalize observations using the same stats as the env wrapper
-    norm_path = _get_normalization_path(env_name)
-    if os.path.exists(norm_path):
-        stats = np.load(norm_path)
-        obs_min, obs_max = stats["obs_min"], stats["obs_max"]
-        all_obs = (2 * ((all_obs - obs_min) / (obs_max - obs_min + 1e-6) - 0.5)).astype(np.float32)
-        all_next_obs = (2 * ((all_next_obs - obs_min) / (obs_max - obs_min + 1e-6) - 0.5)).astype(np.float32)
-
+    
     return Dataset.create(
-        observations=all_obs,
+        observations=np.concatenate(observations, axis=0),
         actions=np.concatenate(actions, axis=0),
         rewards=np.concatenate(rewards, axis=0),
         terminals=np.concatenate(terminals, axis=0),
         masks=np.concatenate(masks, axis=0),
-        next_observations=all_next_obs,
+        next_observations=np.concatenate(next_observations, axis=0),
     )
 
 
@@ -222,8 +175,8 @@ class RobomimicLowdimWrapper(gym.Env):
             normalization = np.load(normalization_path)
             self.obs_min = normalization["obs_min"]
             self.obs_max = normalization["obs_max"]
-            self.action_min = normalization.get("action_min", None)
-            self.action_max = normalization.get("action_max", None)
+            self.action_min = normalization["action_min"]
+            self.action_max = normalization["action_max"]
 
         # setup spaces - use [-1, 1]
         low = np.full(env.action_dimension, fill_value=-1.)
@@ -301,7 +254,7 @@ class RobomimicLowdimWrapper(gym.Env):
         return self.get_observation(), {}
 
     def step(self, action):
-        if self.normalize and self.action_min is not None:
+        if self.normalize:
             action = self.unnormalize_action(action)
         raw_obs, reward, done, info = self.env.step(action)
         raw_obs = np.concatenate([raw_obs[key] for key in self.obs_keys], axis=0)
@@ -342,10 +295,6 @@ class RobomimicLowdimWrapper(gym.Env):
             camera_name=self.render_camera_name,
         )
     
-    def get_state(self):
-        state = self.env.env.sim.get_state()
-        return {"qpos": state.qpos, "qvel": state.qvel}
-
     def get_episode_info(self):
         return {"return": self.episode_return, "length": self.episode_length}
     def get_info(self):

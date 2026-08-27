@@ -163,7 +163,13 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
             jax.lax.stop_gradient(noises),
         )
 
-    def _refine_base_actions(self, observations, rng):
+    def _refine_base_actions(self, observations, rng, train=False):
+        # refine_train_base_prior: during refine_actor_loss ONLY, decode
+        # unit-Gaussian prior noise as the base (sweeps the behavior manifold
+        # so the ``base`` anchor is distribution-matched) while execution and
+        # critic targets keep the latent-actor base.
+        if train and self.config["refine_train_base_prior"]:
+            return self._drift_base_actions(observations, rng)
         if self.config["refine_base_source"] == "latent":
             return self._latent_base_actions(observations, rng)
         return self._drift_base_actions(observations, rng)
@@ -258,7 +264,7 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
 
     def refine_actor_loss(self, batch, grad_params, rng):
         observations = batch["observations"]
-        base, noises = self._refine_base_actions(observations, rng)
+        base, noises = self._refine_base_actions(observations, rng, train=True)
         refined, delta = self._refine(
             observations, base, params=grad_params
         )
@@ -275,7 +281,31 @@ class ANQSTDFPAgent(flax.struct.PyTreeNode):
             offset = delta
 
         norm_q = jax.lax.stop_gradient(1 / jnp.abs(q).mean())
-        loss = - norm_q * q.mean() + self.config["lam"] * ((offset**2).sum(axis=-1) * batch["valid"][..., -1]).mean()
+        # delta_budget > 0 switches the trust region to a hinge on the per-dim
+        # mean-square offset: no penalty inside the budget (pure Q-improvement),
+        # stiff wall beyond it.  Replaces per-task lam tuning and engages
+        # exactly when the critic starts dragging the policy off-distribution
+        # (the late-decay mechanism).
+        if self.config.get("delta_budget", 0.0) > 0.0:
+            sq_per_dim = (offset**2).mean(axis=-1)
+            viol = jnp.maximum(sq_per_dim - self.config["delta_budget"], 0.0)
+            loss = - norm_q * q.mean() + self.config.get("budget_lam", 10.0) * (viol * batch["valid"][..., -1]).mean()
+            return loss, {
+                "refine_actor_loss": loss,
+                "refine_q": q.mean(),
+                "delta_rms": jnp.sqrt(jnp.mean(jnp.square(delta))),
+                "offset_rms": jnp.sqrt(jnp.mean(jnp.square(offset))),
+                "budget_viol_frac": (sq_per_dim > self.config["delta_budget"]).mean(),
+            }
+        # lam_warmup_steps > 0 ramps the trust-region weight linearly from 0,
+        # letting delta grow before the anchor constrains it -- the base-anchor
+        # collapse (delta_rms ~ 1e-4 from step 0) is a penalty-dominated local
+        # minimum entered at init, so start without the penalty.
+        lam = self.config["lam"]
+        warm = self.config.get("lam_warmup_steps", 0)
+        if warm:
+            lam = lam * jnp.clip(self.network.step / warm, 0.0, 1.0)
+        loss = - norm_q * q.mean() + lam * ((offset**2).sum(axis=-1) * batch["valid"][..., -1]).mean()
 
         return loss, {
             "refine_actor_loss": loss,
@@ -729,6 +759,10 @@ def get_config():
             bfn_q_agg="mean",
             critic_expectile=0.5,
             refine_base_source="latent",
+            refine_train_base_prior=False,
+            lam_warmup_steps=0,
+            delta_budget=0.0,
+            budget_lam=10.0,
             target_base_mix=0.0,    # weight on Q(s', unrefined base) in the TD target
             noise_squash_tanh=False,  # True restores the (-1,1)^d bounded latent head
             latent_deterministic=True,  # False resamples z per step at action time

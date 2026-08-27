@@ -9,12 +9,14 @@ export CUDA_VISIBLE_DEVICES=$GPU
 export XLA_PYTHON_CLIENT_MEM_FRACTION=$MEMF
 export XLA_PYTHON_CLIENT_PREALLOCATE=false
 export MUJOCO_GL=egl
+export LD_LIBRARY_PATH=$HOME/.mujoco/mujoco210/bin:${LD_LIBRARY_PATH:-}
 export WANDB_MODE=offline
 export WANDB_SILENT=true
 export JAX_PLATFORMS=cuda
+export PYTHONWARNINGS="ignore::DeprecationWarning"
 nohup /venv/main/bin/python main.py \
   --agent="$AGENT" \
-  --env_name=${ENV_PREFIX:-antmaze-giant-navigate}-singletask-task${TASK}-v0 \
+  --env_name=${ENV_FULL:-${ENV_PREFIX:-antmaze-giant-navigate}-singletask-task${TASK}-v0} \
   --discount=${DISCOUNT:-0.995} \
   --offline_steps=${STEPS:-1000000} \
   --eval_interval=100000 \

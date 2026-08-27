@@ -13,3 +13,5 @@ exp_logs/
 hf_upload/
 runner/*.log
 runner/queue.txt
+*.pkl
+rql_hum/
